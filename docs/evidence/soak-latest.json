@@ -1,0 +1,1725 @@
+{
+  "running": false,
+  "startedAt": "2026-09-08T11:01:13.294Z",
+  "durationSeconds": 1800,
+  "frames": 73559,
+  "transitions": 75,
+  "samples": [
+    {
+      "seconds": 0,
+      "frames": 1,
+      "simulationSeconds": 0.13059999999403954,
+      "fps": 18,
+      "drawCalls": 0,
+      "meshes": 505,
+      "materials": 86,
+      "textures": 157,
+      "geometries": 505,
+      "chunks": 4,
+      "actors": 30,
+      "heapMB": 101,
+      "position": {
+        "x": 14,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "seconds": 20,
+      "frames": 1103,
+      "simulationSeconds": 19.995900000005925,
+      "fps": 60,
+      "drawCalls": 0,
+      "meshes": 845,
+      "materials": 92,
+      "textures": 162,
+      "geometries": 845,
+      "chunks": 9,
+      "actors": 39,
+      "heapMB": 182,
+      "position": {
+        "x": 31.04854219117259,
+        "y": 0,
+        "z": 23.412465420564864
+      }
+    },
+    {
+      "seconds": 40,
+      "frames": 2075,
+      "simulationSeconds": 39.8156000000088,
+      "fps": 48,
+      "drawCalls": 0,
+      "meshes": 968,
+      "materials": 105,
+      "textures": 178,
+      "geometries": 968,
+      "chunks": 9,
+      "actors": 87,
+      "heapMB": 156,
+      "position": {
+        "x": 546.2471769263404,
+        "y": 5.68383965335212,
+        "z": 413.3682577009242
+      }
+    },
+    {
+      "seconds": 60,
+      "frames": 2903,
+      "simulationSeconds": 58.66520000001788,
+      "fps": 37,
+      "drawCalls": 0,
+      "meshes": 1040,
+      "materials": 122,
+      "textures": 213,
+      "geometries": 1040,
+      "chunks": 9,
+      "actors": 138,
+      "heapMB": 153,
+      "position": {
+        "x": -662.3949736235684,
+        "y": -13.76987120410959,
+        "z": 611.7350906181288
+      }
+    },
+    {
+      "seconds": 80,
+      "frames": 3691,
+      "simulationSeconds": 78.03800000001524,
+      "fps": 39,
+      "drawCalls": 0,
+      "meshes": 991,
+      "materials": 131,
+      "textures": 221,
+      "geometries": 991,
+      "chunks": 9,
+      "actors": 186,
+      "heapMB": 306,
+      "position": {
+        "x": 692.3538555616358,
+        "y": 15.888534828185195,
+        "z": -503.8053996143176
+      }
+    },
+    {
+      "seconds": 100,
+      "frames": 4616,
+      "simulationSeconds": 97.71350000003036,
+      "fps": 69,
+      "drawCalls": 0,
+      "meshes": 569,
+      "materials": 135,
+      "textures": 225,
+      "geometries": 569,
+      "chunks": 9,
+      "actors": 203,
+      "heapMB": 151,
+      "position": {
+        "x": -591.1732283174707,
+        "y": 21.63881035149679,
+        "z": -468.0082268807658
+      }
+    },
+    {
+      "seconds": 120,
+      "frames": 6015,
+      "simulationSeconds": 117.73660000002423,
+      "fps": 54,
+      "drawCalls": 0,
+      "meshes": 354,
+      "materials": 141,
+      "textures": 231,
+      "geometries": 354,
+      "chunks": 5,
+      "actors": 204,
+      "heapMB": 186,
+      "position": {
+        "x": -1132.080816803429,
+        "y": -18.854554467617845,
+        "z": 1.5197811608047516
+      }
+    },
+    {
+      "seconds": 140,
+      "frames": 6861,
+      "simulationSeconds": 137.62490000003626,
+      "fps": 45,
+      "drawCalls": 0,
+      "meshes": 903,
+      "materials": 141,
+      "textures": 231,
+      "geometries": 903,
+      "chunks": 9,
+      "actors": 244,
+      "heapMB": 309,
+      "position": {
+        "x": -1122.521133121898,
+        "y": -19.58033541407247,
+        "z": 11.077355364236736
+      }
+    },
+    {
+      "seconds": 160,
+      "frames": 7791,
+      "simulationSeconds": 157.51710000005428,
+      "fps": 43,
+      "drawCalls": 0,
+      "meshes": 927,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 927,
+      "chunks": 9,
+      "actors": 286,
+      "heapMB": 196,
+      "position": {
+        "x": -1231.691094151214,
+        "y": -18.29984510579038,
+        "z": 712.7630744899996
+      }
+    },
+    {
+      "seconds": 180,
+      "frames": 8899,
+      "simulationSeconds": 177.2450000000455,
+      "fps": 62,
+      "drawCalls": 0,
+      "meshes": 711,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 711,
+      "chunks": 9,
+      "actors": 299,
+      "heapMB": 315,
+      "position": {
+        "x": 121.89707462280509,
+        "y": -4.163242109809422,
+        "z": 266.076310842327
+      }
+    },
+    {
+      "seconds": 200,
+      "frames": 9979,
+      "simulationSeconds": 197.2141000000548,
+      "fps": 48,
+      "drawCalls": 0,
+      "meshes": 843,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 843,
+      "chunks": 9,
+      "actors": 301,
+      "heapMB": 380,
+      "position": {
+        "x": 30.31724434321109,
+        "y": 0,
+        "z": 23.699504869128877
+      }
+    },
+    {
+      "seconds": 220,
+      "frames": 10973,
+      "simulationSeconds": 216.9297000000487,
+      "fps": 40,
+      "drawCalls": 0,
+      "meshes": 982,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 982,
+      "chunks": 9,
+      "actors": 303,
+      "heapMB": 200,
+      "position": {
+        "x": 538.7759210767549,
+        "y": 5.903021767859056,
+        "z": 412.57925565721075
+      }
+    },
+    {
+      "seconds": 240,
+      "frames": 11746,
+      "simulationSeconds": 236.86300000004564,
+      "fps": 35,
+      "drawCalls": 0,
+      "meshes": 829,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 829,
+      "chunks": 3,
+      "actors": 304,
+      "heapMB": 318,
+      "position": {
+        "x": -674.8912688625924,
+        "y": -13.886622947729759,
+        "z": 593.0078851073943
+      }
+    },
+    {
+      "seconds": 260,
+      "frames": 12476,
+      "simulationSeconds": 256.6339000000368,
+      "fps": 36,
+      "drawCalls": 0,
+      "meshes": 1021,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1021,
+      "chunks": 9,
+      "actors": 306,
+      "heapMB": 385,
+      "position": {
+        "x": -669.414144534364,
+        "y": -14.049089466994294,
+        "z": 612.1054705058325
+      }
+    },
+    {
+      "seconds": 280,
+      "frames": 13215,
+      "simulationSeconds": 276.3938000000288,
+      "fps": 40,
+      "drawCalls": 0,
+      "meshes": 1059,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1059,
+      "chunks": 9,
+      "actors": 308,
+      "heapMB": 543,
+      "position": {
+        "x": 691.5588153266407,
+        "y": 15.802427095354629,
+        "z": -504.55641639180044
+      }
+    },
+    {
+      "seconds": 300,
+      "frames": 14296,
+      "simulationSeconds": 296.2624000000231,
+      "fps": 71,
+      "drawCalls": 0,
+      "meshes": 637,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 637,
+      "chunks": 9,
+      "actors": 309,
+      "heapMB": 172,
+      "position": {
+        "x": -577.5248914985451,
+        "y": 19.957017704434236,
+        "z": -458.4210182046948
+      }
+    },
+    {
+      "seconds": 320,
+      "frames": 15421,
+      "simulationSeconds": 316.05050000003314,
+      "fps": 39,
+      "drawCalls": 0,
+      "meshes": 934,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 934,
+      "chunks": 9,
+      "actors": 311,
+      "heapMB": 194,
+      "position": {
+        "x": -1123.5773458724284,
+        "y": -19.586356006005605,
+        "z": 10.814542090412049
+      }
+    },
+    {
+      "seconds": 340,
+      "frames": 16265,
+      "simulationSeconds": 335.89930000004586,
+      "fps": 39,
+      "drawCalls": 0,
+      "meshes": 941,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 941,
+      "chunks": 9,
+      "actors": 313,
+      "heapMB": 306,
+      "position": {
+        "x": -1245.8119826393465,
+        "y": -15.608146438549014,
+        "z": 696.9207218924818
+      }
+    },
+    {
+      "seconds": 360,
+      "frames": 17053,
+      "simulationSeconds": 355.7653000000473,
+      "fps": 32,
+      "drawCalls": 0,
+      "meshes": 741,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 741,
+      "chunks": 9,
+      "actors": 314,
+      "heapMB": 406,
+      "position": {
+        "x": 110.00138749566408,
+        "y": -3.301712661579174,
+        "z": 251.3699971093801
+      }
+    },
+    {
+      "seconds": 380,
+      "frames": 18261,
+      "simulationSeconds": 375.7683000000614,
+      "fps": 57,
+      "drawCalls": 0,
+      "meshes": 784,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 784,
+      "chunks": 9,
+      "actors": 316,
+      "heapMB": 468,
+      "position": {
+        "x": 121.12082594511136,
+        "y": -4.2701074535352594,
+        "z": 265.93299263798986
+      }
+    },
+    {
+      "seconds": 400,
+      "frames": 19239,
+      "simulationSeconds": 395.74470000005255,
+      "fps": 52,
+      "drawCalls": 0,
+      "meshes": 890,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 890,
+      "chunks": 9,
+      "actors": 318,
+      "heapMB": 541,
+      "position": {
+        "x": 30.08869721217854,
+        "y": 0,
+        "z": 23.51016764632119
+      }
+    },
+    {
+      "seconds": 420,
+      "frames": 20112,
+      "simulationSeconds": 415.42750000005,
+      "fps": 39,
+      "drawCalls": 0,
+      "meshes": 1044,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1044,
+      "chunks": 9,
+      "actors": 319,
+      "heapMB": 252,
+      "position": {
+        "x": 543.6318970846127,
+        "y": 5.835295661937604,
+        "z": 412.5516086738513
+      }
+    },
+    {
+      "seconds": 441,
+      "frames": 20865,
+      "simulationSeconds": 435.15410000007506,
+      "fps": 36,
+      "drawCalls": 0,
+      "meshes": 1026,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1026,
+      "chunks": 9,
+      "actors": 321,
+      "heapMB": 417,
+      "position": {
+        "x": -669.450648849536,
+        "y": -14.049089466994294,
+        "z": 612.141575316666
+      }
+    },
+    {
+      "seconds": 461,
+      "frames": 21577,
+      "simulationSeconds": 454.8707000000848,
+      "fps": 37,
+      "drawCalls": 0,
+      "meshes": 1073,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1073,
+      "chunks": 9,
+      "actors": 323,
+      "heapMB": 540,
+      "position": {
+        "x": 686.6573272062492,
+        "y": 15.681351041884373,
+        "z": -506.42276036508514
+      }
+    },
+    {
+      "seconds": 481,
+      "frames": 22375,
+      "simulationSeconds": 474.72530000007924,
+      "fps": 33,
+      "drawCalls": 0,
+      "meshes": 651,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 651,
+      "chunks": 9,
+      "actors": 324,
+      "heapMB": 627,
+      "position": {
+        "x": -598.0878748027078,
+        "y": 16.48457151745914,
+        "z": -476.4251546259586
+      }
+    },
+    {
+      "seconds": 501,
+      "frames": 23676,
+      "simulationSeconds": 494.72740000007366,
+      "fps": 67,
+      "drawCalls": 0,
+      "meshes": 681,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 681,
+      "chunks": 9,
+      "actors": 326,
+      "heapMB": 671,
+      "position": {
+        "x": -578.1256435163294,
+        "y": 19.990411203859058,
+        "z": -458.70320891208314
+      }
+    },
+    {
+      "seconds": 521,
+      "frames": 24581,
+      "simulationSeconds": 514.495500000098,
+      "fps": 44,
+      "drawCalls": 0,
+      "meshes": 981,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 981,
+      "chunks": 9,
+      "actors": 328,
+      "heapMB": 249,
+      "position": {
+        "x": -1124.098847488353,
+        "y": -19.584846163785848,
+        "z": 10.782480533035569
+      }
+    },
+    {
+      "seconds": 541,
+      "frames": 25412,
+      "simulationSeconds": 534.3173000000961,
+      "fps": 38,
+      "drawCalls": 0,
+      "meshes": 961,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 961,
+      "chunks": 9,
+      "actors": 329,
+      "heapMB": 343,
+      "position": {
+        "x": -1245.7239659509278,
+        "y": -15.573331224108983,
+        "z": 706.8733036124663
+      }
+    },
+    {
+      "seconds": 561,
+      "frames": 26286,
+      "simulationSeconds": 554.0947000001058,
+      "fps": 58,
+      "drawCalls": 0,
+      "meshes": 782,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 782,
+      "chunks": 9,
+      "actors": 331,
+      "heapMB": 451,
+      "position": {
+        "x": 120.44962182778995,
+        "y": -4.352732778771322,
+        "z": 265.74981576531746
+      }
+    },
+    {
+      "seconds": 581,
+      "frames": 27362,
+      "simulationSeconds": 574.0355000001201,
+      "fps": 44,
+      "drawCalls": 0,
+      "meshes": 859,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 859,
+      "chunks": 9,
+      "actors": 333,
+      "heapMB": 517,
+      "position": {
+        "x": 19.883129011300273,
+        "y": 0,
+        "z": 10.419987476434198
+      }
+    },
+    {
+      "seconds": 601,
+      "frames": 28291,
+      "simulationSeconds": 593.8289000001262,
+      "fps": 31,
+      "drawCalls": 0,
+      "meshes": 1095,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1095,
+      "chunks": 9,
+      "actors": 334,
+      "heapMB": 655,
+      "position": {
+        "x": 536.2016435995466,
+        "y": 5.5406471603861505,
+        "z": 403.5158215198671
+      }
+    },
+    {
+      "seconds": 621,
+      "frames": 29103,
+      "simulationSeconds": 613.8233000001339,
+      "fps": 42,
+      "drawCalls": 0,
+      "meshes": 1043,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1043,
+      "chunks": 9,
+      "actors": 336,
+      "heapMB": 238,
+      "position": {
+        "x": 543.9220119698028,
+        "y": 5.843593411666021,
+        "z": 412.61586148922805
+      }
+    },
+    {
+      "seconds": 641,
+      "frames": 29808,
+      "simulationSeconds": 633.5352000001235,
+      "fps": 35,
+      "drawCalls": 0,
+      "meshes": 1043,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1043,
+      "chunks": 9,
+      "actors": 338,
+      "heapMB": 425,
+      "position": {
+        "x": -669.451314501998,
+        "y": -14.049089466994294,
+        "z": 612.1178652532466
+      }
+    },
+    {
+      "seconds": 661,
+      "frames": 30514,
+      "simulationSeconds": 653.2464000001438,
+      "fps": 40,
+      "drawCalls": 0,
+      "meshes": 1105,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1105,
+      "chunks": 9,
+      "actors": 339,
+      "heapMB": 655,
+      "position": {
+        "x": 691.3929215819621,
+        "y": 15.786038815203138,
+        "z": -504.82360108113676
+      }
+    },
+    {
+      "seconds": 681,
+      "frames": 31463,
+      "simulationSeconds": 673.0949000001452,
+      "fps": 61,
+      "drawCalls": 0,
+      "meshes": 694,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 694,
+      "chunks": 9,
+      "actors": 341,
+      "heapMB": 716,
+      "position": {
+        "x": -579.1075447087454,
+        "y": 20.092304242080846,
+        "z": -458.748450313347
+      }
+    },
+    {
+      "seconds": 701,
+      "frames": 32591,
+      "simulationSeconds": 692.8625000001545,
+      "fps": 41,
+      "drawCalls": 0,
+      "meshes": 995,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 995,
+      "chunks": 9,
+      "actors": 343,
+      "heapMB": 266,
+      "position": {
+        "x": -1129.157903894305,
+        "y": -19.59903608276932,
+        "z": 10.809293467643677
+      }
+    },
+    {
+      "seconds": 721,
+      "frames": 33366,
+      "simulationSeconds": 712.6253000001533,
+      "fps": 29,
+      "drawCalls": 0,
+      "meshes": 1007,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1007,
+      "chunks": 9,
+      "actors": 344,
+      "heapMB": 350,
+      "position": {
+        "x": -1251.1596303435608,
+        "y": -14.832495470232407,
+        "z": 688.3312776492597
+      }
+    },
+    {
+      "seconds": 741,
+      "frames": 34112,
+      "simulationSeconds": 732.6251000001658,
+      "fps": 35,
+      "drawCalls": 0,
+      "meshes": 1005,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1005,
+      "chunks": 9,
+      "actors": 346,
+      "heapMB": 407,
+      "position": {
+        "x": -1245.7236698568431,
+        "y": -15.573331224108983,
+        "z": 706.9581317649764
+      }
+    },
+    {
+      "seconds": 761,
+      "frames": 35091,
+      "simulationSeconds": 752.4219000001654,
+      "fps": 54,
+      "drawCalls": 0,
+      "meshes": 841,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 841,
+      "chunks": 9,
+      "actors": 348,
+      "heapMB": 509,
+      "position": {
+        "x": 119.63882154262612,
+        "y": -4.437663198573712,
+        "z": 265.3631050260621
+      }
+    },
+    {
+      "seconds": 781,
+      "frames": 36020,
+      "simulationSeconds": 772.3586000001698,
+      "fps": 49,
+      "drawCalls": 0,
+      "meshes": 936,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 936,
+      "chunks": 9,
+      "actors": 349,
+      "heapMB": 584,
+      "position": {
+        "x": 28.835353871656075,
+        "y": 0,
+        "z": 23.00423897454941
+      }
+    },
+    {
+      "seconds": 801,
+      "frames": 36890,
+      "simulationSeconds": 792.0424000001682,
+      "fps": 34,
+      "drawCalls": 0,
+      "meshes": 1041,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1041,
+      "chunks": 9,
+      "actors": 351,
+      "heapMB": 237,
+      "position": {
+        "x": 544.3377187616265,
+        "y": 5.8301666332482265,
+        "z": 412.57727832233934
+      }
+    },
+    {
+      "seconds": 821,
+      "frames": 37640,
+      "simulationSeconds": 811.6412000001669,
+      "fps": 34,
+      "drawCalls": 0,
+      "meshes": 1027,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1027,
+      "chunks": 9,
+      "actors": 353,
+      "heapMB": 332,
+      "position": {
+        "x": -671.4676612970198,
+        "y": -14.049089466994294,
+        "z": 612.1413920233125
+      }
+    },
+    {
+      "seconds": 841,
+      "frames": 38197,
+      "simulationSeconds": 831.3990000001786,
+      "fps": 20,
+      "drawCalls": 0,
+      "meshes": 1040,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1040,
+      "chunks": 9,
+      "actors": 354,
+      "heapMB": 960,
+      "position": {
+        "x": 683.9352182397853,
+        "y": 16.168730696099075,
+        "z": -515.4693740670564
+      }
+    },
+    {
+      "seconds": 861,
+      "frames": 39011,
+      "simulationSeconds": 851.3993000001905,
+      "fps": 43,
+      "drawCalls": 0,
+      "meshes": 1108,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1108,
+      "chunks": 9,
+      "actors": 356,
+      "heapMB": 1013,
+      "position": {
+        "x": 691.2286073590208,
+        "y": 15.76961389251183,
+        "z": -505.0279620689605
+      }
+    },
+    {
+      "seconds": 881,
+      "frames": 40069,
+      "simulationSeconds": 871.2215000001959,
+      "fps": 59,
+      "drawCalls": 0,
+      "meshes": 742,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 742,
+      "chunks": 9,
+      "actors": 358,
+      "heapMB": 282,
+      "position": {
+        "x": -580.4143093444504,
+        "y": 20.243024890609046,
+        "z": -459.22183264256125
+      }
+    },
+    {
+      "seconds": 901,
+      "frames": 41007,
+      "simulationSeconds": 890.9952000002013,
+      "fps": 39,
+      "drawCalls": 0,
+      "meshes": 1027,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1027,
+      "chunks": 9,
+      "actors": 359,
+      "heapMB": 392,
+      "position": {
+        "x": -1124.3852144241835,
+        "y": -19.588319782838116,
+        "z": 10.813586717976618
+      }
+    },
+    {
+      "seconds": 921,
+      "frames": 41810,
+      "simulationSeconds": 910.7913000001823,
+      "fps": 40,
+      "drawCalls": 0,
+      "meshes": 1003,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1003,
+      "chunks": 9,
+      "actors": 361,
+      "heapMB": 500,
+      "position": {
+        "x": -1245.739251589429,
+        "y": -15.573331224108983,
+        "z": 706.9533329417122
+      }
+    },
+    {
+      "seconds": 941,
+      "frames": 42588,
+      "simulationSeconds": 930.5582000001878,
+      "fps": 48,
+      "drawCalls": 0,
+      "meshes": 854,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 854,
+      "chunks": 9,
+      "actors": 363,
+      "heapMB": 635,
+      "position": {
+        "x": 113.92482149919081,
+        "y": -4.784144679692173,
+        "z": 260.44377749909745
+      }
+    },
+    {
+      "seconds": 961,
+      "frames": 43701,
+      "simulationSeconds": 950.5093000001863,
+      "fps": 38,
+      "drawCalls": 0,
+      "meshes": 905,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 905,
+      "chunks": 9,
+      "actors": 364,
+      "heapMB": 696,
+      "position": {
+        "x": 14.042476520897742,
+        "y": 0,
+        "z": 3.54911726506656
+      }
+    },
+    {
+      "seconds": 981,
+      "frames": 44590,
+      "simulationSeconds": 970.481000000189,
+      "fps": 47,
+      "drawCalls": 0,
+      "meshes": 1010,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1010,
+      "chunks": 9,
+      "actors": 366,
+      "heapMB": 272,
+      "position": {
+        "x": 28.494417170773737,
+        "y": 0,
+        "z": 22.67949487532486
+      }
+    },
+    {
+      "seconds": 1001,
+      "frames": 45402,
+      "simulationSeconds": 990.099800000172,
+      "fps": 39,
+      "drawCalls": 0,
+      "meshes": 1043,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1043,
+      "chunks": 9,
+      "actors": 368,
+      "heapMB": 357,
+      "position": {
+        "x": 543.8055858488566,
+        "y": 5.841173812975687,
+        "z": 412.5953456475714
+      }
+    },
+    {
+      "seconds": 1021,
+      "frames": 46062,
+      "simulationSeconds": 1009.6731000001548,
+      "fps": 24,
+      "drawCalls": 0,
+      "meshes": 1044,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1044,
+      "chunks": 9,
+      "actors": 369,
+      "heapMB": 348,
+      "position": {
+        "x": -669.434843830706,
+        "y": -14.049089466994294,
+        "z": 612.1650909416501
+      }
+    },
+    {
+      "seconds": 1041,
+      "frames": 46635,
+      "simulationSeconds": 1029.1513000001112,
+      "fps": 38,
+      "drawCalls": 0,
+      "meshes": 1106,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1106,
+      "chunks": 9,
+      "actors": 371,
+      "heapMB": 410,
+      "position": {
+        "x": 690.7336012263729,
+        "y": 15.721904775836828,
+        "z": -505.7690995462596
+      }
+    },
+    {
+      "seconds": 1061,
+      "frames": 47443,
+      "simulationSeconds": 1048.9397000000977,
+      "fps": 48,
+      "drawCalls": 0,
+      "meshes": 756,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 756,
+      "chunks": 9,
+      "actors": 373,
+      "heapMB": 338,
+      "position": {
+        "x": -591.6327308438581,
+        "y": 21.644705603411275,
+        "z": -467.98645064737633
+      }
+    },
+    {
+      "seconds": 1081,
+      "frames": 48522,
+      "simulationSeconds": 1068.6802000001035,
+      "fps": 32,
+      "drawCalls": 0,
+      "meshes": 1041,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1041,
+      "chunks": 9,
+      "actors": 374,
+      "heapMB": 445,
+      "position": {
+        "x": -1132.0760614529536,
+        "y": -18.86022718179231,
+        "z": 2.092519087025706
+      }
+    },
+    {
+      "seconds": 1101,
+      "frames": 49291,
+      "simulationSeconds": 1088.6992000000973,
+      "fps": 40,
+      "drawCalls": 0,
+      "meshes": 1041,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1041,
+      "chunks": 9,
+      "actors": 376,
+      "heapMB": 365,
+      "position": {
+        "x": -1124.7971249976124,
+        "y": -19.58654896584204,
+        "z": 10.780715226519373
+      }
+    },
+    {
+      "seconds": 1121,
+      "frames": 50012,
+      "simulationSeconds": 1108.4748000001161,
+      "fps": 33,
+      "drawCalls": 0,
+      "meshes": 1006,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1006,
+      "chunks": 9,
+      "actors": 378,
+      "heapMB": 369,
+      "position": {
+        "x": -1245.7304339413984,
+        "y": -15.573331224108983,
+        "z": 706.9357003407524
+      }
+    },
+    {
+      "seconds": 1141,
+      "frames": 50866,
+      "simulationSeconds": 1128.2325000001224,
+      "fps": 52,
+      "drawCalls": 0,
+      "meshes": 875,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 875,
+      "chunks": 9,
+      "actors": 379,
+      "heapMB": 355,
+      "position": {
+        "x": 118.96146425717875,
+        "y": -4.497361444233391,
+        "z": 264.86173472432404
+      }
+    },
+    {
+      "seconds": 1161,
+      "frames": 51779,
+      "simulationSeconds": 1148.154900000129,
+      "fps": 38,
+      "drawCalls": 0,
+      "meshes": 993,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 993,
+      "chunks": 9,
+      "actors": 385,
+      "heapMB": 338,
+      "position": {
+        "x": 19.463082464916553,
+        "y": 0,
+        "z": 20.45949684208625
+      }
+    },
+    {
+      "seconds": 1181,
+      "frames": 52564,
+      "simulationSeconds": 1167.8659000001053,
+      "fps": 41,
+      "drawCalls": 0,
+      "meshes": 1042,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1042,
+      "chunks": 9,
+      "actors": 387,
+      "heapMB": 359,
+      "position": {
+        "x": 539.1614802823086,
+        "y": 5.90025022526053,
+        "z": 412.60143862125074
+      }
+    },
+    {
+      "seconds": 1201,
+      "frames": 53345,
+      "simulationSeconds": 1187.5822000000992,
+      "fps": 26,
+      "drawCalls": 2292,
+      "meshes": 1002,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1002,
+      "chunks": 9,
+      "actors": 388,
+      "heapMB": 473,
+      "position": {
+        "x": -674.8824017526329,
+        "y": -13.911650369250696,
+        "z": 594.0624636773393
+      }
+    },
+    {
+      "seconds": 1221,
+      "frames": 53857,
+      "simulationSeconds": 1207.0960000000628,
+      "fps": 22,
+      "drawCalls": 2287,
+      "meshes": 1036,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1036,
+      "chunks": 9,
+      "actors": 390,
+      "heapMB": 539,
+      "position": {
+        "x": -669.4155268862785,
+        "y": -14.049089466994294,
+        "z": 612.1664302977138
+      }
+    },
+    {
+      "seconds": 1241,
+      "frames": 54518,
+      "simulationSeconds": 1226.5369000000471,
+      "fps": 38,
+      "drawCalls": 2044,
+      "meshes": 1108,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1108,
+      "chunks": 9,
+      "actors": 392,
+      "heapMB": 386,
+      "position": {
+        "x": 690.6278496116477,
+        "y": 15.711758928830957,
+        "z": -505.8772053801174
+      }
+    },
+    {
+      "seconds": 1261,
+      "frames": 55394,
+      "simulationSeconds": 1246.350800000051,
+      "fps": 49,
+      "drawCalls": 1455,
+      "meshes": 788,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 788,
+      "chunks": 9,
+      "actors": 393,
+      "heapMB": 384,
+      "position": {
+        "x": -582.7230498311917,
+        "y": 20.732956138002823,
+        "z": -460.473227116981
+      }
+    },
+    {
+      "seconds": 1281,
+      "frames": 56308,
+      "simulationSeconds": 1266.1250000000418,
+      "fps": 39,
+      "drawCalls": 1989,
+      "meshes": 1039,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1039,
+      "chunks": 9,
+      "actors": 395,
+      "heapMB": 387,
+      "position": {
+        "x": -1124.712443984604,
+        "y": -19.58835314912921,
+        "z": 10.804392805328705
+      }
+    },
+    {
+      "seconds": 1301,
+      "frames": 57079,
+      "simulationSeconds": 1285.9245000000353,
+      "fps": 42,
+      "drawCalls": 1852,
+      "meshes": 1005,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1005,
+      "chunks": 9,
+      "actors": 397,
+      "heapMB": 387,
+      "position": {
+        "x": -1246.932065968903,
+        "y": -15.573331224108983,
+        "z": 706.8875469720475
+      }
+    },
+    {
+      "seconds": 1321,
+      "frames": 57758,
+      "simulationSeconds": 1305.6792000000366,
+      "fps": 25,
+      "drawCalls": 1815,
+      "meshes": 895,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 895,
+      "chunks": 9,
+      "actors": 398,
+      "heapMB": 514,
+      "position": {
+        "x": 110.00592728959651,
+        "y": -3.347727860771294,
+        "z": 251.79325102011626
+      }
+    },
+    {
+      "seconds": 1341,
+      "frames": 58738,
+      "simulationSeconds": 1325.6744000000474,
+      "fps": 49,
+      "drawCalls": 1594,
+      "meshes": 949,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 949,
+      "chunks": 9,
+      "actors": 400,
+      "heapMB": 433,
+      "position": {
+        "x": 118.6184973515287,
+        "y": -4.5257810590684455,
+        "z": 264.57081817799434
+      }
+    },
+    {
+      "seconds": 1361,
+      "frames": 59496,
+      "simulationSeconds": 1345.5853000000404,
+      "fps": 36,
+      "drawCalls": 2165,
+      "meshes": 1093,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1093,
+      "chunks": 9,
+      "actors": 402,
+      "heapMB": 406,
+      "position": {
+        "x": 19.47394450024915,
+        "y": 0,
+        "z": 20.468993177212575
+      }
+    },
+    {
+      "seconds": 1381,
+      "frames": 60304,
+      "simulationSeconds": 1365.2956000000363,
+      "fps": 41,
+      "drawCalls": 1999,
+      "meshes": 1044,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1044,
+      "chunks": 9,
+      "actors": 403,
+      "heapMB": 469,
+      "position": {
+        "x": 544.2887646377154,
+        "y": 5.830335669567832,
+        "z": 412.57469633581485
+      }
+    },
+    {
+      "seconds": 1401,
+      "frames": 61030,
+      "simulationSeconds": 1385.0234000000303,
+      "fps": 27,
+      "drawCalls": 2266,
+      "meshes": 1040,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1040,
+      "chunks": 9,
+      "actors": 405,
+      "heapMB": 554,
+      "position": {
+        "x": -669.4407839870807,
+        "y": -14.049089466994294,
+        "z": 612.0985642197943
+      }
+    },
+    {
+      "seconds": 1421,
+      "frames": 61586,
+      "simulationSeconds": 1404.439700000012,
+      "fps": 39,
+      "drawCalls": 2079,
+      "meshes": 1111,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1111,
+      "chunks": 9,
+      "actors": 407,
+      "heapMB": 489,
+      "position": {
+        "x": 686.4645340721686,
+        "y": 15.67945965960665,
+        "z": -506.4084603417695
+      }
+    },
+    {
+      "seconds": 1441,
+      "frames": 62361,
+      "simulationSeconds": 1424.2290000000014,
+      "fps": 30,
+      "drawCalls": 1854,
+      "meshes": 881,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 881,
+      "chunks": 9,
+      "actors": 408,
+      "heapMB": 579,
+      "position": {
+        "x": -598.0783984778824,
+        "y": 17.185113823375758,
+        "z": -475.81917304122663
+      }
+    },
+    {
+      "seconds": 1461,
+      "frames": 63335,
+      "simulationSeconds": 1444.2458000000047,
+      "fps": 55,
+      "drawCalls": 1481,
+      "meshes": 832,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 832,
+      "chunks": 9,
+      "actors": 410,
+      "heapMB": 443,
+      "position": {
+        "x": -582.8586170594143,
+        "y": 20.74981642830601,
+        "z": -460.68711740327956
+      }
+    },
+    {
+      "seconds": 1481,
+      "frames": 64146,
+      "simulationSeconds": 1463.9795000000177,
+      "fps": 39,
+      "drawCalls": 1989,
+      "meshes": 1041,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1041,
+      "chunks": 9,
+      "actors": 412,
+      "heapMB": 461,
+      "position": {
+        "x": -1124.774784833766,
+        "y": -19.58583875485555,
+        "z": 10.773096639748637
+      }
+    },
+    {
+      "seconds": 1501,
+      "frames": 64886,
+      "simulationSeconds": 1483.7654000000018,
+      "fps": 35,
+      "drawCalls": 2285,
+      "meshes": 1006,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1006,
+      "chunks": 9,
+      "actors": 413,
+      "heapMB": 476,
+      "position": {
+        "x": -1245.7139366701547,
+        "y": -15.573331224108983,
+        "z": 706.9740922581161
+      }
+    },
+    {
+      "seconds": 1521,
+      "frames": 65625,
+      "simulationSeconds": 1503.4941999999978,
+      "fps": 47,
+      "drawCalls": 1628,
+      "meshes": 932,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 932,
+      "chunks": 9,
+      "actors": 415,
+      "heapMB": 470,
+      "position": {
+        "x": 118.08334081710605,
+        "y": -4.573476623867916,
+        "z": 264.2106217154064
+      }
+    },
+    {
+      "seconds": 1541,
+      "frames": 66518,
+      "simulationSeconds": 1523.364999999998,
+      "fps": 37,
+      "drawCalls": 2056,
+      "meshes": 1077,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1077,
+      "chunks": 9,
+      "actors": 417,
+      "heapMB": 529,
+      "position": {
+        "x": 18.482670905918095,
+        "y": 0,
+        "z": 20.347857108627384
+      }
+    },
+    {
+      "seconds": 1561,
+      "frames": 67204,
+      "simulationSeconds": 1543.0631999999962,
+      "fps": 24,
+      "drawCalls": 2478,
+      "meshes": 1095,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1095,
+      "chunks": 9,
+      "actors": 418,
+      "heapMB": 547,
+      "position": {
+        "x": 536.2041105426775,
+        "y": 5.549759354277729,
+        "z": 403.804780770261
+      }
+    },
+    {
+      "seconds": 1581,
+      "frames": 67898,
+      "simulationSeconds": 1563.073499999989,
+      "fps": 35,
+      "drawCalls": 2050,
+      "meshes": 1043,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1043,
+      "chunks": 9,
+      "actors": 420,
+      "heapMB": 448,
+      "position": {
+        "x": 543.0577380366445,
+        "y": 5.840679501825458,
+        "z": 412.5347952518356
+      }
+    },
+    {
+      "seconds": 1601,
+      "frames": 68314,
+      "simulationSeconds": 1579.7790999999459,
+      "fps": 14,
+      "drawCalls": 2251,
+      "meshes": 1039,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1039,
+      "chunks": 9,
+      "actors": 422,
+      "heapMB": 690,
+      "position": {
+        "x": -669.4359108133402,
+        "y": -14.049089466994294,
+        "z": 612.1505450147838
+      }
+    },
+    {
+      "seconds": 1621,
+      "frames": 68719,
+      "simulationSeconds": 1596.0610999999446,
+      "fps": 30,
+      "drawCalls": 2104,
+      "meshes": 1113,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1113,
+      "chunks": 9,
+      "actors": 423,
+      "heapMB": 474,
+      "position": {
+        "x": 688.943081885559,
+        "y": 15.693605526789176,
+        "z": -506.4201855361303
+      }
+    },
+    {
+      "seconds": 1641,
+      "frames": 69333,
+      "simulationSeconds": 1615.4965999999433,
+      "fps": 38,
+      "drawCalls": 1523,
+      "meshes": 845,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 845,
+      "chunks": 9,
+      "actors": 425,
+      "heapMB": 529,
+      "position": {
+        "x": -589.652098989466,
+        "y": 21.724272816679264,
+        "z": -454.00845801571865
+      }
+    },
+    {
+      "seconds": 1661,
+      "frames": 69958,
+      "simulationSeconds": 1635.0527999999458,
+      "fps": 29,
+      "drawCalls": 1925,
+      "meshes": 1034,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1034,
+      "chunks": 9,
+      "actors": 427,
+      "heapMB": 633,
+      "position": {
+        "x": -1130.2050478548324,
+        "y": -19.59650907063036,
+        "z": 10.737111588599161
+      }
+    },
+    {
+      "seconds": 1681,
+      "frames": 70505,
+      "simulationSeconds": 1654.7298999999425,
+      "fps": 18,
+      "drawCalls": 2416,
+      "meshes": 1035,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1035,
+      "chunks": 9,
+      "actors": 428,
+      "heapMB": 751,
+      "position": {
+        "x": -1251.1611045297404,
+        "y": -14.818167153206387,
+        "z": 688.134723177465
+      }
+    },
+    {
+      "seconds": 1701,
+      "frames": 71028,
+      "simulationSeconds": 1674.6574999999393,
+      "fps": 26,
+      "drawCalls": 2322,
+      "meshes": 1005,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1005,
+      "chunks": 9,
+      "actors": 430,
+      "heapMB": 810,
+      "position": {
+        "x": -1245.705902669164,
+        "y": -15.573331224108983,
+        "z": 706.9675693905592
+      }
+    },
+    {
+      "seconds": 1721,
+      "frames": 71666,
+      "simulationSeconds": 1694.1958999999415,
+      "fps": 36,
+      "drawCalls": 1753,
+      "meshes": 978,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 978,
+      "chunks": 9,
+      "actors": 432,
+      "heapMB": 940,
+      "position": {
+        "x": 115.95058658328678,
+        "y": -4.742011757558197,
+        "z": 261.46000505773594
+      }
+    },
+    {
+      "seconds": 1741,
+      "frames": 72249,
+      "simulationSeconds": 1713.5225999999425,
+      "fps": 18,
+      "drawCalls": 2309,
+      "meshes": 1124,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1124,
+      "chunks": 9,
+      "actors": 433,
+      "heapMB": 491,
+      "position": {
+        "x": 19.460380847663625,
+        "y": 0,
+        "z": 20.4125261597248
+      }
+    },
+    {
+      "seconds": 1762,
+      "frames": 72753,
+      "simulationSeconds": 1732.8424999999322,
+      "fps": 30,
+      "drawCalls": 1944,
+      "meshes": 1041,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1041,
+      "chunks": 9,
+      "actors": 435,
+      "heapMB": 596,
+      "position": {
+        "x": 541.24300064485,
+        "y": 5.878085147162162,
+        "z": 412.62139711911374
+      }
+    },
+    {
+      "seconds": 1782,
+      "frames": 73269,
+      "simulationSeconds": 1752.0806999999372,
+      "fps": 23,
+      "drawCalls": 2080,
+      "meshes": 1039,
+      "materials": 147,
+      "textures": 237,
+      "geometries": 1039,
+      "chunks": 9,
+      "actors": 437,
+      "heapMB": 769,
+      "position": {
+        "x": -672.4180831289148,
+        "y": -14.049089466994294,
+        "z": 612.1578223310651
+      }
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "setup": "Developer autopilot + God mode. Real renderer, simulation, streaming, weather, AI, ballistics, audio and IndexedDB are exercised continuously.",
+  "afterRenderSampling": true,
+  "finishedAt": "2026-09-08T11:31:13.291Z",
+  "elapsedSeconds": 1800.018799999997
+}

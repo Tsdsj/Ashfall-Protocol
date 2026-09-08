@@ -1,0 +1,133 @@
+import type { EnemyKind } from "../core/types";
+export interface EnemyDef {
+  name: string;
+  health: number;
+  speed: number;
+  damage: number;
+  sight: number;
+  reach: number;
+  interval: number;
+  animal: boolean;
+  color: string;
+  size: number;
+  loot: Record<string, number>;
+}
+export const ENEMIES: Record<EnemyKind, EnemyDef> = {
+  walker: {
+    name: "徘徊者",
+    health: 70,
+    speed: 1.75,
+    damage: 9,
+    sight: 22,
+    reach: 1.65,
+    interval: 1.5,
+    animal: false,
+    color: "#6f7361",
+    size: 1,
+    loot: { cloth: 2 },
+  },
+  runner: {
+    name: "疾行者",
+    health: 48,
+    speed: 4.5,
+    damage: 7,
+    sight: 29,
+    reach: 1.55,
+    interval: 1.1,
+    animal: false,
+    color: "#726255",
+    size: 0.95,
+    loot: { rag: 1 },
+  },
+  bloated: {
+    name: "腐胀者",
+    health: 160,
+    speed: 1.25,
+    damage: 18,
+    sight: 19,
+    reach: 2,
+    interval: 2,
+    animal: false,
+    color: "#797850",
+    size: 1.35,
+    loot: { disinfectant: 1 },
+  },
+  armored: {
+    name: "残甲士兵",
+    health: 130,
+    speed: 2.1,
+    damage: 14,
+    sight: 30,
+    reach: 1.7,
+    interval: 1.5,
+    animal: false,
+    color: "#454c40",
+    size: 1.05,
+    loot: { ammo556: 16, scrap: 2 },
+  },
+  stalker: {
+    name: "夜行潜伏者",
+    health: 82,
+    speed: 4.2,
+    damage: 17,
+    sight: 34,
+    reach: 1.8,
+    interval: 1.6,
+    animal: false,
+    color: "#454b46",
+    size: 1.1,
+    loot: { antibiotics: 1 },
+  },
+  raider: {
+    name: "掠夺者",
+    health: 90,
+    speed: 2.7,
+    damage: 12,
+    sight: 55,
+    reach: 38,
+    interval: 1.8,
+    animal: false,
+    color: "#5f554b",
+    size: 1,
+    loot: { ammo9: 18, beans: 1 },
+  },
+  deer: {
+    name: "灰谷赤鹿",
+    health: 55,
+    speed: 7,
+    damage: 0,
+    sight: 30,
+    reach: 0,
+    interval: 2,
+    animal: true,
+    color: "#8c7355",
+    size: 1,
+    loot: { rawmeat: 4, hide: 2, bone: 2, fat: 1 },
+  },
+  boar: {
+    name: "林地野猪",
+    health: 95,
+    speed: 5,
+    damage: 14,
+    sight: 21,
+    reach: 1.6,
+    interval: 1.8,
+    animal: true,
+    color: "#514943",
+    size: 0.85,
+    loot: { rawmeat: 3, hide: 2, bone: 1, fat: 2 },
+  },
+  wolf: {
+    name: "灰脊狼",
+    health: 64,
+    speed: 5.5,
+    damage: 12,
+    sight: 32,
+    reach: 1.65,
+    interval: 1.3,
+    animal: true,
+    color: "#797a70",
+    size: 0.8,
+    loot: { rawmeat: 2, hide: 2, bone: 1, fat: 1 },
+  },
+};

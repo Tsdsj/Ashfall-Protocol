@@ -1,0 +1,31 @@
+async (page) => {
+ const checks=[],errors=[];
+ page.on('pageerror',e=>errors.push(String(e)));
+ page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+ const check=(ok,name,data={})=>{if(!ok)throw new Error(name);checks.push({name,pass:true,...data});};
+ const inspect=()=>page.evaluate(()=>window.__game.inspect());
+ const resume=async()=>{await page.bringToFront();if((await inspect()).screen!=='play')await page.keyboard.press('Escape');const b=page.locator('[data-action="resume"]');if(await b.count())await b.click();await page.waitForFunction(()=>{const s=window.__game.inspect();return s.screen==='play'&&(s.locked||s.inputMode==='drag');});};
+ const travel=async(x,z)=>{await page.evaluate(({x,z})=>window.__game.command(`teleport ${x} ${z}`),{x,z});await page.waitForTimeout(200);await page.waitForFunction(()=>window.__game.renderer.world.stats.pending===0);};
+ const aim=async(point)=>{await page.evaluate(point=>{const p=window.__game.sim.state.player,dx=point.x-p.position.x,dz=point.z-p.position.z;p.yaw=Math.atan2(dx,dz);p.pitch=Math.atan2(p.position.y+1.68-point.y,Math.hypot(dx,dz));},point);await page.waitForTimeout(150);};
+ const savedState=()=>page.evaluate(()=>{const s=window.__game.sim.state;return{position:s.player.position,doors:s.doors,items:s.player.inventory.items.map(i=>[i.uid,i.id,i.count]),containers:Object.values(s.containers).filter(c=>c.id.startsWith('city-')).map(c=>({id:c.id,position:c.position,searched:c.searched,items:c.inventory.items.map(i=>[i.uid,i.id,i.count])}))};});
+ await page.reload();await page.getByRole('button',{name:'▸ 继续生存 ↗'}).waitFor();await page.getByRole('button',{name:'▸ 继续生存 ↗'}).click();await page.locator('[data-action="resume"]').waitFor();await resume();
+ await page.evaluate(()=>{window.__game.sim.god=true;window.__game.command('time 17');window.__game.command('weather clear');});
+ const poi=await page.evaluate(()=>{const g=window.__game,p=g.sim.gen.pois.find(p=>p.id==='city-0');return{...p,y:g.sim.gen.poiHeight(p)};});
+ await travel(poi.x,poi.z-poi.depth/2-2.8);await aim({x:poi.x,y:poi.y+1.2,z:poi.z-poi.depth/2});
+ if(!await page.evaluate(()=>window.__game.sim.state.doors['city-0']))await page.keyboard.press('e');
+ check(await page.evaluate(()=>window.__game.sim.state.doors['city-0']===true),'城市建筑开门');
+ await page.keyboard.down('w');await page.waitForTimeout(1900);await page.keyboard.up('w');
+ const entered=await inspect();check(entered.position.z>poi.z-poi.depth/2,'从道路实际步行进入城市建筑',{position:entered.position});
+ const c=await page.evaluate(()=>window.__game.sim.state.containers['city-0:0']);
+ check(Math.abs(c.position.y-poi.y-.5)<1e-6,'城市地面、入口和容器标高一致');
+ await travel(poi.x-poi.width/2+2.8,poi.z+poi.depth/2-3.8);await aim(c.position);await page.keyboard.press('e');
+ check((await inspect()).screen==='inventory','城市容器可以正常搜索');
+ const loot=c.inventory.items.find(i=>i.count>0);if(loot){const n0=await page.evaluate(id=>window.__game.sim.state.player.inventory.items.filter(i=>i.id===id).reduce((n,i)=>n+i.count,0),loot.id);await page.locator(`[data-action="select-item"][data-source="${c.id}"][data-uid="${loot.uid}"]`).dblclick();const n1=await page.evaluate(id=>window.__game.sim.state.player.inventory.items.filter(i=>i.id===id).reduce((n,i)=>n+i.count,0),loot.id);check(n1>n0,'城市容器物资进入玩家背包',{item:loot.id,delta:n1-n0});}
+ await resume();const samples=[];
+ for(let tour=0;tour<3;tour++){for(const id of ['city-0','pine-0','fort-0','city-0']){await page.evaluate(id=>window.__game.command('teleport '+id),id);await page.waitForTimeout(300);await page.waitForFunction(()=>window.__game.renderer.world.stats.pending===0);}samples.push(await page.evaluate(()=>{const r=window.__game.renderer;return{chunks:r.stats.chunks,materials:r.scene.materials.length,textures:r.scene.textures.length,meshes:r.scene.meshes.length};}));}
+ check(samples.every(s=>s.chunks===9)&&samples.at(-1).materials===samples[0].materials&&samples.at(-1).textures===samples[0].textures,'三轮区域往返后分块、材质和纹理数量稳定',{samples});
+ await page.keyboard.press('Escape');await page.getByRole('button',{name:'保存生存记录',exact:true}).click();await page.waitForTimeout(400);const before=await savedState();await page.reload();await page.getByRole('button',{name:'▸ 继续生存 ↗'}).waitFor();await page.getByRole('button',{name:'▸ 继续生存 ↗'}).click();await page.locator('[data-action="resume"]').waitFor();check(JSON.stringify(before)===JSON.stringify(await savedState()),'城市搜刮、门和物资存档重载一致');
+ await resume();await page.evaluate(()=>{window.__game.sim.god=true;window.__game.command('time 17');window.__game.command('weather clear');});await travel(565,400);await aim({x:601,y:poi.y+2,z:438});await page.waitForTimeout(6000);await page.evaluate(()=>{window.__game.command('time 17');window.__game.command('weather clear');});await page.waitForTimeout(1000);await page.screenshot({path:'docs/screenshots/city-sunset.png',scale:'css'});
+ await travel(14,14);await page.evaluate(()=>{window.__game.command('time 22');window.__game.command('weather rain');window.__game.sim.state.player.flashlight=true;window.__game.sim.state.player.pitch=-.05;});await page.waitForTimeout(6000);await page.screenshot({path:'docs/screenshots/interior-night.png',scale:'css'});
+ const final=await inspect();check(!final.error&&errors.length===0,'最终画面与交互无运行错误',{errors});await page.keyboard.press('Escape');return{pass:true,setup:'Developer travel and aim accelerate location checks; door, walking, loot, save and reload use real keyboard and UI. Cosmetic roof and street fixes were followed by this targeted regression after the earlier 30-minute soak.',checks};
+}

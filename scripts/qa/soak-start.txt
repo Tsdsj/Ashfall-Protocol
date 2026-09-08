@@ -1,0 +1,27 @@
+async (page) => {
+ await page.getByRole('button',{name:/进入灰谷/}).waitFor();await page.bringToFront();await page.getByRole('button',{name:/进入灰谷/}).click();await page.getByLabel('生存记录名称').fill('QA 30分钟稳定性');await page.getByLabel('世界种子',{exact:true}).fill('SOAK-GREYVALE-2037');await page.getByRole('button',{name:'生成世界并开始'}).click();await page.locator('[data-action="resume"]').waitFor();await page.locator('[data-action="resume"]').click();
+ return await page.evaluate(async()=>{
+  const api=window.__game,g=api.game,sim=api.sim,{ITEMS}=await import('/src/data/items.ts');
+  if(window.__soak?.running)return{alreadyRunning:true};
+  for(const id of ['pistol','military','shotgun','rifle','bow'])api.command('give '+id);sim.god=true;
+  const weapons=['pistol','military','shotgun','rifle','bow','knife'];let weapon=0;
+  const equip=id=>{const item=sim.state.player.inventory.items.find(i=>i.id===id);if(item){sim.actions.use(item.uid);item.ammo=ITEMS[id].weapon?.magazine??0;item.durability=100;item.dirt=0;item.jammed=false;}};equip('pistol');
+  const positions=sim.gen.pois.filter(p=>['pine-0','city-0','fort-0','industry-0','lake-0','mine-0','lab-0','broadcast'].includes(p.id)).map(p=>({x:p.x,z:p.z-p.depth/2-10}));
+  const start=performance.now();window.__soak={running:true,startedAt:new Date().toISOString(),durationSeconds:1800,frames:0,transitions:0,samples:[],errors:[],warnings:[],setup:'Developer autopilot + God mode. Real renderer, simulation, streaming, weather, AI, ballistics, audio and IndexedDB are exercised continuously.'};const result=window.__soak;
+  const oldError=console.error,oldWarn=console.warn;console.error=(...args)=>{if(result.errors.length<40)result.errors.push(args.map(String).join(' ').slice(0,400));oldError(...args);};console.warn=(...args)=>{if(result.warnings.length<40)result.warnings.push(args.map(String).join(' ').slice(0,400));oldWarn(...args);};window.addEventListener('error',e=>result.errors.push(e.message));window.addEventListener('unhandledrejection',e=>result.errors.push(String(e.reason)));
+  let lastSample=-20,lastMove=-24,lastShot=-1,lastSpawn=-12,lastSave=-120,lastEquip=-20;
+  const observer=api.renderer.scene.onBeforeRenderObservable.add(()=>{
+   const elapsed=(performance.now()-start)/1000;result.frames++;
+   if(elapsed>=1800){result.running=false;result.finishedAt=new Date().toISOString();result.elapsedSeconds=elapsed;api.renderer.scene.onBeforeRenderObservable.remove(observer);g.input.clear();g.input.unlock();api.ui.show('pause');console.error=oldError;console.warn=oldWarn;return;}
+   if(api.ui.screen!=='play'){api.ui.locked=true;api.ui.show('play');}g.active=true;g.input.fallback=true;
+   if(elapsed-lastMove>=24){lastMove=elapsed;const p=positions[result.transitions%positions.length];api.command(`teleport ${p.x} ${p.z}`);api.command('time '+[8,12,17,22][result.transitions%4]);api.command('weather '+['clear','cloudy','rain','fog','storm'][result.transitions%5]);result.transitions++;}
+   sim.state.player.yaw+=.0025;g.input.held.clear();if(elapsed-lastMove<7)g.input.held.add(g.settings.keys.forward);if(Math.floor(elapsed/8)%2===0)g.input.held.add(g.settings.keys.sprint);
+   if(elapsed-lastEquip>20){lastEquip=elapsed;weapon=(weapon+1)%weapons.length;equip(weapons[weapon]);}
+   if(elapsed-lastShot>.7){lastShot=elapsed;const held=sim.combat.equipped();if(held){held.ammo=ITEMS[held.id].weapon?.magazine??0;held.durability=100;held.jammed=false;sim.combat.fire(api.renderer.camera.position,api.renderer.camera.getForwardRay().direction,true);}}
+   if(elapsed-lastSpawn>12){lastSpawn=elapsed;api.command('spawn walker');}
+   if(elapsed-lastSave>120){lastSave=elapsed;void api.save();}
+   if(elapsed-lastSample>=20){lastSample=elapsed;const s=api.renderer.stats;result.samples.push({seconds:Math.round(elapsed),frames:result.frames,simulationSeconds:sim.state.elapsed,fps:Math.round(s.fps),drawCalls:s.drawCalls,meshes:s.meshes,materials:api.renderer.scene.materials.length,textures:api.renderer.scene.textures.length,geometries:api.renderer.scene.geometries.length,chunks:s.chunks,actors:Object.keys(sim.state.actors).length,heapMB:performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576):null,position:{...sim.state.player.position}});}
+  });
+  return {startedAt:result.startedAt,durationSeconds:result.durationSeconds,positionCount:positions.length,backend:api.ui.backend};
+ });
+}

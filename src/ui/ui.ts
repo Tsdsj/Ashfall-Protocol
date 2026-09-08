@@ -1,0 +1,699 @@
+import type { GameSettings, Interaction, InventoryData } from "../core/types";
+import type { Simulation } from "../simulation/simulation";
+import { DIFFICULTIES } from "../simulation/state";
+import { ITEMS } from "../data/items";
+import { BUILDING_KINDS } from "../data/items";
+import {
+  countItem,
+  moveItem,
+  sortInventory,
+  splitItem,
+  transfer,
+} from "../simulation/inventory";
+import type { SaveEntry } from "../save/storage";
+import { icon, escapeHtml } from "./icons";
+import { inventoryView, resolveInventory, itemDetail } from "./inventory-view";
+import { craftingView, buildingView } from "./crafting-view";
+import {
+  mapView,
+  journalView,
+  bodyView,
+  vehicleView,
+  tradeView,
+  structureView,
+} from "./world-views";
+import {
+  mainMenu,
+  newGameView,
+  loadingView,
+  pauseView,
+  settingsView,
+  savesView,
+  creditsView,
+  deathView,
+  endView,
+  brand,
+} from "./views";
+import { drawMap } from "./map";
+export type Screen =
+  | "play"
+  | "menu"
+  | "newgame"
+  | "loading"
+  | "inventory"
+  | "crafting"
+  | "building"
+  | "map"
+  | "journal"
+  | "body"
+  | "pause"
+  | "settings"
+  | "saves"
+  | "credits"
+  | "death"
+  | "end"
+  | "vehicle"
+  | "trade"
+  | "structure"
+  | "error";
+const weatherNames = {
+  clear: "晴",
+  cloudy: "多云",
+  overcast: "阴",
+  rain: "雨",
+  storm: "雷暴",
+  fog: "雾",
+};
+const tabs: [Screen, string][] = [
+  ["inventory", "装备与背包"],
+  ["crafting", "制作"],
+  ["building", "建造"],
+  ["body", "身体"],
+  ["map", "地图"],
+  ["journal", "日志"],
+];
+export class GameUI {
+  private errorHtml = "";
+  screen: Screen = "loading";
+  sim: Simulation | null = null;
+  backScreen: Screen = "menu";
+  nearbySource = "";
+  selectedUid = "";
+  selectedSource = "player";
+  craftFilter = "全部";
+  selectedRecipe = "";
+  journalId = "";
+  entityId = "";
+  saves: SaveEntry[] = [];
+  backend = "WebGL2";
+  locked = false;
+  binding: string | null = null;
+  debugVisible = false;
+  private root: HTMLElement;
+  private layer: HTMLElement;
+  private hud: HTMLElement;
+  private notices: HTMLElement;
+  private interaction: Interaction | null = null;
+  private lastHud = 0;
+  private drag: { uid: string; source: string; rotated: boolean } | null = null;
+  private lastJob = "";
+  private regionTimeout = 0;
+  onAction: (action: string, element: HTMLElement) => void = () => {};
+  constructor(private settings: GameSettings) {
+    this.root = document.querySelector("#app")!;
+    this.root.innerHTML = `<div id="hud-root" class="hidden"></div><div id="ui-layer"></div><div class="toasts" aria-live="polite"></div><div class="damage-overlay"></div><div id="region-layer"></div><div id="debug-panel" class="debug hidden"></div><div id="console-panel" class="console hidden"><div>开发控制台 · god / give item [count] / time 22 / weather rain / teleport x z / spawn walker / killall</div><pre id="console-output"></pre><input id="console-input" autocomplete="off" placeholder="输入命令，Enter 执行" aria-label="开发控制台命令"/></div><div id="screen-reader-status" class="sr-only" aria-live="polite"></div>`;
+    this.layer = document.querySelector("#ui-layer")!;
+    this.hud = document.querySelector("#hud-root")!;
+    this.notices = document.querySelector(".toasts")!;
+    this.bind();
+  }
+  private bind() {
+    this.root.addEventListener("click", (e) => {
+      const el = (e.target as HTMLElement).closest<HTMLElement>(
+        "[data-action]",
+      );
+      if (!el || (el instanceof HTMLButtonElement && el.disabled)) return;
+      const action = el.dataset.action!;
+      if (action === "select-item" && (e as MouseEvent).shiftKey) {
+        this.quickTransfer(el.dataset.source!, el.dataset.uid!);
+        return;
+      }
+      if (this.handleLocal(action, el)) return;
+      this.onAction(action, el);
+    });
+    this.root.addEventListener("dblclick", (e) => {
+      const el = (e.target as HTMLElement).closest<HTMLElement>(
+        '[data-action="select-item"]',
+      );
+      if (!el) return;
+      if (el.dataset.source === "player") this.handleLocal("use-item", el);
+      else this.quickTransfer(el.dataset.source!, el.dataset.uid!);
+    });
+    this.root.addEventListener("change", (e) => {
+      const el = e.target as HTMLInputElement;
+      if (el.id === "difficulty") {
+        document.querySelector("#difficulty-description")!.textContent =
+          DIFFICULTIES[el.value as keyof typeof DIFFICULTIES].description;
+      }
+      if (el.dataset.setting) this.onAction("setting", el);
+    });
+    this.root.addEventListener("input", (e) => {
+      const el = e.target as HTMLInputElement;
+      if (el.type === "range" && el.dataset.setting) {
+        const output = el.nextElementSibling;
+        if (output)
+          output.textContent = Number(el.value).toFixed(
+            Number(el.step) < 1 ? 2 : 0,
+          );
+        this.onAction("setting", el);
+      }
+    });
+    this.root.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if ((e.target as HTMLElement).id === "new-world-form")
+        this.onAction("start-world", e.target as HTMLElement);
+    });
+    this.root.addEventListener("dragstart", (e) => {
+      const el = (e.target as HTMLElement).closest<HTMLElement>(
+        "[draggable=true]",
+      );
+      if (!el || !e.dataTransfer) return;
+      this.drag = {
+        uid: el.dataset.uid!,
+        source: el.dataset.source!,
+        rotated: false,
+      };
+      e.dataTransfer.setData("text/plain", JSON.stringify(this.drag));
+      e.dataTransfer.effectAllowed = "move";
+      this.selectedUid = this.drag.uid;
+      this.selectedSource = this.drag.source;
+    });
+    this.root.addEventListener("dragover", (e) => {
+      const grid = (e.target as HTMLElement).closest<HTMLElement>(
+        "[data-grid]",
+      );
+      if (!grid || !this.drag) return;
+      e.preventDefault();
+      grid.classList.add("drop-active");
+    });
+    this.root.addEventListener("dragleave", (e) =>
+      (e.target as HTMLElement)
+        .closest("[data-grid]")
+        ?.classList.remove("drop-active"),
+    );
+    this.root.addEventListener("dragend", () => {
+      this.drag = null;
+      this.root
+        .querySelectorAll(".drop-active")
+        .forEach((e) => e.classList.remove("drop-active"));
+    });
+    this.root.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const target = (e.target as HTMLElement).closest<HTMLElement>(
+        "[data-grid]",
+      );
+      if (!target || !this.drag || !this.sim) return;
+      const from = resolveInventory(this.sim, this.drag.source),
+        to = resolveInventory(this.sim, target.dataset.grid!);
+      if (!from || !to) return;
+      let ok = false;
+      if (from === to) {
+        const rect = target.getBoundingClientRect(),
+          x = Math.floor(((e.clientX - rect.left) / rect.width) * to.width),
+          y = Math.floor(((e.clientY - rect.top) / rect.height) * to.height);
+        ok = moveItem(to, this.drag.uid, x, y, this.drag.rotated);
+      } else ok = transfer(from, to, this.drag.uid);
+      if (ok) this.sim.actions.cleanup();
+      else this.toast("此处空间不足或与其他物品重叠。", "warning");
+      this.drag = null;
+      this.render();
+    });
+  }
+  private handleLocal(action: string, el: HTMLElement): boolean {
+    if (action === "tab") {
+      this.show(el.dataset.screen as Screen);
+      return true;
+    }
+    if (action === "random-seed") {
+      (document.querySelector("#world-seed") as HTMLInputElement).value =
+        "GREYVALE-" + Math.random().toString(36).slice(2, 9).toUpperCase();
+      return true;
+    }
+    const sim = this.sim;
+    if (!sim) return false;
+    const uid = el.dataset.uid ?? "";
+    if (action === "select-item") {
+      if (!uid) return true;
+      this.selectedUid = uid;
+      this.selectedSource = el.dataset.source ?? "player";
+      this.layer
+        .querySelectorAll<HTMLElement>(".grid-item")
+        .forEach((item) =>
+          item.classList.toggle("selected", item.dataset.uid === uid),
+        );
+      const detail = this.layer.querySelector(".selected-detail");
+      if (detail)
+        detail.outerHTML = itemDetail(
+          resolveInventory(sim, this.selectedSource)?.items.find(
+            (i) => i.uid === uid,
+          ),
+          this.selectedSource,
+        );
+      return true;
+    }
+    if (action === "use-item") {
+      const i = sim.state.player.inventory.items.find((i) => i.uid === uid);
+      if (i && ITEMS[i.id]?.structure) this.show("building");
+      else {
+        sim.actions.use(uid);
+        this.render();
+      }
+      return true;
+    }
+    if (action === "drop-item") {
+      sim.actions.drop(uid);
+      this.render();
+      return true;
+    }
+    if (action === "split-item") {
+      if (!splitItem(sim.state.player.inventory, uid))
+        this.toast("无法拆分：需要数量大于 1 且有空位。", "warning");
+      this.render();
+      return true;
+    }
+    if (action === "rotate-item") {
+      const inv =
+        resolveInventory(sim, this.selectedSource) ??
+        sim.state.player.inventory;
+      const i = inv.items.find((i) => i.uid === uid);
+      if (i && !moveItem(inv, uid, i.x, i.y, true))
+        this.toast("旋转后空间不足。", "warning");
+      this.render();
+      return true;
+    }
+    if (action === "sort-inventory") {
+      if (!sortInventory(sim.state.player.inventory))
+        this.toast("当前排列已经非常紧凑，无法自动整理。");
+      this.render();
+      return true;
+    }
+    if (action === "repair-item") {
+      sim.actions.repairItem(uid);
+      this.render();
+      return true;
+    }
+    if (action === "assign-slot") {
+      sim.actions.assign(uid, Number(el.dataset.slot));
+      this.render();
+      return true;
+    }
+    if (action === "detach") {
+      sim.actions.detach(uid, el.dataset.id!);
+      this.render();
+      return true;
+    }
+    if (action === "take-item") {
+      this.quickTransfer(el.dataset.source!, uid);
+      return true;
+    }
+    if (action === "take-all") {
+      const inv = resolveInventory(sim, el.dataset.source!);
+      if (inv) {
+        for (const item of [...inv.items]) {
+          if (!this.transferItem(inv, item.uid)) break;
+        }
+        this.markSearched(el.dataset.source!);
+        this.render();
+      }
+      return true;
+    }
+    if (action === "craft-filter") {
+      this.craftFilter = el.dataset.filter!;
+      this.selectedRecipe = "";
+      this.render();
+      return true;
+    }
+    if (action === "select-recipe") {
+      this.selectedRecipe = el.dataset.id!;
+      this.render();
+      return true;
+    }
+    if (action === "craft") {
+      sim.startCraft(el.dataset.id!);
+      this.render();
+      return true;
+    }
+    if (action === "open-crafting-building") {
+      this.craftFilter = "营地建造";
+      this.selectedRecipe = "";
+      this.show("crafting");
+      return true;
+    }
+    if (action === "journal-entry") {
+      this.journalId = el.dataset.id!;
+      this.render();
+      return true;
+    }
+    return false;
+  }
+  private transferItem(inv: InventoryData, uid: string): boolean {
+    const sim = this.sim!,
+      i = inv.items.find((i) => i.uid === uid);
+    if (!i) return false;
+    const name = ITEMS[i.id]!.name;
+    if (!transfer(inv, sim.state.player.inventory, uid)) {
+      this.toast("背包空间不足，剩余物品留在容器中。", "warning");
+      return false;
+    }
+    sim.bus.emit({ type: "sound", text: "pickup", kind: "pickup" });
+    sim.notify("取得 " + name, "success");
+    return true;
+  }
+  private markSearched(source: string) {
+    const c = this.sim?.state.containers[source];
+    if (c) {
+      c.searched = true;
+      c.openedAt = this.sim!.state.elapsed;
+    }
+  }
+  quickTransfer(source: string, uid: string) {
+    const sim = this.sim;
+    if (!sim) return;
+    const inv = resolveInventory(sim, source);
+    if (!inv) return;
+    if (source === "player") {
+      const to = resolveInventory(sim, this.nearbySource);
+      if (!to || !transfer(inv, to, uid)) {
+        this.toast("附近没有容器或空间不足。", "warning");
+        return;
+      }
+      sim.actions.cleanup();
+    } else {
+      this.transferItem(inv, uid);
+      this.markSearched(source);
+    }
+    this.render();
+  }
+  rotateSelected() {
+    if (this.drag) {
+      this.drag.rotated = !this.drag.rotated;
+      return;
+    }
+    const el = document.createElement("button");
+    el.dataset.uid = this.selectedUid;
+    this.handleLocal("rotate-item", el);
+  }
+  show(screen: Screen) {
+    this.screen = screen;
+    this.render();
+  }
+  render() {
+    const scroll = this.layer.querySelector(".panel-body")?.scrollTop ?? 0;
+    this.hud.classList.toggle("hidden", this.screen !== "play");
+    this.layer.innerHTML = this.view();
+    const body = this.layer.querySelector(".panel-body");
+    if (body) body.scrollTop = scroll;
+    if (this.screen === "map" && this.sim) {
+      const canvas = this.layer.querySelector<HTMLCanvasElement>("#world-map");
+      if (canvas) {
+        drawMap(canvas, this.sim);
+        canvas.onclick = (event) => {
+          const rect = canvas.getBoundingClientRect(),
+            side = Math.min(rect.width, rect.height),
+            u = (event.clientX - rect.left - (rect.width - side) / 2) / side,
+            v = (event.clientY - rect.top - (rect.height - side) / 2) / side;
+          if (u < 0 || u > 1 || v < 0 || v > 1) return;
+          const x = (u - 0.5) * 4096,
+            z = (0.5 - v) * 4096,
+            old = this.sim!.state.waypoint;
+          this.sim!.state.waypoint =
+            old && Math.hypot(old.x - x, old.z - z) < 40
+              ? null
+              : this.sim!.gen.position(x, z);
+          drawMap(canvas, this.sim!);
+        };
+      }
+    }
+    if (this.screen === "play") this.hud.innerHTML = this.hudHTML();
+    this.applyScale();
+  }
+  private panel(content: string): string {
+    const gameTabs = [
+      "inventory",
+      "crafting",
+      "building",
+      "body",
+      "map",
+      "journal",
+      "vehicle",
+      "trade",
+      "structure",
+    ].includes(this.screen);
+    return `<div class="panel-shell"><header class="panel-header">${brand()}${gameTabs ? `<nav class="panel-tabs" aria-label="生存手册">${tabs.map(([screen, name]) => `<button class="${this.screen === screen ? "active" : ""}" data-action="tab" data-screen="${screen}">${name}</button>`).join("")}</nav>` : `<span class="muted">${{ settings: "设置", saves: "生存记录", credits: "关于" }[this.screen as "settings"] ?? ""}</span>`}<button class="panel-close" data-action="close-panel"><span>返回</span><kbd>Esc</kbd></button></header><main class="panel-body">${content}</main><footer class="panel-footer"><span>${gameTabs ? "<kbd>Tab</kbd> 背包  <kbd>C</kbd> 制作  <kbd>M</kbd> 地图" : "ASHFALL PROTOCOL · 灰谷自治区"}</span><span>${gameTabs ? "查看手册时游戏已暂停" : "你的设置和生存记录仅保存在本机"}</span></footer></div>`;
+  }
+  private view(): string {
+    const sim = this.sim;
+    switch (this.screen) {
+      case "error":
+        return this.errorHtml;
+      case "play":
+        return this.locked
+          ? ""
+          : `<div class="resume-prompt"><button data-action="resume"><strong>继续探索</strong><small>点击进入第一人称 · Esc 暂停</small></button></div>`;
+      case "menu":
+        return mainMenu(this.saves.length > 0, this.backend);
+      case "newgame":
+        return newGameView();
+      case "loading":
+        return loadingView("初始化世界", 5);
+      case "settings":
+        return this.panel(settingsView(this.settings));
+      case "saves":
+        return this.panel(savesView(this.saves));
+      case "credits":
+        return this.panel(creditsView());
+      case "pause":
+        return sim
+          ? pauseView(sim.state)
+          : mainMenu(this.saves.length > 0, this.backend);
+      case "death":
+        return deathView(sim!.state);
+      case "end":
+        return endView(sim!.state);
+      case "inventory":
+        return this.panel(
+          inventoryView(
+            sim!,
+            this.nearbySource,
+            this.selectedUid,
+            this.selectedSource,
+          ),
+        );
+      case "crafting":
+        return this.panel(
+          craftingView(sim!, this.craftFilter, this.selectedRecipe),
+        );
+      case "building":
+        return this.panel(buildingView(sim!));
+      case "map":
+        return this.panel(mapView(sim!));
+      case "journal":
+        return this.panel(journalView(sim!, this.journalId));
+      case "body":
+        return this.panel(bodyView(sim!));
+      case "vehicle":
+        return this.panel(vehicleView(sim!, this.entityId));
+      case "trade":
+        return this.panel(tradeView());
+      case "structure":
+        return this.panel(structureView(sim!, this.entityId));
+    }
+  }
+  loading(stage: string, percent: number) {
+    this.screen = "loading";
+    this.hud.classList.add("hidden");
+    this.layer.innerHTML = loadingView(stage, percent);
+  }
+  private hudHTML(): string {
+    return `<div class="hud"><div class="hud-top"><div class="hud-context"><div class="location" id="hud-location">松谷镇</div><div class="hud-time" id="hud-time">DAY 01  15:24</div></div><div class="hud-objective"><div class="small-title">生存手记 <kbd>J</kbd></div><div id="hud-objective">沿公路寻找松谷林务站</div></div></div><div class="compass"><span id="compass-left">NW</span><span>·</span><span class="bearing" id="compass-heading">N</span><span>·</span><span id="compass-right">NE</span></div><div id="hud-waypoint" class="hud-waypoint"></div><div class="crosshair" id="crosshair"></div><div id="interaction-prompt" class="interaction-prompt hidden"></div><div class="vitals">${[
+      ["health", "生命", "health"],
+      ["stamina", "体力", "stamina"],
+      ["hydration", "水分", "water"],
+      ["energy", "能量", "food"],
+    ]
+      .map(
+        ([key, label, img]) =>
+          `<div class="vital" id="vital-${key}" title="${label}"><div class="vital-top">${icon(img!, 18)}<span id="value-${key}">100</span></div><div class="meter"><i id="meter-${key}" style="width:100%"></i></div></div>`,
+      )
+      .join(
+        "",
+      )}<div class="temperature">${icon("temp", 18)}<span id="hud-temp">36.8°C</span></div></div><div class="conditions" id="conditions"></div><div class="quickbar" id="quickbar"></div><div class="weapon-readout"><div class="weapon-name" id="weapon-name"></div><div class="ammo-count" id="ammo-count"></div><div class="weapon-detail" id="weapon-detail"></div></div><div class="controls-strip"><span class="key-hint"><kbd>Tab</kbd> 背包</span><span class="key-hint"><kbd>C</kbd> 制作</span><span class="key-hint"><kbd>M</kbd> 地图</span></div><div id="build-instruction" class="build-instruction hidden"></div><div id="save-indicator" class="save-indicator"></div></div>`;
+  }
+  setInteraction(interaction: Interaction | null) {
+    this.interaction = interaction;
+  }
+  update(
+    dt: number,
+    aiming: boolean,
+    fps: number,
+    chunkCount: number,
+    drawCalls: number,
+  ): void {
+    const sim = this.sim;
+    if (!sim) return;
+    this.lastHud += dt;
+    if (this.lastHud < 0.1) return;
+    this.lastHud = 0;
+    const $ = (id: string) => document.getElementById(id);
+    const p = sim.state.player,
+      s = p.stats;
+    if (this.screen === "crafting") {
+      const job = sim.craftJob;
+      const signature = job?.id ?? "";
+      if (signature !== this.lastJob) {
+        this.lastJob = signature;
+        this.render();
+      }
+      if (job) {
+        const progress = $("craft-progress");
+        if (progress)
+          progress.style.width = (1 - job.remaining / job.total) * 100 + "%";
+      }
+    }
+    if (this.screen !== "play") return;
+    for (const key of ["health", "stamina", "hydration", "energy"] as const) {
+      const value = s[key];
+      const txt = $("value-" + key),
+        meter = $("meter-" + key),
+        vital = $("vital-" + key);
+      if (txt) txt.textContent = Math.ceil(value).toString();
+      if (meter) meter.style.width = value + "%";
+      vital?.classList.toggle("low", value < 25);
+    }
+    const hours = Math.floor(sim.state.time),
+      mins = Math.floor((sim.state.time % 1) * 60);
+    $("hud-time")!.textContent =
+      `第 ${String(sim.state.day).padStart(2, "0")} 天  ${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}  ${weatherNames[sim.state.weather]}`;
+    $("hud-location")!.textContent = sim.gen.regionAt(
+      p.position.x,
+      p.position.z,
+    ).name;
+    $("hud-temp")!.textContent = s.temperature.toFixed(1) + "°C";
+    const heading = ((((p.yaw * 180) / Math.PI) % 360) + 360) % 360,
+      dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    $("compass-heading")!.innerHTML =
+      `${dirs[Math.round(heading / 45) % 8]} <span class="mono" style="font-size:9px">${Math.round(heading)}°</span>`;
+    $("compass-left")!.textContent = dirs[(Math.round(heading / 45) + 7) % 8]!;
+    $("compass-right")!.textContent = dirs[(Math.round(heading / 45) + 1) % 8]!;
+    $("conditions")!.textContent = [
+      s.bleeding > 0 ? "流血 · 血量 " + Math.floor(s.blood) + "%" : "",
+      s.fracture ? "骨折" : "",
+      s.poison > 0 ? "中毒" : "",
+      s.oxygen < 90 ? "氧气 " + Math.floor(s.oxygen) + "%" : "",
+      s.temperature < 35 ? "体温偏低" : "",
+      s.wetness > 60 ? "衣物湿透" : "",
+      p.stance !== "stand" ? (p.stance === "crouch" ? "蹲行" : "匍匐") : "",
+    ]
+      .filter(Boolean)
+      .join("  ");
+    const waypoint = sim.state.waypoint;
+    $("hud-waypoint")!.textContent = waypoint
+      ? "◇ 标记 " +
+        Math.round(
+          Math.hypot(waypoint.x - p.position.x, waypoint.z - p.position.z),
+        ) +
+        " m"
+      : "";
+    const flags = sim.state.flags;
+    $("hud-objective")!.textContent = flags.includes("broadcast")
+      ? "前往广播站东侧接应点"
+      : sim.state.journal.includes("lab")
+        ? "修复松谷北岭广播站，发送档案"
+        : sim.state.journal.includes("fort")
+          ? "前往第七研究站"
+          : sim.state.journal.includes("clinic")
+            ? "寻找渡鸦要塞的访问卡"
+            : sim.state.journal.includes("ranger")
+              ? "前往松谷诊所寻找米拉"
+              : "沿公路寻找松谷林务站";
+    $("quickbar")!.innerHTML = p.quickSlots
+      .map((uid, n) => {
+        const i = p.inventory.items.find((i) => i.uid === uid);
+        return `<div class="quick-slot ${n === p.selected ? "selected" : ""}" title="${i ? ITEMS[i.id]!.name : "空快捷栏"}"><span class="number">${n + 1}</span>${i ? icon(i.id, 34) : ""}</div>`;
+      })
+      .join("");
+    const gun = sim.combat.equipped(),
+      d = gun && ITEMS[gun.id],
+      w = d?.weapon;
+    $("weapon-name")!.textContent = d?.name ?? "空手";
+    $("ammo-count")!.innerHTML = w?.ammo
+      ? `${gun!.ammo} <span>/ ${countItem(p.inventory, w.ammo)}</span>`
+      : `<span>${w ? "近战武器" : d && ["food", "drink", "medical"].includes(d.category) ? "按 " + (p.selected + 1) + " 使用" : "未装备"}</span>`;
+    $("weapon-detail")!.textContent =
+      sim.combat.reloadRemaining > 0
+        ? "换弹中…"
+        : sim.combat.jammed
+          ? "卡壳 · R 清障"
+          : w?.ammo
+            ? (w.interval < 0.15 ? "自动" : "单发") +
+              " · " +
+              ITEMS[w.ammo]!.name
+            : w
+              ? "耐久 " + Math.round(gun!.durability) + "%"
+              : "";
+    $("crosshair")?.classList.toggle("aiming", aiming);
+    const target = this.interaction,
+      pr = $("interaction-prompt")!;
+    pr.classList.toggle("hidden", !target || sim.building.active);
+    if (target) {
+      const label =
+        target.type === "container"
+          ? "搜索"
+          : target.type === "door"
+            ? "开关"
+            : target.type === "resource"
+              ? "采集"
+              : target.type === "corpse"
+                ? "搜索 / 处理"
+                : target.type === "story"
+                  ? "阅读"
+                  : target.type === "water"
+                    ? "取水 / 垂钓"
+                    : "交互";
+      pr.innerHTML = `<div class="prompt-main"><kbd>E</kbd><span>${escapeHtml(target.name)}</span></div><small>${label}${target.detail ? " · " + escapeHtml(target.detail) : ""}</small>`;
+    }
+    if (this.debugVisible) {
+      const debug = $("debug-panel")!;
+      debug.textContent = `${this.backend} · ${Math.round(fps)} FPS\nFrame ${(1000 / fps).toFixed(1)} ms · Draw ${drawCalls}\nChunks ${chunkCount} · AI ${sim.inspect().actors}\nPosition ${p.position.x.toFixed(1)} ${p.position.y.toFixed(1)} ${p.position.z.toFixed(1)}\nTime ${sim.state.time.toFixed(2)} · Day ${sim.state.day}`;
+    }
+  }
+  buildingPrompt(valid: boolean, reason: string) {
+    const el = document.querySelector<HTMLElement>("#build-instruction");
+    if (!el || !this.sim) return;
+    el.classList.toggle("hidden", !this.sim.building.active);
+    if (this.sim.building.active)
+      el.innerHTML = `<div class="${valid ? "good" : "warning"}">${valid ? "可以放置：" + (BUILDING_KINDS.find((p) => p[0] === this.sim!.building.selected)?.[1] ?? "组件") : reason}</div><div class="button-row"><span class="key-hint"><kbd>E</kbd> 放置</span><span class="key-hint"><kbd>R</kbd> 旋转</span><span class="key-hint"><kbd>Esc</kbd> 取消</span></div>`;
+  }
+  toast(text: string, type = "info") {
+    const toast = document.createElement("div");
+    toast.className = "toast " + type;
+    toast.textContent = text;
+    this.notices.append(toast);
+    while (this.notices.childElementCount > 5)
+      this.notices.firstElementChild?.remove();
+    setTimeout(() => toast.remove(), 4300);
+  }
+  damage() {
+    const el = document.querySelector(".damage-overlay")!;
+    el.classList.add("hit");
+    setTimeout(() => el.classList.remove("hit"), 170);
+  }
+  announce(text: string) {
+    const el = document.querySelector("#region-layer")!;
+    clearTimeout(this.regionTimeout);
+    el.innerHTML = `<div class="region-announcement"><small>GREYVALE AUTONOMOUS REGION</small><strong>${escapeHtml(text)}</strong></div>`;
+    this.regionTimeout = window.setTimeout(() => (el.innerHTML = ""), 4200);
+  }
+  setLocked(locked: boolean) {
+    this.locked = locked;
+    if (this.screen === "play")
+      this.layer.innerHTML = locked ? "" : this.view();
+  }
+  applySettings(settings: GameSettings) {
+    this.settings = settings;
+    this.applyScale();
+  }
+  private applyScale() {
+    document.documentElement.style.setProperty(
+      "--ui-scale",
+      String(this.settings.uiScale),
+    );
+    document.documentElement.style.fontSize = 14 * this.settings.uiScale + "px";
+  }
+  error(message: string) {
+    this.screen = "error";
+    this.hud.classList.add("hidden");
+    this.errorHtml = `<div class="screen-shade"><div class="error-panel"><h2>暂时无法进入灰谷</h2><p>${escapeHtml(message)}</p><div class="button-row"><button class="primary" data-action="retry-webgl">使用兼容渲染重试</button><button class="secondary" data-action="reload-page">重新加载</button></div></div></div>`;
+    this.layer.innerHTML = this.errorHtml;
+  }
+}
