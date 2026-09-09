@@ -1,0 +1,15 @@
+async(page)=>{
+const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+await page.reload();await page.getByRole('button',{name:/进入灰谷/}).click();await page.getByRole('button',{name:'生成世界并开始'}).click();await page.locator('[data-action="resume"]').click();
+await page.waitForTimeout(200);await page.evaluate(()=>{const g=window.__game;g.sim.god=true;g.game.input.unlock();g.game.input.fallback=true;g.ui.show('play');g.ui.setLocked(true);g.sim.narrative.skipSequence();g.game.audio.stopDialogue();g.command('time 12');g.command('weather clear');g.command('teleport -9 -4');});
+const results=[];
+for(const item of ['knife','pistol','rifle','military','shotgun','smg']){
+await page.evaluate(item=>{const g=window.__game;g.command('give '+item);const stack=g.sim.state.player.inventory.items.find(s=>s.id===item);g.sim.actions.use(stack.uid);},item);
+await page.waitForTimeout(600);await page.screenshot({path:'docs/phase2/screenshots/grip-'+item+'.png',scale:'css'});
+results.push(await page.evaluate(()=>{const g=window.__game,arms=g.renderer.weapon.arms,skin=arms.skin;const nodes=['upperarm_r','lowerarm_r','hand_r'].map(n=>skin.nodes.get(n));const inv=g.renderer.weapon.model.getWorldMatrix().clone().invert();return {item:g.sim.combat.equipped().id,target:arms.targets.get(1),joints:nodes.map(n=>{const p=n.getAbsolutePosition();const m=inv.m;return {x:p.x*m[0]+p.y*m[4]+p.z*m[8]+m[12],y:p.x*m[1]+p.y*m[5]+p.z*m[9]+m[13],z:p.x*m[2]+p.y*m[6]+p.z*m[10]+m[14]}})}}));
+}
+await page.evaluate(()=>window.__game.sim.state.player.pitch=1.3);await page.waitForTimeout(500);await page.screenshot({path:'docs/phase2/screenshots/body-lookdown.png',scale:'css'});
+await page.evaluate(()=>window.__game.sim.setStance('crouch'));await page.waitForTimeout(600);await page.screenshot({path:'docs/phase2/screenshots/body-crouch.png',scale:'css'});
+await page.evaluate(()=>window.__game.sim.setStance('prone'));await page.waitForTimeout(600);await page.screenshot({path:'docs/phase2/screenshots/body-prone.png',scale:'css'});
+await page.keyboard.press('Escape');return {results,errors};
+}

@@ -3,27 +3,36 @@ import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { type Scene } from "@babylonjs/core/scene";
-import { random } from "../core/random";
-import type { Interaction, Vec3 } from "../core/types";
+import { noise, random } from "../core/random";
+import type { Interaction, Vec3, POI } from "../core/types";
 import { WorldGenerator, REGIONS } from "../world/generator";
 import { generateTerrainData } from "../world/terrain-data";
 import { ModelBatch, terrainMesh } from "./geometry";
 import { BuildingLibrary, type SceneInteractable } from "./buildings";
 import { VegetationLibrary } from "./vegetation";
+import {
+  EnvironmentAssetLibrary,
+  EnvironmentAtmosphere,
+} from "./environment-assets";
 import type { MaterialFactory } from "./materials";
 import type { Simulation } from "../simulation/simulation";
 import type { LightingManager } from "./environment";
+import { environmentApproaches } from "./environment-props";
 interface Chunk {
   root: TransformNode;
   meshes: Mesh[];
   interactions: SceneInteractable[];
   doors: Map<string, Mesh>;
+  movingDetails: Mesh[];
 }
 export class WorldRenderer {
+  openContainer = "";
   focus: Vec3 | null = null;
   readonly chunks = new Map<string, Chunk>();
   readonly buildings: BuildingLibrary;
   readonly vegetation: VegetationLibrary;
+  readonly environmentAssets: EnvironmentAssetLibrary;
+  private atmosphere: EnvironmentAtmosphere;
   private pending = new Map<string, Promise<void>>();
   private worker: Worker | null = null;
   private requests = new Map<
@@ -47,7 +56,13 @@ export class WorldRenderer {
     private density = 1,
   ) {
     this.buildings = new BuildingLibrary(scene, mats);
-    this.vegetation = new VegetationLibrary(scene, mats);
+    this.environmentAssets = new EnvironmentAssetLibrary(scene);
+    this.atmosphere = new EnvironmentAtmosphere(scene, mats);
+    this.vegetation = new VegetationLibrary(
+      scene,
+      mats,
+      this.environmentAssets,
+    );
     this.birds = this.vegetation.distantBirds();
     try {
       this.worker = new Worker(
@@ -105,6 +120,10 @@ export class WorldRenderer {
     this.horizon.receiveShadows = false;
   }
   async initialize(): Promise<void> {
+    await this.environmentAssets.preload(["pine-wood", "fern", "rocks"]);
+    this.environmentAssets.updateFocus(
+      this.focus ?? this.sim.state.player.position,
+    );
     await this.stream(true);
   }
   private async terrain(cx: number, cz: number) {
@@ -156,9 +175,32 @@ export class WorldRenderer {
     if (wait) await Promise.all(tasks);
   }
   private async load(cx: number, cz: number): Promise<void> {
+    const pois = this.sim.gen.pois.filter(
+      (p) => Math.floor(p.x / 256) === cx && Math.floor(p.z / 256) === cz,
+    );
     const id = cx + "," + cz,
       data = await this.terrain(cx, cz);
+    await this.environmentAssets.preparePOIs(pois);
     if (this.disposed || !this.wanted.has(id)) return;
+    // Broad cool-green ground variation supports the small vegetation layers;
+    // the original yellow vertex multiplier made the whole settlement look paved in sand.
+    for (let i = 0; i < data.positions.length / 3; i++) {
+      const x = data.positions[i * 3]!,
+        z = data.positions[i * 3 + 2]!;
+      if (this.sim.gen.roadDistance(x, z) < 5.3) continue;
+      const patch = noise(x / 18, z / 18, this.sim.gen.seedNumber + 93);
+      const shade =
+        0.7 + noise(x / 57, z / 57, this.sim.gen.seedNumber + 94) * 0.35;
+      data.colors.set(
+        [
+          shade * (0.71 + patch * 0.2),
+          shade * (0.92 + patch * 0.08),
+          shade * (0.72 + patch * 0.13),
+          1,
+        ],
+        i * 4,
+      );
+    }
     const root = new TransformNode("chunk:" + id, this.scene),
       terrain = terrainMesh(
         this.scene,
@@ -185,6 +227,14 @@ export class WorldRenderer {
       m.parent = root;
       meshes.push(m);
     }
+    for (const m of this.environmentAssets.buildPOIs(
+      pois,
+      (p) => this.sim.gen.poiHeight(p),
+      "chunk:" + id,
+    )) {
+      m.parent = root;
+      meshes.push(m);
+    }
     for (const p of this.sim.gen.pois) {
       if (Math.floor(p.x / 256) !== cx || Math.floor(p.z / 256) !== cz)
         continue;
@@ -197,18 +247,69 @@ export class WorldRenderer {
       if (model.door) doors.set(p.id, model.door);
     }
     this.roads(batch, cx, cz);
+    if (cx === -1 && cz === -1)
+      meshes.push(...this.buildings.createOpeningWreck(root, batch));
+    this.approaches(batch, pois);
     this.cityStreets(batch, cx, cz);
     this.resources(batch, cx, cz, interactions, meshes);
     for (const m of batch.finish(root)) meshes.push(m);
     for (const i of interactions) {
       i.mesh.parent = root;
-      i.mesh.metadata = { interaction: i.interaction };
+      i.mesh.metadata = { ...i.mesh.metadata, interaction: i.interaction };
     }
     for (const m of meshes) {
-      if (!m.name.includes("grass") && !m.name.includes("fern"))
+      if (
+        !m.name.includes("grass") &&
+        !m.name.includes("fern") &&
+        !m.name.includes("decal")
+      )
         this.lighting.addCaster(m);
     }
-    this.chunks.set(id, { root, meshes, interactions, doors });
+    this.chunks.set(id, {
+      root,
+      meshes,
+      interactions,
+      doors,
+      movingDetails: meshes.filter((mesh) => mesh.metadata?.environmentMotion),
+    });
+  }
+  private approaches(batch: ModelBatch, pois: POI[]) {
+    for (const path of environmentApproaches(this.sim.gen, pois)) {
+      const dx = path.to[0] - path.from[0],
+        dz = path.to[1] - path.from[1],
+        length = Math.hypot(dx, dz);
+      if (length < 0.5) continue;
+      const steps = Math.max(2, Math.ceil(length / 1.5)),
+        positions: number[] = [],
+        uv: number[] = [],
+        indices: number[] = [];
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps,
+          cx = path.from[0] + dx * t,
+          cz = path.from[1] + dz * t;
+        const width =
+          path.width * (0.88 + noise(cx * 0.41, cz * 0.41, 61) * 0.16);
+        for (const side of [-1, 1]) {
+          const x = cx - (dz / length) * width * 0.5 * side,
+            z = cz + (dx / length) * width * 0.5 * side;
+          positions.push(x, this.sim.gen.height(x, z) + 0.064, z);
+          uv.push(side < 0 ? 0 : 1, (t * length) / 1.4);
+        }
+        if (i < steps) {
+          const a = i * 2;
+          indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+        }
+      }
+      const mesh = terrainMesh(
+        this.scene,
+        "worn-yard-path",
+        new Float32Array(positions),
+        new Uint32Array(indices),
+        new Float32Array(uv),
+      );
+      mesh.material = this.mats.surface("soil", "#a49f87");
+      batch.meshes.push(mesh);
+    }
   }
   private resources(
     batch: ModelBatch,
@@ -593,6 +694,12 @@ export class WorldRenderer {
   update(dt: number) {
     this.elapsed += dt;
     const pos = this.focus ?? this.sim.state.player.position;
+    this.atmosphere.update(
+      dt,
+      pos,
+      this.sim.gen,
+      ["rain", "storm"].includes(this.sim.state.weather),
+    );
     this.birds.forEach((bird, n) => {
       const a = this.elapsed * 0.045 + n * 0.06;
       bird.position.set(
@@ -604,15 +711,66 @@ export class WorldRenderer {
       bird.rotation.y = a + Math.PI / 2;
     });
     this.timer -= dt;
+    for (const chunk of this.chunks.values())
+      for (const { mesh, interaction } of chunk.interactions) {
+        if (interaction.type !== "container") continue;
+        const lid = mesh.metadata?.lid as Mesh | undefined;
+        if (!lid) continue;
+        const pending = this.sim.actions.pending,
+          container = this.sim.state.containers[interaction.id];
+        const searching =
+          pending?.kind === "search" &&
+          pending.target &&
+          container &&
+          Math.hypot(
+            pending.target.x - container.position.x,
+            pending.target.z - container.position.z,
+          ) < 0.1;
+        const progress = searching
+          ? Math.min(1, (1 - pending.remaining / pending.total) * 2)
+          : this.openContainer === interaction.id
+            ? 1
+            : 0;
+        lid.rotation.x +=
+          (progress * 1.35 - lid.rotation.x) * (1 - Math.exp(-dt * 11));
+      }
+    for (const chunk of this.chunks.values())
+      for (const mesh of chunk.movingDetails) {
+        const near =
+          Math.hypot(mesh.position.x - pos.x, mesh.position.z - pos.z) < 55;
+        mesh.setEnabled(near);
+        if (near) {
+          mesh.rotation.z =
+            Math.sin(this.elapsed * 0.83 + mesh.metadata.phase) * 0.023;
+          mesh.rotation.x =
+            Math.sin(this.elapsed * 0.59 + mesh.metadata.phase) * 0.012;
+        }
+      }
+    for (const chunk of this.chunks.values())
+      for (const [id, mesh] of chunk.doors) {
+        const door = this.sim.doors.get(id);
+        if (!door) continue;
+        const rattle = Math.sin(this.elapsed * 55) * door.rattle * 0.025;
+        mesh.rotation.y = -door.progress * Math.PI * 0.52 + rattle;
+        const broken = door.status === "broken";
+        mesh.rotation.x +=
+          ((broken ? 1.48 : 0) - mesh.rotation.x) * Math.min(1, dt * 9);
+        mesh.position.y +=
+          (mesh.metadata.baseY - (broken ? 1.06 : 0) - mesh.position.y) *
+          Math.min(1, dt * 9);
+        const handle = mesh.metadata.handle as Mesh;
+        if (handle)
+          handle.rotation.z =
+            -Math.sin(
+              Math.min(1, (this.sim.state.elapsed - door.startedAt) / 0.3) *
+                Math.PI,
+            ) * 0.55;
+      }
     if (this.timer <= 0) {
       this.timer = 0.6;
+      this.environmentAssets.updateFocus(pos);
       void this.stream();
       for (const chunk of this.chunks.values()) {
-        for (const [id, mesh] of chunk.doors) {
-          const open = this.sim.state.doors[id];
-          mesh.rotation.y = open ? -Math.PI * 0.52 : 0;
-          mesh.setEnabled(!this.sim.state.destroyed.includes(id + ":door"));
-        }
         for (const { mesh, interaction } of chunk.interactions)
           if (interaction.type === "resource" || interaction.type === "glass")
             mesh.setEnabled(!this.sim.state.destroyed.includes(interaction.id));
@@ -620,7 +778,11 @@ export class WorldRenderer {
     }
   }
   get stats() {
-    return { loaded: this.chunks.size, pending: this.pending.size };
+    return {
+      loaded: this.chunks.size,
+      pending: this.pending.size,
+      environment: this.environmentAssets.stats,
+    };
   }
   dispose() {
     this.disposed = true;
@@ -631,6 +793,9 @@ export class WorldRenderer {
     this.chunks.clear();
     this.horizon.dispose();
     this.birds.forEach((b) => b.dispose());
+    this.vegetation.dispose();
+    this.environmentAssets.dispose();
+    this.atmosphere.dispose();
   }
 }
 export function interactionFromMesh(

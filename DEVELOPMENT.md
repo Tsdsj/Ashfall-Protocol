@@ -6,9 +6,10 @@
 - `src/data`：物品、武器、敌人、配方和搜刮表。
 - `src/simulation`：独立于渲染的背包事务、角色状态、伤害、弹道、AI、碰撞、建造、车辆和世界调度。
 - `src/world`：种子、区域、POI、连续地形采样、植被散布与地形 Worker。
-- `src/rendering`：引擎选择、材质、程序化模型、分块视图、角色 rig、第一人称物品、环境、粒子和必要的 Babylon 注册模块。
+- `src/rendering`：引擎选择、材质、外部资产与程序化补件、分块视图、骨骼与第一人称动作、环境、粒子和必要的 Babylon 注册模块。
 - `src/ui`：DOM 界面、物品图标、地图绘制及各个操作面板。
-- `src/audio`：Web Audio 合成、空间声源、环境音、分类增益与水下低通。
+- `src/audio`：本地声音资源、分层枪声、空间声源、状态化 Foley、混响、对白与分类增益。
+- `src/narrative`：四幕任务、支线/结局条件、录音内容与可恢复的序列控制器。
 - `src/save`：版本化 JSON、校验、兼容旧字段和 IndexedDB 事务。
 
 模拟内核持有 `WorldState`。渲染器只观察世界状态，输入与界面通过模拟系统改变世界。UI 不维护第二份背包、血量或容器状态。
@@ -51,7 +52,7 @@ Scene.preventDefaultOnPointerDown 显式设为 false，避免 Firefox 在 pointe
 
 ## 存档
 
-`SaveSystem` 的写入异步且事务化。App 层串行处理保存请求，退出等待保存成功。版本 1 兼容初期缺少世界规则、氧气、导航标记和武器保养字段的记录。
+`SaveSystem` 的写入异步且事务化。App 层串行处理保存请求，退出等待保存成功。当前世界版本为 2；版本 1 迁移保留玩家、物资、已搜容器、旧门状态和世界进度，并补齐角色、门、叙事与 Director 数据。旧 v2 的新增可选字段也会归一化；迁移不能重新填满已经搜空的箱子。
 
 导入前验证数字、位置、物品 ID、背包尺寸、堆叠、引用、武器状态、装备类别和世界结构。修改 schema 时必须保持旧存档兼容或明确增加版本迁移，并补充测试。
 
@@ -89,3 +90,38 @@ fps
 ## 资源再获取
 
 项目已包含游戏所需纹理，无需执行下载脚本。需要重取 CC0 纹理时可运行 `npm run assets`；脚本验证上游 MD5，并更新文件来源清单。图像生成记录见 `docs/GENERATED_ASSETS.md`。
+
+## 第二阶段运动与动画
+
+`LocomotionController` 负责实际速度、分步碰撞、体力和接地步相；`FirstPersonMotionController` 只把模拟状态映射为镜头/武器权重。鼠标 yaw/pitch 保持直接响应，不把武器惯性写回输入。`Game.prepareView()` 在本帧输入/模拟后、弹道前更新相机，避免使用上一帧准心。
+
+角色 mesh 与动画分包。`RigAnimator` 以实际状态/速度混合片段，采样后叠加脚部、手部、注视和方向受击。glTF 的导入根节点可能含负缩放；两骨求解必须通过父节点逆矩阵进入局部坐标，不能假定世界 Quaternion 能表达反射。每次重新采样前恢复上次程序修正，避免姿态漂移。近/中/远动画更新与模型 LOD 分别有预算，销毁 rig 时同步移除阴影和命中胶囊引用。
+
+第一人称使用裁剪后的身体与双臂，武器 grip/support/muzzle 等节点来自实际模型。内置弹仓枪械逐发装填，不能套用可拆弹匣动作；瞄具完全举起时隐藏会遮挡视线的近景模型，使用透明镜内区域和实际 FOV。详见 [武器接入](docs/phase2/WEAPONS.md)、[动物](docs/phase2/ANIMALS.md)。
+
+## 交互、AI 与几何约定
+
+`Actions.begin/update/cancel` 是可取消双手动作，资源与奖励在完成回调中再次验证。搜索、食用、医疗、修理、充电和车辆操作不能在进度刚出现时就提交资源。制作仍使用原子库存事务，与双手动作互斥。背包/制作/日志中世界继续运行；Esc、失焦和真正暂停页冻结游戏，取消按钮不得只隐藏进度条。
+
+门以 `DoorState.progress` 驱动门叶和旋转 OBB，布尔 `state.doors` 只保留为兼容目标。建筑、楼梯、地下设施、倒架和事件实体使用共享几何描述。弹丸、手雷、弹壳与角色都必须查当前楼层的 ground，不能拿地表高度替代地下地板。
+
+AI 的 windup → hit frame → recovery 只允许一次伤害，并在命中时重新检查距离、朝向和 LOS。命中区域优先取当前动画骨骼胶囊，远处无 rig 才降级静态区域。普通人口与事件生成必须经过 FOV/LOS、实际空地、最小距离与人口预算；开发 `spawn` 不属于正常生成路径。低矮通行、局部 A*、邻居避让与近身停止共同避免墙角卡住或全部挤到相机。
+
+Director 使用真实射击/受伤、资源/健康、地点危险和最近事件来推进 calm/rising/peak/recovery。`updateWorldEvents()` 每帧调用，以持久 `lastUpdate` 去重，保证护送随玩家停下/离开即时停止；不要退回只在每秒 Director 回调中更新实体位置。见 [Director 与事件](docs/phase2/DIRECTOR.md)。
+
+## 叙事时序与音频
+
+叙事条件、任务交付、结局消耗在 `NarrativeSystem` 中处理；UI 和实体控制台共用距离与资格检查。`SequenceController` 输出 typed cues，集成层将持久 cue 幂等应用到真实门、AI、灯、倒架等状态后确认。Skip 必须提交必要最终状态，暂停必须同时冻结叙事时钟与 presentationDt。新世界/换档先终止旧对白；异步音频恢复返回后才决定 fallback，防止同一句被重复启动。继续生存立即请求保存。见 [叙事接口](docs/phase2/NARRATIVE.md)。
+
+现场 NPC 声音按说话人坐标定位；已获得录音的回放不按远处原 NPC 衰减。地下声学空间用玩家与地表的高度差辨认。音效按需解码且有声部/冷却预算，配音与字幕共用生成后的真实时长；暂停/重载应恢复同一 offset，Skip 不留旧语音。见 [声音模块](docs/phase2/AUDIO.md)。
+
+## 渲染与离线回归注意事项
+
+- Babylon `DynamicTexture.clone()` 不保证复制并上传原 canvas。需要独立湿润车漆时新建 PBR 材质、共享已就绪纹理，避免场景一直等待不就绪的克隆纹理。
+- 新增 Babylon 功能时显式登记 side effect 和 shader，并同步 Vite `optimizeDeps`；开发 QA 禁用 HMR 时新增依赖需重新预构建，避免两套模块实例。
+- 画质切换和恢复默认都重建相同世界的渲染资源，不能只改设置文本。材质/纹理共享缓存与每世界资源释放分开处理。
+- draw calls 应在 `onAfterRenderObservable` 采样。现代 Chrome 的旧整帧 GPU timestamp 接口可能返回 0；本版注明 `gpuMeasurement: main-pass`，不将其称作完整 GPU 帧时间。JS heap 会有 GC 锯齿，需看预热后的同区域资源与回收低点，不能把一次高点直接判为泄漏。
+- 环境 GLB 统一经过 `loadEnvironmentAsset()`。发电机玻璃使用透明度与 clear coat，禁用 glTF 的全场景 transmission helper；旧 helper 曾在跨区卸载后保留 13.6 万个已销毁网格，导致长时间 CPU/内存退化。新增带透射扩展的资产必须验证渲染目标列表不会增长，不能为一个小部件隐式增加全场景 pass。
+- 生产缓存使用完整版本清单、有限并发与明确 installing/ready/failed 状态。失败保留已有可用缓存，重试不谎报就绪，激活仅清理本游戏拥有的旧缓存。运行资产按需加载与完整离线后台下载是两个不同阶段。
+
+第二阶段正式证据位于 `docs/phase2/evidence/`，覆盖正常伤害生存链路、条件夹具、生产离线与持续运行；具体方法及边界见 [第二阶段验收](docs/phase2/ACCEPTANCE.md)。

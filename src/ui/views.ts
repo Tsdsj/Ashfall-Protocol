@@ -1,3 +1,4 @@
+import { endingCopy } from "./narrative-view";
 import type { GameSettings, WorldState } from "../core/types";
 import { DEFAULT_SETTINGS, DIFFICULTIES } from "../simulation/state";
 import type { SaveEntry } from "../save/storage";
@@ -45,6 +46,7 @@ export function settingsView(s: GameSettings): string {
     right: "右移",
     interact: "交互",
     sprint: "冲刺",
+    walk: "慢行",
     jump: "跳跃",
     crouch: "蹲下",
     prone: "趴下",
@@ -84,12 +86,13 @@ export function savesView(entries: SaveEntry[]): string {
   return `<div class="save-list"><div class="panel-title"><div><h2>生存记录</h2><p>记录保存在当前浏览器，不会上传至服务器。</p></div></div>${entries.length ? entries.map((e, n) => `<article class="save-row"><div class="save-number">${String(n + 1).padStart(2, "0")}</div><div class="save-info"><h3>${escapeHtml(e.name)}</h3><p>第 ${e.day} 天 · ${Math.floor(e.playtime / 60)} 分钟 · ${escapeHtml(e.seed)}<br>${new Date(e.updatedAt).toLocaleString("zh-CN")}</p></div><div class="button-row"><button class="primary" data-action="load-save" data-id="${e.id}">继续记录</button><button class="secondary" data-action="export-save" data-id="${e.id}">导出</button><button class="quiet" data-action="delete-save" data-id="${e.id}">删除</button></div></article>`).join("") : `<div class="nearby-empty">${icon("quest", 48)}<p>还没有生存记录。创建一个世界，第一次保存后就会出现在这里。</p><button class="primary" data-action="new-game">进入灰谷</button></div>`}<div class="button-row" style="margin-top:15px"><button class="secondary" data-action="import-save">导入存档文件</button></div></div>`;
 }
 export function creditsView() {
-  return `<div class="credits">${brand()}<div class="divider"></div><h2>灰烬协议</h2><p>2037 年，灰谷自治区。你并非英雄，只是被遗忘在封锁线内的幸存者。食物、干净饮水、温暖的火光与一个能睡觉的地方，构成最初的目标。</p><h3>在灰谷生活</h3><p>进入建筑搜刮，用背包装备武器和使用补给。在林间采集资源，制作工具并建设营地。感染者会对光线和噪音作出反应。面对危险，有时绕行和撤退更有价值。</p><h3>寻找协议的真相</h3><p>留意林务站的记录、诊所的幸存者、军事基地的访问卡和研究站的终端。广播站可能是让封锁区外听见你的唯一机会。剧情结束后仍可继续生存与建设。</p><h3>技术与素材</h3><p>Babylon.js · TypeScript · Web Audio · IndexedDB。三维模型、植被、图标、天空与音效由程序原创生成；地表、树皮与建筑使用随包提供的 Poly Haven CC0 纹理。Powered by Poly Haven。使用系统字体，无需账号或后端。</p><h3>浏览器中的生存记录</h3><p>存档仅保存在当前设备和浏览器中，建议在读取记录页面导出备份。清除网站数据会删除本地记录。</p></div>`;
+  return `<div class="credits">${brand()}<div class="divider"></div><h2>灰烬协议</h2><p>2037 年，灰谷自治区。你并非英雄，只是被遗忘在封锁线内的幸存者。食物、干净饮水、温暖的火光与一个能睡觉的地方，构成最初的目标。</p><h3>在灰谷生活</h3><p>进入建筑搜刮，用背包装备武器和使用补给。在林间采集资源，制作工具并建设营地。感染者会对光线和噪音作出反应。面对危险，有时绕行和撤退更有价值。</p><h3>寻找协议的真相</h3><p>留意林务站的记录、诊所的幸存者、军事基地的访问卡和研究站的终端。广播站可能是让封锁区外听见你的唯一机会。剧情结束后仍可继续生存与建设。</p><h3>技术与素材</h3><p>Babylon.js · TypeScript · Web Audio · IndexedDB。角色与动作采用 Quaternius CC0 资产；场景扫描模型和材质来自 Poly Haven CC0。环境与物体音效含 Kenney 与 OpenGameArt 作者提供的 CC0 素材，剧情文本为本游戏原创，离线中文配音使用本地语音合成。完整许可与修改记录随项目提供。使用系统字体，无需账号或后端。</p><h3>浏览器中的生存记录</h3><p>存档仅保存在当前设备和浏览器中，建议在读取记录页面导出备份。清除网站数据会删除本地记录。</p></div>`;
 }
 export function deathView(state: WorldState) {
   const permanent = state.rules.permadeath;
   return `<div class="screen-shade"><div style="max-width:560px;text-align:center">${brand()}<h2 class="death-title">灰谷仍然沉默</h2><p class="muted">你在这里生存了 ${Math.floor(state.elapsed / 60)} 分钟，探索 ${state.discovered.length} 处地点。<br>${permanent ? "灰烬难度只有一次生命。这份生存记录已经结束。" : "背包会留在倒下的位置。你可以从最近的营地重新醒来。"}</p><div class="button-row" style="justify-content:center;margin-top:32px">${!permanent ? '<button class="primary" data-action="respawn">在安全点醒来</button>' : ""}<button class="secondary" data-action="save-menu">保存记录并返回</button></div></div></div>`;
 }
 export function endView(state: WorldState) {
-  return `<div class="screen-shade"><div style="max-width:560px;text-align:center"><small class="mono">ASHFALL / TRANSMISSION RECEIVED</small><h2 class="death-title">封锁线之外</h2><p>档案已经送达。灰谷不再只是地图上一个被抹去的名字。<br>你找到了离开的路，也留下了活过的证据。</p><div class="divider"></div><p class="muted">生存 ${state.day} 天 · 探索 ${state.discovered.length} 处地点 · 建立 ${state.structures.filter((s) => s.id.startsWith("build-")).length} 个营地设施</p><div class="button-row" style="justify-content:center;margin-top:28px"><button class="primary" data-action="keep-playing">留在灰谷，继续生存</button><button class="secondary" data-action="save-menu">保存并返回</button></div></div></div>`;
+  const copy = endingCopy(state.narrative.ending);
+  return `<div class="screen-shade"><div style="max-width:560px;text-align:center"><small class="mono">ASHFALL / ${state.narrative.ending?.toUpperCase() ?? "TRUTH"}</small><h2 class="death-title">${escapeHtml(copy.title)}</h2><p>${escapeHtml(copy.text)}</p><div class="divider"></div><p class="muted">生存 ${state.day} 天 · 探索 ${state.discovered.length} 处地点 · 建立 ${state.structures.filter((s) => s.id.startsWith("build-")).length} 个营地设施</p><div class="button-row" style="justify-content:center;margin-top:28px"><button class="primary" data-action="keep-playing">留在灰谷，继续生存</button><button class="secondary" data-action="save-menu">保存并返回</button></div></div></div>`;
 }

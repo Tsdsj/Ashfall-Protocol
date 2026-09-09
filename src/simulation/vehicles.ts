@@ -12,6 +12,13 @@ export class VehicleSystem {
       v = s.vehicles.find((v) => v.id === id);
     if (!v) return false;
     if (
+      distance(s.player.position, v.position) > 4.5 ||
+      Math.abs(s.player.position.y - v.position.y) > 2.5
+    ) {
+      this.ctx.notify("靠近驾驶室后再进入。", "warning");
+      return false;
+    }
+    if (
       v.fuel <= 0 ||
       v.health <= 0 ||
       v.engine < 20 ||
@@ -23,6 +30,8 @@ export class VehicleSystem {
     }
     s.player.vehicle = id;
     s.player.yaw = v.yaw;
+    const door = this.ctx.doors.get("vehicle:" + id + ":left");
+    if (door?.target) this.ctx.doors.request(door.id);
     this.ctx.notify("已进入驾驶位。W / S 加速制动，A / D 转向，E 下车。");
     return true;
   }

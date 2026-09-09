@@ -117,6 +117,7 @@ export interface PlayerData {
   quickSlots: (string | null)[];
   selected: number;
   flashlight: boolean;
+  flashlightCharge: number;
   stance: "stand" | "crouch" | "prone";
   spawn: Vec3;
   vehicle: string | null;
@@ -143,7 +144,41 @@ export type AIState =
   | "search"
   | "flee"
   | "cover"
+  | "windup"
+  | "recover"
+  | "stagger"
+  | "knockdown"
+  | "getup"
+  | "vault"
   | "dead";
+export type BodyPart = "head" | "chest" | "leg" | "arm";
+export type ImpactMaterial =
+  "wood" | "metal" | "concrete" | "dirt" | "glass" | "flesh";
+export interface HitContext {
+  direction?: Vec3;
+  position?: Vec3;
+  source?: "bullet" | "melee" | "explosion" | "vehicle";
+  weapon?: string;
+  impact?: number;
+}
+export interface ActorAttack {
+  elapsed: number;
+  duration: number;
+  hitTime: number;
+  hit: boolean;
+  yaw: number;
+  target: "player" | "door" | "structure";
+  targetId: string;
+}
+export interface ActorReaction {
+  elapsed: number;
+  duration: number;
+  strength: number;
+  direction: Vec3;
+  part: BodyPart;
+  side: "front" | "back" | "left" | "right";
+  source: "bullet" | "melee" | "explosion" | "vehicle";
+}
 export interface ActorData {
   id: string;
   kind: EnemyKind;
@@ -158,6 +193,79 @@ export interface ActorData {
   lastSeen: number;
   harvested: boolean;
   phase: number;
+  behavior:
+    | "standing"
+    | "feeding"
+    | "sitting"
+    | "lying"
+    | "wallLean"
+    | "twitch"
+    | "patrol";
+  stateAge: number;
+  speed: number;
+  verticalVelocity: number;
+  gaitPhase: number;
+  awareness: number;
+  legDamage: number;
+  armDamage: number;
+  deathStyle: number;
+  deathTime: number;
+  attack: ActorAttack | null;
+  reaction: ActorReaction | null;
+  traversal: {
+    from: Vec3;
+    to: Vec3;
+    elapsed: number;
+    duration: number;
+    height: number;
+  } | null;
+}
+export type DoorStatus =
+  "closed" | "opening" | "open" | "closing" | "locked" | "blocked" | "broken";
+export interface DoorData {
+  id: string;
+  status: DoorStatus;
+  kind: "wood" | "metal" | "security" | "gate" | "vehicle";
+  progress: number;
+  target: number;
+  health: number;
+  locked: boolean;
+  duration: number;
+  startedAt: number;
+  blockedUntil: number;
+  rattle: number;
+}
+export interface NarrativeState {
+  act: number;
+  objectives: string[];
+  quests: Record<string, { stage: number; completed: boolean }>;
+  seenSequences: string[];
+  sequenceFlags: string[];
+  audioLogs: string[];
+  ending: "truth" | "ash" | "survivor" | null;
+  choice: "publish" | "destroy" | "shutdown" | null;
+  activeSequence: { id: string; elapsed: number; applied: string[] } | null;
+}
+export interface DirectorState {
+  tension: number;
+  lastCombat: number;
+  recoveryUntil: number;
+  lastEvent: number;
+  encounters: number;
+  /** Optional for v1/v2 saves created before the pacing pass. */
+  pacing?: {
+    phase: "calm" | "rising" | "peak" | "recovery";
+    phaseSince: number;
+    peakUntil: number;
+    lastSample: number;
+    lastHealth: number;
+    lastKills: number;
+    resourcePressure: number;
+    locationDanger: number;
+    eventCooldownUntil: number;
+    highestIntensity: number;
+    recentKinds: string[];
+  };
 }
 export interface ContainerData {
   id: string;
@@ -201,9 +309,22 @@ export interface WorldEvent {
   start: number;
   expires: number;
   resolved: boolean;
+  /** Authored encounters retain their physical participants and transaction state. */
+  encounter?: {
+    version: 1;
+    stage: number;
+    stageAt: number;
+    outcome: "active" | "success" | "failed" | "expired";
+    hostileIds: string[];
+    survivorHealth: number;
+    lastUpdate: number;
+    rewardClaimed: boolean;
+    poiId: string;
+    approach: "none" | "quiet" | "force" | "aid";
+  };
 }
 export interface WorldState {
-  version: 1;
+  version: 2;
   rules: WorldRules;
   waypoint: Vec3 | null;
   cooldowns: Record<string, number>;
@@ -222,6 +343,9 @@ export interface WorldState {
   structures: StructureData[];
   vehicles: VehicleData[];
   doors: Record<string, boolean>;
+  doorStates: Record<string, DoorData>;
+  narrative: NarrativeState;
+  director: DirectorState;
   destroyed: string[];
   discovered: string[];
   journal: string[];
@@ -264,6 +388,14 @@ export interface Collider {
   minY: number;
   maxY: number;
   door?: string;
+  material?: ImpactMaterial;
+  obb?: {
+    x: number;
+    z: number;
+    halfWidth: number;
+    halfDepth: number;
+    yaw: number;
+  };
 }
 export interface NoiseEvent {
   position: Vec3;
@@ -297,6 +429,7 @@ export interface Feedback {
     | "warning"
     | "damage"
     | "sound"
+    | "motion"
     | "shot"
     | "hit"
     | "death";
@@ -304,6 +437,12 @@ export interface Feedback {
   position?: Vec3;
   value?: number;
   kind?: string;
+  actorId?: string;
+  direction?: Vec3;
+  normal?: Vec3;
+  material?: ImpactMaterial;
+  weapon?: string;
+  part?: BodyPart;
 }
 export const clamp = (n: number, min = 0, max = 100) =>
   Math.max(min, Math.min(max, n));

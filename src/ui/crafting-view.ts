@@ -1,5 +1,4 @@
 import { BUILDING_KINDS, ITEMS } from "../data/items";
-import { RECIPES } from "../data/recipes";
 import { countItem } from "../simulation/inventory";
 import { craftTransaction } from "../simulation/crafting";
 import type { Simulation } from "../simulation/simulation";
@@ -18,13 +17,15 @@ export function craftingView(
       "装备",
       "营地建造",
     ],
-    recipes = RECIPES.filter((r) => filter === "全部" || r.category === filter),
-    selected = RECIPES.find((r) => r.id === selectedId) ?? recipes[0]!;
+    recipes = sim.recipes.filter(
+      (r) => filter === "全部" || r.category === filter,
+    ),
+    selected = sim.recipes.find((r) => r.id === selectedId) ?? recipes[0]!;
   const inv = sim.state.player.inventory;
   const available =
     craftTransaction(structuredClone(inv), selected).ok &&
     sim.stationAvailable(selected.station);
-  return `<div class="craft-layout"><nav class="filter-list" aria-label="配方类别">${categories.map((c) => `<button class="${filter === c ? "active" : ""}" data-action="craft-filter" data-filter="${c}">${c}<small>${c === "全部" ? RECIPES.length : RECIPES.filter((r) => r.category === c).length}</small></button>`).join("")}</nav><section><div class="column-heading"><strong>制作配方</strong><span>${recipes.length} 项</span></div><div class="recipe-list">${recipes
+  return `<div class="craft-layout"><nav class="filter-list" aria-label="配方类别">${categories.map((c) => `<button class="${filter === c ? "active" : ""}" data-action="craft-filter" data-filter="${c}">${c}<small>${c === "全部" ? sim.recipes.length : sim.recipes.filter((r) => r.category === c).length}</small></button>`).join("")}</nav><section><div class="column-heading"><strong>制作配方</strong><span>${recipes.length} 项</span></div><div class="recipe-list">${recipes
     .map((r) => {
       const ready =
         Object.entries(r.ingredients).every(

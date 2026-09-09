@@ -127,15 +127,20 @@ export class BuildingSystem {
   }
   powered(position: Vec3): boolean {
     const s = this.ctx.state;
+    const spatial = (a: Vec3, b: Vec3) =>
+      Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
     return s.structures.some(
       (b) =>
         b.kind === "generator" &&
         b.active &&
         b.fuel > 0 &&
         b.health > 0 &&
-        distance(b.position, position) <
+        spatial(b.position, position) <
           (s.structures.some(
-            (w) => w.kind === "wire" && distance(w.position, b.position) < 12,
+            (w) =>
+              w.health > 0 &&
+              w.kind === "wire" &&
+              spatial(w.position, b.position) < 12,
           )
             ? 30
             : 16),
@@ -146,6 +151,7 @@ export class BuildingSystem {
       (b) =>
         b.kind === kind &&
         b.health > 0 &&
+        Math.abs(b.position.y - this.ctx.state.player.position.y) < 2.5 &&
         distance(b.position, this.ctx.state.player.position) < radius,
     );
   }
@@ -168,14 +174,16 @@ export class BuildingSystem {
       return true;
     }
     if (b.kind === "door" || b.kind === "gate") {
-      b.active = !b.active;
-      this.ctx.noise(b.position, 8, "door");
-      return true;
+      return this.ctx.doors.request(id);
     }
     if (b.kind === "planter") {
       if (b.growth >= 100) {
-        if (!addItem(inv, "turnip", 3)) return false;
-        addItem(inv, "seeds", 2);
+        const harvest = structuredClone(inv);
+        if (!addItem(harvest, "turnip", 3) || !addItem(harvest, "seeds", 2)) {
+          this.ctx.notify("背包空间不足。作物和种子仍留在花盆中。", "warning");
+          return false;
+        }
+        inv.items = harvest.items;
         b.growth = 0;
         b.plantedAt = 0;
         this.ctx.notify("收获成熟作物", "success");
@@ -274,14 +282,20 @@ export class BuildingSystem {
           b.fuel - dt * (b.kind === "campfire" ? 0.05 : 0.07),
         );
         if (b.fuel === 0) b.active = false;
-        if (b.kind === "generator" && Math.floor(s.elapsed) % 5 === 0)
+        if (
+          b.kind === "generator" &&
+          s.elapsed >= (s.cooldowns["generator-noise:" + b.id] ?? 0)
+        ) {
           this.ctx.noise(b.position, 65, "generator");
+          s.cooldowns["generator-noise:" + b.id] = s.elapsed + 5;
+        }
       }
       if (b.kind === "planter" && b.plantedAt > 0)
         b.growth = clamp(
-          ((s.elapsed - b.plantedAt) / 900) *
-            100 *
-            (s.weather === "rain" ? 1.3 : 1),
+          b.growth +
+            (dt / 900) *
+              100 *
+              (s.weather === "rain" || s.weather === "storm" ? 1.3 : 1),
         );
       if (
         b.kind === "raincollector" &&

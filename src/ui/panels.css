@@ -1203,3 +1203,26 @@
     font-size: calc(12px * var(--ui-scale));
   }
 }
+.drop-preview {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  background: #9daf7340;
+  border: 2px solid #c1d49b;
+  color: #e4efcd;
+  font-size: 10px;
+  min-width: 0;
+  text-align: center;
+}
+.drop-preview.invalid {
+  background: #aa584e40;
+  border-color: #e59483;
+  color: #ffd2c7;
+}
+.drop-preview.merging {
+  background: #d3b16b50;
+  border-color: #e6cb89;
+  color: #fff2c9;
+}

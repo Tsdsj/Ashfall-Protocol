@@ -1,19 +1,24 @@
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { type Mesh } from "@babylonjs/core/Meshes/mesh";
 import { type Scene } from "@babylonjs/core/scene";
 import { ModelBatch } from "./geometry";
 import type { MaterialFactory } from "./materials";
 import type { StructureData, VehicleData } from "../core/types";
+import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
+import { STAIRS } from "../world/building-geometry";
 export function structureModel(
   scene: Scene,
   mats: MaterialFactory,
   b: StructureData,
-): { root: TransformNode; meshes: Mesh[] } {
+): { root: TransformNode; meshes: Mesh[]; door?: Mesh; lid?: Mesh } {
   const root = new TransformNode(b.id, scene),
     batch = new ModelBatch(scene, b.id),
     wood = mats.surface("wood"),
     metal = mats.surface("metal"),
     cloth = mats.surface("cloth");
+  let door: Mesh | undefined;
+  let lid: Mesh | undefined;
   switch (b.kind) {
     case "foundation":
     case "floor": {
@@ -40,13 +45,12 @@ export function structureModel(
       for (const side of [-1, 1])
         batch.box("frame", [0.2, 2.8, 0.24], [side * 1.3, 1.4, 0], wood);
       batch.box("header", [2.8, 0.18, 0.24], [0, 2.8, 0], wood);
-      batch.box(
-        "door",
-        [2.4, 2.6, 0.1],
-        [b.active ? 1.25 : 0, 1.3, b.active ? 1.2 : 0],
-        wood,
-        [0, b.active ? Math.PI / 2 : 0, 0],
-      );
+      for (const side of [-1, 1])
+        batch.box("side-wall", [0.7, 2.8, 0.18], [side * 1.65, 1.4, 0], wood);
+      door = batch.box("door", [2.4, 2.6, 0.1], [0, 1.3, 0], wood);
+      batch.take(door);
+      door.setPivotPoint(new Vector3(-1.2, 0, 0));
+      door.parent = root;
       batch.box("lock", [0.12, 0.07, 0.07], [0.8, 1.3, -0.08], metal);
       break;
     }
@@ -63,11 +67,19 @@ export function structureModel(
       break;
     }
     case "stairs":
-      for (let n = 0; n < 4; n++)
+      for (let n = 0; n < STAIRS.steps; n++)
         batch.box(
           "step",
-          [2, 0.12 + n * 0.08, 0.5],
-          [0, 0.06 + n * 0.04, -0.75 + n * 0.5],
+          [
+            STAIRS.width,
+            ((n + 1) / STAIRS.steps) * STAIRS.rise,
+            STAIRS.run / STAIRS.steps,
+          ],
+          [
+            0,
+            (((n + 1) / STAIRS.steps) * STAIRS.rise) / 2,
+            -STAIRS.run / 2 + ((n + 0.5) / STAIRS.steps) * STAIRS.run,
+          ],
           wood,
         );
       break;
@@ -78,7 +90,16 @@ export function structureModel(
         batch.box("rail", [4, 0.12, 0.14], [0, h, 0.08], wood);
       break;
     case "storage": {
-      batch.box("chest", [1.4, 0.85, 0.85], [0, 0.42, 0], wood);
+      batch.box("bottom", [1.4, 0.06, 0.85], [0, 0.04, 0], wood);
+      for (const side of [-1, 1]) {
+        batch.box("side", [0.065, 0.78, 0.85], [side * 0.668, 0.42, 0], wood);
+        batch.box("end", [1.4, 0.78, 0.065], [0, 0.42, side * 0.392], wood);
+      }
+      lid = batch.box("chest-lid", [1.4, 0.08, 0.85], [0, 0.85, 0], wood);
+      batch.take(lid);
+      lid.setPivotPoint(new Vector3(0, 0, 0.425));
+      lid.parent = root;
+      lid.metadata = { lidAxis: "x" };
       for (const side of [-1, 1])
         batch.box("band", [0.08, 0.9, 0.89], [side * 0.43, 0.43, 0], metal);
       batch.box("lock", [0.12, 0.17, 0.08], [0, 0.55, -0.46], metal);
@@ -187,7 +208,24 @@ export function structureModel(
         [0, 0.8, 0],
         mats.surface("metal", "#cccec2"),
       );
-      batch.box("handle", [0.05, 0.4, 0.07], [0.24, 1, -0.44], metal);
+      lid = batch.box(
+        "fridge-door",
+        [0.79, 1.5, 0.055],
+        [0, 0.8, -0.435],
+        mats.surface("metal", "#b4c4bb"),
+      );
+      batch.take(lid);
+      lid.parent = root;
+      lid.setPivotPoint(new Vector3(-0.39, 0, 0));
+      lid.metadata = { lidAxis: "y" };
+      const handle = batch.box(
+        "handle",
+        [0.05, 0.4, 0.07],
+        [0.24, 0.2, -0.06],
+        metal,
+      );
+      batch.take(handle);
+      handle.parent = lid;
       break;
     }
     case "planter": {
@@ -224,10 +262,15 @@ export function structureModel(
       batch.box("junction", [0.3, 0.4, 0.15], [0, 0.3, 0], metal);
       break;
   }
-  const meshes = batch.finish(root);
+  const meshes = [
+    ...batch.finish(root),
+    ...(door ? [door] : []),
+    ...(lid ? [lid, ...(lid.getChildMeshes() as Mesh[])] : []),
+  ];
   for (const m of meshes) {
     m.unfreezeWorldMatrix();
     m.metadata = {
+      ...m.metadata,
       interaction: {
         id: b.id,
         type: "structure",
@@ -238,20 +281,46 @@ export function structureModel(
   }
   root.position.set(b.position.x, b.position.y, b.position.z);
   root.rotation.y = b.rotation;
-  return { root, meshes };
+  return { root, meshes, door, lid };
 }
 export function vehicleModel(
   scene: Scene,
   mats: MaterialFactory,
   v: VehicleData,
-): { root: TransformNode; meshes: Mesh[]; wheels: TransformNode[] } {
+): {
+  root: TransformNode;
+  meshes: Mesh[];
+  wheels: TransformNode[];
+  doors: TransformNode[];
+  paint: PBRMaterial;
+} {
   const root = new TransformNode(v.id, scene),
     batch = new ModelBatch(scene, v.id),
-    paint = mats.surface("metal", v.kind === "pickup" ? "#9bafa4" : "#a8a99a"),
+    basePaint = mats.surface(
+      "metal",
+      v.kind === "pickup" ? "#9bafa4" : "#a8a99a",
+    ),
+    paint = new PBRMaterial(v.id + ":paint", scene),
     black = mats.surface("plastic"),
     metal = mats.surface("metal"),
     glass = mats.simple("vehicle-glass", "#486359", 0, 0.56);
   const wheels: TransformNode[] = [];
+  paint.albedoColor = basePaint.albedoColor.clone();
+  paint.metallic = basePaint.metallic;
+  paint.roughness = basePaint.roughness;
+  paint.albedoTexture = basePaint.albedoTexture;
+  paint.bumpTexture = basePaint.bumpTexture;
+  paint.metallicTexture = basePaint.metallicTexture;
+  paint.useRoughnessFromMetallicTextureAlpha = false;
+  paint.useRoughnessFromMetallicTextureGreen = true;
+  paint.useMetallnessFromMetallicTextureBlue = true;
+  paint.useAmbientOcclusionFromMetallicTextureRed = true;
+  root.onDisposeObservable.add(() => paint.dispose(false, false));
+  paint.clearCoat.isEnabled = true;
+  paint.clearCoat.intensity = 0;
+  paint.clearCoat.roughness = 0.16;
+  const doors: TransformNode[] = [],
+    movingMeshes: Mesh[] = [];
   batch.box("chassis", [1.9, 0.28, 4.5], [0, 0.58, 0], mats.surface("rust"));
   batch.box("hood", [1.86, 0.42, 1.2], [0, 0.99, 1.3], paint);
   batch.box("grille", [1.5, 0.24, 0.07], [0, 0.83, 1.94], black);
@@ -274,11 +343,16 @@ export function vehicleModel(
   );
   batch.box("rear-window", [1.6, 0.6, 0.04], [0, 1.5, -0.63], glass);
   for (const side of [-1, 1]) {
-    batch.box("door", [0.09, 0.58, 1.4], [side * 0.92, 1.02, 0.2], paint);
-    batch.box(
+    const hinge = new TransformNode(v.id + ":vehicle-door:" + side, scene);
+    hinge.parent = root;
+    hinge.position.set(side * 0.92, 0, 0.9);
+    doors.push(hinge);
+    const db = new ModelBatch(scene, v.id + ":door:" + side);
+    db.box("door", [0.09, 0.58, 1.4], [0, 1.02, -0.7], paint);
+    db.box(
       "side-window",
       [0.035, 0.6, 1.19],
-      [side * 0.9, 1.61, 0.2],
+      [-side * 0.02, 1.61, -0.7],
       glass,
     );
     for (const z of [-0.54, 0.88])
@@ -287,13 +361,9 @@ export function vehicleModel(
         0,
         0,
       ]);
-    batch.box("mirror", [0.18, 0.15, 0.24], [side * 1.12, 1.4, 0.75], paint);
-    batch.box(
-      "handle",
-      [0.025, 0.05, 0.15],
-      [side * 0.985, 1.19, -0.18],
-      metal,
-    );
+    db.box("mirror", [0.18, 0.15, 0.24], [side * 0.2, 1.4, -0.15], paint);
+    db.box("handle", [0.025, 0.05, 0.15], [side * 0.065, 1.19, -1.08], metal);
+    movingMeshes.push(...db.finish(hinge));
     batch.box(
       "lamp",
       [0.38, 0.2, 0.06],
@@ -350,6 +420,7 @@ export function vehicleModel(
         ]);
       const ms = b.finish(wheel);
       for (const m of ms) m.unfreezeWorldMatrix();
+      movingMeshes.push(...ms);
       wheels.push(wheel);
     }
   for (const side of [-1, 1]) {
@@ -367,7 +438,7 @@ export function vehicleModel(
     );
   }
   batch.box("dashboard", [1.6, 0.22, 0.35], [0, 1.32, 0.55], black);
-  const meshes = batch.finish(root);
+  const meshes = [...batch.finish(root), ...movingMeshes];
   for (const m of meshes) {
     m.unfreezeWorldMatrix();
     m.metadata = {
@@ -381,5 +452,5 @@ export function vehicleModel(
   }
   root.position.set(v.position.x, v.position.y, v.position.z);
   root.rotation.y = v.yaw;
-  return { root, meshes, wheels };
+  return { root, meshes, wheels, doors, paint };
 }

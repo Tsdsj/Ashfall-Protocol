@@ -260,3 +260,63 @@ export function validateInventory(inv: InventoryData): boolean {
     return false;
   }
 }
+
+/** Place at the released cell, or merge compatible stacks there; preserves both inventories on failure. */
+export function transferAt(
+  from: InventoryData,
+  to: InventoryData,
+  uid: string,
+  x: number,
+  y: number,
+  rotate = false,
+): { ok: boolean; merged: number; reason: string } {
+  const sourceCopy = structuredClone(from),
+    targetCopy = from === to ? sourceCopy : structuredClone(to),
+    source = sourceCopy.items.find((i) => i.uid === uid);
+  const fail = {
+    ok: false,
+    merged: 0,
+    reason: "此处空间不足或与其他物品重叠。",
+  };
+  if (!source) return fail;
+  const destination = targetCopy.items.find((i) => {
+    const [w, h] = dimensions(i);
+    return i.uid !== uid && x >= i.x && x < i.x + w && y >= i.y && y < i.y + h;
+  });
+  if (
+    destination &&
+    destination.id === source.id &&
+    getItem(source.id).maxStack > 1 &&
+    Math.abs(destination.freshness - source.freshness) < 10
+  ) {
+    const n = Math.min(
+      source.count,
+      getItem(source.id).maxStack - destination.count,
+    );
+    if (n <= 0) return { ...fail, reason: "这个物资堆叠已满。" };
+    destination.freshness =
+      (destination.freshness * destination.count + source.freshness * n) /
+      (destination.count + n);
+    destination.count += n;
+    source.count -= n;
+    sourceCopy.items = sourceCopy.items.filter((i) => i.count > 0);
+    from.items = sourceCopy.items;
+    to.items = from === to ? sourceCopy.items : targetCopy.items;
+    return { ok: true, merged: n, reason: "" };
+  }
+  const candidate = {
+    ...source,
+    rotated: rotate ? !source.rotated : source.rotated,
+    x,
+    y,
+  };
+  if (!canPlace(targetCopy, candidate, x, y)) return fail;
+  if (from === to) Object.assign(source, candidate);
+  else {
+    sourceCopy.items = sourceCopy.items.filter((i) => i.uid !== uid);
+    targetCopy.items.push(candidate);
+  }
+  from.items = sourceCopy.items;
+  to.items = from === to ? sourceCopy.items : targetCopy.items;
+  return { ok: true, merged: 0, reason: "" };
+}

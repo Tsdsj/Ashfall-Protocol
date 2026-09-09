@@ -3,6 +3,7 @@ import { createEngine } from "../rendering/engine";
 import { GameRenderer } from "../rendering/renderer";
 import { GameUI, type Screen } from "../ui/ui";
 import { AudioManager } from "../audio/audio";
+import { DIALOGUE_DURATIONS } from "../audio/dialogue-durations";
 import { SaveSystem, deserialize, serialize } from "../save/storage";
 import {
   createWorld,
@@ -22,7 +23,13 @@ import { addItem } from "../simulation/inventory";
 import { ITEMS } from "../data/items";
 import { ENEMIES } from "../data/enemies";
 import { spawnActor } from "../simulation/population";
+import { interactWorldEvent } from "../simulation/world-events";
 import { TRADES } from "../ui/world-views";
+import {
+  NARRATIVE_AUDIO,
+  NARRATIVE_INTERACTIONS,
+  type SequenceCueEvent,
+} from "../narrative";
 export class Game {
   canvas = document.querySelector<HTMLCanvasElement>("#game-canvas")!;
   readonly settings: GameSettings;
@@ -48,6 +55,8 @@ export class Game {
   private autosaving = false;
   private saveQueue: Promise<void> = Promise.resolve();
   private playFrames = 0;
+  private frameSamples: number[] = [];
+  private simFrameMs = 0;
   constructor() {
     this.settings = this.readSettings();
     this.ui = new GameUI(this.settings);
@@ -61,6 +70,7 @@ export class Game {
       );
     };
     this.bind();
+    this.installDebug();
   }
   private readSettings(): GameSettings {
     try {
@@ -106,6 +116,7 @@ export class Game {
     }
   }
   private async setWorld(state: WorldState) {
+    this.audio.stopDialogue();
     this.loading = true;
     this.offSim?.();
     this.renderer?.dispose();
@@ -145,16 +156,66 @@ export class Game {
   private frame() {
     const now = performance.now(),
       dt = Math.min((now - this.last) / 1000, 0.05);
+    const frameMs = now - this.last;
     this.last = now;
     if (this.loading || !this.renderer || this.frameError) return;
     try {
-      const playing =
+      const controlsActive =
         this.active &&
         this.ui.screen === "play" &&
         (document.pointerLockElement === this.canvas || this.input.fallback) &&
         !this.consoleOpen;
+      const sessionRunning =
+        this.active &&
+        ![
+          "menu",
+          "loading",
+          "pause",
+          "settings",
+          "saves",
+          "credits",
+          "death",
+          "end",
+          "error",
+        ].includes(this.ui.screen) &&
+        (this.ui.screen !== "play" || controlsActive);
+      const previousSequence = this.sim.narrative.frame();
+      if (sessionRunning) this.sim.narrative.update(dt);
+      const sequence = this.sim.narrative.frame();
+      if (this.active)
+        for (const cue of this.sim.narrative.drainCues())
+          this.narrativeCue(cue);
+      if (sequence.blocking && !previousSequence.blocking) {
+        this.input.clear();
+        this.sim.actions.cancel("");
+        this.sim.cancelCraft();
+        this.sim.combat.cancelReload();
+      }
+      if (previousSequence.blocking && !sequence.blocking) {
+        this.audio.stopDialogue();
+        this.input.clear();
+        void this.save(true);
+        if (previousSequence.id === "finale" && !this.sim.state.ended) {
+          this.ui.entityId = "finale";
+          this.open("conversation");
+        }
+      }
+      if (this.active && this.sim.state.ended && this.ui.screen !== "end")
+        this.open("end");
+      const playing =
+        this.active &&
+        this.ui.screen === "play" &&
+        (document.pointerLockElement === this.canvas || this.input.fallback) &&
+        !this.consoleOpen &&
+        !sequence.blocking;
       this.renderer.setMenu(!this.active);
       if (playing) {
+        this.frameSamples.push(frameMs);
+        if (this.frameSamples.length > 600) this.frameSamples.shift();
+        this.sim.viewFov = this.settings.fov;
+        this.sim.viewAspect =
+          this.engine.getRenderWidth() /
+          Math.max(1, this.engine.getRenderHeight());
         const mouse = this.input.mouse();
         const sensitivity =
           this.settings.sensitivity * 0.00165 * (this.input.aiming ? 0.55 : 1);
@@ -171,12 +232,28 @@ export class Game {
               Number(this.input.held.has("ArrowUp"))) *
               dt *
               1.1,
-          -1.4,
-          1.4,
+          -1.45,
+          1.48,
         );
         this.renderer.weapon.mouse(mouse.x, mouse.y);
+        const simStart = performance.now();
         this.sim.update(dt, this.input.movement());
-        if (this.input.mouseDown || this.input.attackPressed) {
+        this.simFrameMs = performance.now() - simStart;
+        this.renderer.prepareView(
+          dt,
+          this.input.aiming,
+          this.input.down("leanLeft")
+            ? -1
+            : this.input.down("leanRight")
+              ? 1
+              : 0,
+        );
+        if (
+          !this.sim.narrative.frame().blocking &&
+          (this.input.mouseDown || this.input.attackPressed)
+        ) {
+          this.sim.actions.cancel("");
+          this.sim.cancelCraft();
           this.input.attackPressed = false;
           if (this.sim.building.active) {
             this.place();
@@ -213,15 +290,40 @@ export class Game {
             "warning",
           );
         }
-      } else if (this.ui.screen === "crafting") this.sim.tickCraft(dt);
-      this.renderer.update(
-        dt,
-        playing && this.input.aiming,
-        this.input.down("leanLeft") ? -1 : this.input.down("leanRight") ? 1 : 0,
-      );
+      } else if (sessionRunning && sequence.blocking) {
+        this.sim.doors.update(dt);
+      } else if (
+        this.active &&
+        [
+          "inventory",
+          "crafting",
+          "building",
+          "map",
+          "journal",
+          "conversation",
+          "body",
+          "structure",
+          "vehicle",
+          "trade",
+        ].includes(this.ui.screen)
+      ) {
+        this.sim.update(dt, {
+          forward: 0,
+          side: 0,
+          sprint: false,
+          jump: false,
+          brake: false,
+        });
+      }
+      const presentationDt = !this.active || sessionRunning ? dt : 0;
+      if (!playing) this.renderer.prepareView(presentationDt, false, 0);
+      this.renderer.interactionSource =
+        this.ui.screen === "inventory" ? this.ui.nearbySource : "";
+      this.renderer.update(presentationDt, playing && this.input.aiming);
       const target = playing ? this.renderer.target() : null;
       this.ui.setInteraction(target);
       const stats = this.renderer.stats;
+      this.ui.scopeWeight = this.renderer.motion.pose.ads;
       this.ui.update(
         dt,
         this.input.aiming,
@@ -233,7 +335,14 @@ export class Game {
         const ghost = this.renderer.placement();
         this.ui.buildingPrompt(ghost.valid, ghost.reason);
       }
-      this.audio.update(this.sim, now / 1000, playing);
+      this.audio.update(
+        this.sim,
+        now / 1000,
+        this.active &&
+          !["pause", "settings", "saves", "death", "end"].includes(
+            this.ui.screen,
+          ),
+      );
     } catch (e) {
       this.frameError = true;
       this.input.unlock();
@@ -249,7 +358,7 @@ export class Game {
   private bind() {
     document.addEventListener("pointerlockchange", () => {
       const locked = document.pointerLockElement === this.canvas;
-      this.ui.setLocked(locked);
+      this.ui.setLocked(locked || this.input.fallback);
       if (
         !locked &&
         !this.input.fallback &&
@@ -260,7 +369,43 @@ export class Game {
         this.ui.show("pause");
     });
     window.addEventListener("blur", () => {
-      if (this.active && this.ui.screen === "play") this.open("pause");
+      if (
+        this.active &&
+        [
+          "play",
+          "inventory",
+          "crafting",
+          "building",
+          "map",
+          "journal",
+          "conversation",
+          "body",
+          "structure",
+          "vehicle",
+          "trade",
+        ].includes(this.ui.screen)
+      )
+        this.open("pause");
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (
+        document.hidden &&
+        this.active &&
+        [
+          "play",
+          "inventory",
+          "crafting",
+          "building",
+          "map",
+          "journal",
+          "conversation",
+          "body",
+          "structure",
+          "vehicle",
+          "trade",
+        ].includes(this.ui.screen)
+      )
+        this.open("pause");
     });
     window.addEventListener("keydown", (e) => this.key(e));
     document.addEventListener("click", (event) => {
@@ -333,6 +478,14 @@ export class Game {
         this.toggleConsole();
         return;
       }
+      if (this.sim?.actions.pending) {
+        this.sim.actions.cancel();
+        return;
+      }
+      if (this.sim?.craftJob) {
+        this.sim.cancelCraft();
+        return;
+      }
       if (this.sim?.building.active) {
         this.sim.building.active = false;
         this.ui.render();
@@ -348,6 +501,17 @@ export class Game {
       return;
     }
     if (!this.active || this.loading) return;
+    if (
+      this.ui.screen === "play" &&
+      e.code === "KeyX" &&
+      !e.repeat &&
+      this.sim.narrative.frame().skippable
+    ) {
+      e.preventDefault();
+      this.skipSequence();
+      return;
+    }
+    if (this.sim.narrative.frame().blocking) return;
     if (e.code === "F3") {
       e.preventDefault();
       this.ui.debugVisible = !this.ui.debugVisible;
@@ -387,7 +551,23 @@ export class Game {
         return;
       }
       if (this.sim.state.player.vehicle) {
-        this.sim.vehicles.exit();
+        const id = this.sim.state.player.vehicle;
+        if (
+          Math.abs(
+            this.sim.state.vehicles.find((v) => v.id === id)?.speed ?? 0,
+          ) > 2
+        ) {
+          this.sim.notify("先停车再下车", "warning");
+          return;
+        }
+        if (
+          this.sim.actions.begin("exit-vehicle", "正在离开驾驶室", 0.7, () =>
+            this.sim.vehicles.exit(),
+          )
+        ) {
+          const door = this.sim.doors.get("vehicle:" + id + ":left");
+          if (door && !door.target) this.sim.doors.request(door.id);
+        }
         return;
       }
       const target = this.renderer.target();
@@ -395,20 +575,30 @@ export class Game {
     }
     if (e.code === this.settings.keys.reload && !e.repeat) {
       if (this.sim.building.active) this.sim.building.rotation += Math.PI / 2;
-      else this.sim.combat.reload();
+      else {
+        this.sim.actions.cancel("");
+        this.sim.cancelCraft();
+        this.sim.combat.reload();
+      }
     }
     if (e.code === this.settings.keys.flashlight && !e.repeat) {
+      if (this.sim.state.player.flashlightCharge <= 0) {
+        this.sim.notify("手电没有电量。打开背包为它充电。", "warning");
+        return;
+      }
       this.sim.state.player.flashlight = !this.sim.state.player.flashlight;
       this.sim.bus.emit({ type: "sound", text: "pickup", kind: "pickup" });
     }
     if (e.code === this.settings.keys.crouch && !e.repeat) {
       e.preventDefault();
-      this.sim.state.player.stance =
-        this.sim.state.player.stance === "crouch" ? "stand" : "crouch";
+      this.sim.setStance(
+        this.sim.state.player.stance === "crouch" ? "stand" : "crouch",
+      );
     }
     if (e.code === this.settings.keys.prone && !e.repeat)
-      this.sim.state.player.stance =
-        this.sim.state.player.stance === "prone" ? "stand" : "prone";
+      this.sim.setStance(
+        this.sim.state.player.stance === "prone" ? "stand" : "prone",
+      );
     if (e.code === this.settings.keys.grenade && !e.repeat) {
       this.sim.combat.throw(
         this.renderer.camera.position,
@@ -430,24 +620,115 @@ export class Game {
     if (e.code === this.settings.keys.jump) e.preventDefault();
   }
   private interact(target: Interaction) {
+    if (target.id.startsWith("event:")) {
+      this.sim.actions.begin(
+        target.type === "npc" ? "heal" : "repair",
+        target.name,
+        1.4,
+        () => {
+          const ok = interactWorldEvent(this.sim, target.id);
+          if (ok) void this.save(true);
+          return ok;
+        },
+        { target: target.position },
+      );
+      return;
+    }
+    if (target.id.startsWith("conversation:")) {
+      this.ui.entityId = target.id.slice(13);
+      this.open("conversation");
+      return;
+    }
+    if (target.id.startsWith("narrative:")) {
+      if (
+        target.id === "narrative:facility-control" &&
+        this.sim.state.narrative.sequenceFlags.includes("finale-ready")
+      ) {
+        this.ui.entityId = "finale";
+        this.open("conversation");
+        return;
+      }
+      this.sim.actions.begin(
+        "interact",
+        target.name,
+        0.85,
+        () => {
+          const before = this.sim.state.player.position;
+          const success = this.sim.narrative.interact(target.id);
+          if (this.sim.state.player.position !== before) {
+            this.sim.verticalVelocity = 0;
+            this.sim.grounded = true;
+            this.sim.locomotion.reset();
+          }
+          if (success) void this.save(true);
+          return success;
+        },
+        { target: target.position },
+      );
+      return;
+    }
     switch (target.type) {
-      case "container":
-        this.ui.nearbySource = target.id;
-        this.sim.state.containers[target.id]!.searched = true;
-        this.sim.state.containers[target.id]!.openedAt = this.sim.state.elapsed;
-        this.open("inventory");
+      case "container": {
+        const container = this.sim.state.containers[target.id];
+        if (!container) break;
+        this.sim.actions.begin(
+          "search",
+          "正在搜索 " + container.name,
+          container.searched ? 0.4 : container.type === "military" ? 2.2 : 1.4,
+          () => {
+            if (
+              !this.sim.collision.visible(
+                {
+                  ...this.sim.state.player.position,
+                  y:
+                    this.sim.state.player.position.y +
+                    this.renderer.motion.pose.height,
+                },
+                container.position,
+              )
+            ) {
+              this.sim.notify("无法接触这个容器。", "warning");
+              return false;
+            }
+            this.ui.nearbySource = target.id;
+            container.searched = true;
+            container.openedAt = this.sim.state.elapsed;
+            this.open("inventory");
+            return true;
+          },
+          { target: container.position },
+        );
         break;
+      }
       case "door":
         this.sim.actions.door(target.id);
         break;
       case "resource":
-        this.sim.actions.gather(target);
+        this.sim.actions.begin(
+          target.resource === "wood" ? "chop" : "pickup",
+          "正在采集 " + target.name,
+          target.resource === "ore"
+            ? 2.4
+            : target.resource === "wood"
+              ? 1.4
+              : 0.65,
+          () => this.sim.actions.gather(target),
+          { target: target.position },
+        );
         break;
       case "corpse":
-        if (this.sim.actions.harvest(target.id)) {
-          this.ui.nearbySource = "corpse:" + target.id;
-          this.open("inventory");
-        }
+        this.sim.actions.begin(
+          "harvest",
+          "正在处理遗体",
+          2.2,
+          () => {
+            if (!this.sim.actions.harvest(target.id)) return false;
+            this.ui.nearbySource = "corpse:" + target.id;
+            this.open("inventory");
+            return true;
+          },
+          { target: target.position },
+        );
         break;
       case "story":
         if (this.sim.actions.read(target.id)) {
@@ -478,24 +759,143 @@ export class Game {
         this.open("vehicle");
         break;
       case "npc":
-        this.sim.actions.read("clinic");
-        this.open("trade");
+        this.ui.entityId = "米拉";
+        this.open("conversation");
         break;
       case "radio":
-        if (this.sim.actions.radio()) void this.save(true);
+        this.ui.entityId = "乔榆";
+        this.open("conversation");
         break;
       case "extraction":
-        if (this.sim.actions.extract()) {
+        if (
+          this.sim.state.narrative.ending === "truth" &&
+          this.sim.actions.extract()
+        ) {
           this.open("end");
           void this.save(true);
-        }
+        } else
+          this.sim.notify(
+            "接应组需要经过核验的档案和公开证词。先完成地下控制台的调查与选择。",
+          );
         break;
       case "water":
         if (this.sim.combat.equipped()?.id === "fishingrod")
           this.sim.actions.fish();
-        else this.sim.actions.gather({ ...target, resource: "water" });
+        else
+          this.sim.actions.begin(
+            "pickup",
+            "正在收集水",
+            1.1,
+            () => this.sim.actions.gather({ ...target, resource: "water" }),
+            { target: target.position },
+          );
         break;
     }
+  }
+  private skipSequence() {
+    const before = this.sim.narrative.frame();
+    if (!this.sim.narrative.skipSequence()) return;
+    this.audio.stopDialogue();
+    this.input.clear();
+    for (const cue of this.sim.narrative.drainCues()) this.narrativeCue(cue);
+    if (before.id === "finale" && !this.sim.state.ended) {
+      this.ui.entityId = "finale";
+      this.open("conversation");
+    }
+    if (this.sim.state.ended) this.open("end");
+    void this.save(true);
+  }
+  private narrativeCue(event: SequenceCueEvent) {
+    const cue = event.payload;
+    if (cue.type === "audio") {
+      const line = NARRATIVE_AUDIO[cue.audioId];
+      const delivery = cue.delivery ?? line?.delivery;
+      const speakerAnchor =
+        delivery === "dialogue"
+          ? NARRATIVE_INTERACTIONS.find((d) => d.npc === line?.speaker)?.anchor
+          : undefined;
+      if (line)
+        void this.audio.playDialogue({
+          id: cue.audioId,
+          text: line.text,
+          speaker: line.speaker,
+          radio: delivery === "radio" || delivery === "log",
+          volume: cue.gain,
+          position: cue.anchor
+            ? this.sim.narrative.resolveAnchor(cue.anchor)
+            : speakerAnchor
+              ? this.sim.narrative.resolveAnchor(speakerAnchor)
+              : undefined,
+        });
+      else
+        this.audio.event({
+          type: "sound",
+          text: cue.audioId,
+          kind: cue.audioId,
+          position: cue.anchor
+            ? this.sim.narrative.resolveAnchor(cue.anchor)
+            : undefined,
+        });
+    } else if (cue.type === "door") {
+      const data = this.sim.doors.get(cue.doorId);
+      if (!data) return;
+      data.locked = false;
+      if (data.status !== "broken" && cue.state !== "unlocked") {
+        data.target = cue.state === "open" ? 1 : 0;
+        data.status = data.target ? "opening" : "closing";
+        this.sim.state.doors[cue.doorId] = !!data.target;
+      }
+    } else if (cue.type === "particle")
+      this.renderer.effects.sequenceBurst(
+        this.sim.narrative.resolveAnchor(cue.anchor),
+        cue.effect,
+        cue.count,
+        cue.duration,
+      );
+    else if (cue.type === "explosion") {
+      const position = this.sim.narrative.resolveAnchor(cue.anchor);
+      this.sim.combat.detonate(position, cue.damage / 180, cue.radius);
+    } else if (cue.type === "ai") {
+      const position = this.sim.narrative.resolveAnchor(cue.anchor);
+      if (cue.command === "investigate")
+        this.sim.noise(position, cue.radius, "scripted");
+      for (const actor of Object.values(this.sim.state.actors)) {
+        const distance = Math.hypot(
+          actor.position.x - position.x,
+          actor.position.z - position.z,
+        );
+        if (actor.health <= 0 || distance > cue.radius) continue;
+        if (cue.command === "hold")
+          this.sim.state.cooldowns["ai-hold:" + actor.id] =
+            this.sim.state.elapsed + cue.duration;
+        if (cue.command === "release")
+          delete this.sim.state.cooldowns["ai-hold:" + actor.id];
+        if (cue.command === "withdraw" && actor.kind === "raider") {
+          this.sim.state.cooldowns["ai-withdraw:" + actor.id] =
+            this.sim.state.elapsed + 60;
+          actor.attack = null;
+          actor.awareness = 0;
+          actor.state = "flee";
+          actor.target = {
+            x:
+              actor.position.x +
+              ((actor.position.x - position.x) / (distance || 1)) * 75,
+            y: actor.position.y,
+            z:
+              actor.position.z +
+              ((actor.position.z - position.z) / (distance || 1)) * 75 +
+              10,
+          };
+        }
+      }
+    } else if (cue.type === "objective") {
+      if (!event.replay && !event.skipped) this.sim.notify(cue.text);
+    } else if (cue.type === "animation" || cue.type === "lighting") {
+      this.renderer.narrativeWorld.cue(event);
+      if (cue.type === "animation" && cue.target === "player")
+        this.renderer.sequenceAction(cue.animation, cue.duration);
+    }
+    if (event.requiresAck) this.sim.narrative.ackCue(event.key);
   }
   private place() {
     const placement = this.renderer.placement();
@@ -505,6 +905,8 @@ export class Game {
     }
   }
   open(screen: Screen) {
+    if (["pause", "settings", "saves", "death", "end", "menu"].includes(screen))
+      this.audio.pauseDialogue();
     if (screen === "inventory" && this.ui.nearbySource) {
       const c = this.sim.state.containers[this.ui.nearbySource];
       if (
@@ -524,6 +926,30 @@ export class Game {
   private async resume() {
     if (!this.active || this.frameError) return;
     this.ui.show("play");
+    const subtitle = this.sim.narrative.frame().subtitle;
+    void this.audio.resumeDialogue().then((resumed) => {
+      if (
+        !resumed &&
+        subtitle &&
+        this.ui.screen === "play" &&
+        this.sim.narrative.frame().subtitle?.audioId === subtitle.audioId &&
+        !this.audio.diagnostics().dialogue
+      ) {
+        const line = NARRATIVE_AUDIO[subtitle.audioId];
+        if (line)
+          void this.audio.playDialogue({
+            id: subtitle.audioId,
+            text: line.text,
+            speaker: line.speaker,
+            radio: line.delivery !== "dialogue",
+            offsetSeconds: Math.max(
+              0,
+              (DIALOGUE_DURATIONS[subtitle.audioId] ?? subtitle.remaining) -
+                subtitle.remaining,
+            ),
+          });
+      }
+    });
     this.input.clear();
     if (this.settings.dragLook) {
       this.input.fallback = true;
@@ -597,6 +1023,53 @@ export class Game {
   }
   private async action(action: string, el: HTMLElement) {
     switch (action) {
+      case "cancel-action":
+        this.sim.actions.cancel();
+        this.sim.cancelCraft();
+        break;
+      case "charge-flashlight":
+        if (this.sim.rechargeFlashlight()) await this.resume();
+        break;
+      case "skip-sequence":
+        this.skipSequence();
+        break;
+      case "open-trade":
+        this.open("trade");
+        break;
+      case "narrative-interact":
+        if (this.sim.narrative.interact(el.dataset.id!)) {
+          await this.resume();
+          void this.save(true);
+        }
+        break;
+      case "narrative-choice":
+        if (
+          this.sim.narrative.choose(
+            el.dataset.id as "publish" | "destroy" | "shutdown",
+          )
+        ) {
+          await this.resume();
+          void this.save(true);
+        }
+        break;
+      case "replay-log":
+        this.sim.narrative.replayLog(el.dataset.id!);
+        break;
+      case "quest-waypoint": {
+        const entry = NARRATIVE_INTERACTIONS.find(
+          (d) => d.id === el.dataset.id,
+        );
+        if (entry) {
+          const p = this.sim.narrative.resolveAnchor(entry.anchor);
+          this.sim.state.waypoint = { ...p };
+          this.sim.notify(
+            "已标记：" +
+              this.sim.gen.pois.find((p) => p.id === entry.anchor.poiId)!.name,
+            "success",
+          );
+        }
+        break;
+      }
       case "new-game":
         this.ui.show("newgame");
         break;
@@ -743,11 +1216,18 @@ export class Game {
         this.persistSettings();
         break;
       }
-      case "reset-settings":
+      case "reset-settings": {
+        const previousScreen = this.ui.screen,
+          quality = this.settings.quality;
         Object.assign(this.settings, structuredClone(DEFAULT_SETTINGS));
         this.persistSettings();
-        this.ui.render();
+        if (quality !== this.settings.quality) {
+          await this.setWorld(this.sim.state);
+          this.renderer.setMenu(!this.active);
+          this.ui.show(previousScreen);
+        } else this.ui.render();
         break;
+      }
       case "rebind":
         this.ui.binding = el.dataset.key!;
         el.textContent = "按下新键位";
@@ -768,12 +1248,40 @@ export class Game {
         await this.resume();
         break;
       case "enter-vehicle":
-        if (this.sim.vehicles.enter(el.dataset.id!)) await this.resume();
+        if (
+          this.sim.actions.begin(
+            "enter-vehicle",
+            "正在进入驾驶室",
+            0.8,
+            () => {
+              if (!this.sim.vehicles.enter(el.dataset.id!)) return false;
+              void this.resume();
+              return true;
+            },
+            {
+              target: this.sim.state.vehicles.find(
+                (v) => v.id === el.dataset.id,
+              )!.position,
+              range: 4.5,
+            },
+          )
+        ) {
+          const door = this.sim.doors.get("vehicle:" + el.dataset.id + ":left");
+          if (door && !door.target) this.sim.doors.request(door.id);
+          void this.resume();
+        }
         break;
       case "service-vehicle":
-        this.sim.vehicles.service(el.dataset.id!, el.dataset.kind as "fuel");
-        this.sim.actions.cleanup();
-        this.ui.render();
+        this.sim.actions.begin(
+          "repair",
+          el.dataset.kind === "fuel" ? "正在给车辆加油" : "正在维修车辆",
+          el.dataset.kind === "fuel" ? 1.4 : 2.2,
+          () =>
+            this.sim.vehicles.service(
+              el.dataset.id!,
+              el.dataset.kind as "fuel",
+            ),
+        );
         break;
       case "open-vehicle-storage":
         this.ui.nearbySource = "vehicle:" + el.dataset.id;
@@ -784,21 +1292,23 @@ export class Game {
         this.open("inventory");
         break;
       case "structure-toggle":
-        this.sim.building.interact(el.dataset.id!);
-        this.sim.actions.cleanup();
-        this.ui.render();
+        this.sim.actions.begin("interact", "正在操作设施", 0.85, () =>
+          this.sim.building.interact(el.dataset.id!),
+        );
         break;
       case "structure-fuel":
-        if (!this.sim.building.fuel(el.dataset.id!))
-          this.ui.toast("没有足够的燃料。", "warning");
-        this.sim.actions.cleanup();
-        this.ui.render();
+        this.sim.actions.begin("interact", "正在添加燃料", 0.8, () => {
+          const result = this.sim.building.fuel(el.dataset.id!);
+          if (!result) this.ui.toast("没有足够的燃料。", "warning");
+          return result;
+        });
         break;
       case "structure-repair":
-        if (!this.sim.building.repair(el.dataset.id!))
-          this.ui.toast("维修需要木材 ×2。", "warning");
-        this.sim.actions.cleanup();
-        this.ui.render();
+        this.sim.actions.begin("repair", "正在维修设施", 1.8, () => {
+          const result = this.sim.building.repair(el.dataset.id!);
+          if (!result) this.ui.toast("维修需要木材 ×2。", "warning");
+          return result;
+        });
         break;
       case "structure-reclaim":
         if (this.sim.building.reclaim(el.dataset.id!)) {
@@ -827,7 +1337,9 @@ export class Game {
         }
         break;
       case "keep-playing":
-        this.sim.state.ended = false;
+        if (!this.sim.narrative.continueSurvival())
+          this.sim.state.ended = false;
+        void this.save(true);
         await this.resume();
         break;
       case "retry-webgl":
@@ -919,6 +1431,7 @@ export class Game {
         this.sim.state.player.vehicle = null;
         this.sim.state.player.position = this.sim.gen.position(x, z);
         this.sim.verticalVelocity = 0;
+        this.sim.locomotion.reset();
         this.sim.state.player.yaw = 0;
         this.sim.state.player.pitch = 0;
         void this.renderer.world.stream();
@@ -958,7 +1471,25 @@ export class Game {
     const api = {
       inspect: () => ({
         ...this.sim.inspect(),
+        performance: {
+          simulationMs: this.simFrameMs,
+          physicsQueries: this.sim.collision.queries,
+          frameP95: this.frameSamples.length
+            ? [...this.frameSamples].sort((a, b) => a - b)[
+                Math.floor(this.frameSamples.length * 0.95)
+              ]
+            : null,
+          frameP99: this.frameSamples.length
+            ? [...this.frameSamples].sort((a, b) => a - b)[
+                Math.floor(this.frameSamples.length * 0.99)
+              ]
+            : null,
+        },
         renderer: this.renderer.stats,
+        motion: {
+          pose: this.renderer.motion.pose,
+          weights: this.renderer.motion.weights,
+        },
         screen: this.ui.screen,
         locked: document.pointerLockElement === this.canvas,
         inputMode: this.input.fallback ? "drag" : "pointerlock",

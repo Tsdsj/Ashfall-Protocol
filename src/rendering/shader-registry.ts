@@ -3,6 +3,8 @@ import "@babylonjs/core/Shaders/pbr.vertex";
 import "@babylonjs/core/Shaders/pbr.fragment";
 import "@babylonjs/core/Shaders/shadowMap.vertex";
 import "@babylonjs/core/Shaders/shadowMap.fragment";
+import "@babylonjs/core/Shaders/ShadersInclude/shadowMapFragmentSoftTransparentShadow";
+import "@babylonjs/core/ShadersWGSL/ShadersInclude/shadowMapFragmentSoftTransparentShadow";
 import "@babylonjs/core/Shaders/particles.vertex";
 import "@babylonjs/core/Shaders/particles.fragment";
 import "@babylonjs/core/Shaders/kernelBlur.vertex";

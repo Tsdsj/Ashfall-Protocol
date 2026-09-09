@@ -2,6 +2,12 @@ import type { WorldState, InventoryData, Vec3 } from "../core/types";
 import { validateInventory, validEntityId } from "../simulation/inventory";
 import { ITEMS } from "../data/items";
 import { ENEMIES } from "../data/enemies";
+import { generatePOIs } from "../world/generator";
+import {
+  initialDirector,
+  initialNarrative,
+  normalizeActor,
+} from "../simulation/quality-state";
 export interface SaveEntry {
   id: string;
   name: string;
@@ -31,6 +37,13 @@ export function deserialize(json: string): WorldState {
   const parsed: unknown = JSON.parse(json);
   if (record(parsed) && parsed.version === 1) {
     const s = parsed as unknown as WorldState;
+    s.version = 2;
+    s.doorStates = {};
+    s.narrative = initialNarrative();
+    s.director = initialDirector();
+    s.narrative.seenSequences.push("opening");
+    if (record(s.actors))
+      for (const actor of Object.values(s.actors)) normalizeActor(actor);
     s.rules ??= {
       dayLength: 60,
       lootAmount: 1,
@@ -55,6 +68,17 @@ export function deserialize(json: string): WorldState {
     if (Array.isArray(s.vehicles))
       for (const v of s.vehicles) normalize(v?.inventory);
   }
+  if (record(parsed) && parsed.version === 2 && record(parsed.actors)) {
+    for (const actor of Object.values(parsed.actors))
+      if (record(actor))
+        normalizeActor(actor as unknown as WorldState["actors"][string]);
+  }
+  if (
+    record(parsed) &&
+    record(parsed.player) &&
+    parsed.player.flashlightCharge === undefined
+  )
+    parsed.player.flashlightCharge = 100;
   if (!validateState(parsed)) throw new Error("存档格式不正确或已损坏");
   return parsed;
 }
@@ -63,7 +87,7 @@ export function validateState(input: unknown): input is WorldState {
   const s = input as unknown as WorldState;
   try {
     if (
-      s.version !== 1 ||
+      s.version !== 2 ||
       typeof s.seed !== "string" ||
       s.seed.length < 1 ||
       s.seed.length > 64 ||
@@ -73,6 +97,113 @@ export function validateState(input: unknown): input is WorldState {
       !finiteDeep(s)
     )
       return false;
+    if (!record(s.doorStates) || !record(s.narrative) || !record(s.director))
+      return false;
+    if (
+      !Object.values(s.doorStates).every(
+        (d) =>
+          validEntityId(d.id) &&
+          ["wood", "metal", "security", "gate", "vehicle"].includes(d.kind) &&
+          [
+            "closed",
+            "opening",
+            "open",
+            "closing",
+            "locked",
+            "blocked",
+            "broken",
+          ].includes(d.status) &&
+          [
+            d.progress,
+            d.target,
+            d.health,
+            d.duration,
+            d.startedAt,
+            d.blockedUntil,
+            d.rattle,
+          ].every(Number.isFinite) &&
+          d.progress >= 0 &&
+          d.progress <= 1 &&
+          [0, 1].includes(d.target) &&
+          d.health >= 0 &&
+          typeof d.locked === "boolean",
+      )
+    )
+      return false;
+    const narrative = s.narrative;
+    if (
+      !Number.isInteger(narrative.act) ||
+      narrative.act < 1 ||
+      narrative.act > 5 ||
+      ![
+        narrative.objectives,
+        narrative.seenSequences,
+        narrative.sequenceFlags,
+        narrative.audioLogs,
+      ].every(
+        (list) =>
+          Array.isArray(list) && list.every((x) => typeof x === "string"),
+      ) ||
+      !record(narrative.quests)
+    )
+      return false;
+    if (
+      !Object.values(narrative.quests).every(
+        (q) =>
+          Number.isInteger(q.stage) &&
+          q.stage >= 0 &&
+          typeof q.completed === "boolean",
+      )
+    )
+      return false;
+    if (
+      ![null, "truth", "ash", "survivor"].includes(narrative.ending) ||
+      ![null, "publish", "destroy", "shutdown"].includes(narrative.choice)
+    )
+      return false;
+    if (
+      narrative.activeSequence !== null &&
+      (!record(narrative.activeSequence) ||
+        typeof narrative.activeSequence.id !== "string" ||
+        !Number.isFinite(narrative.activeSequence.elapsed) ||
+        !Array.isArray(narrative.activeSequence.applied) ||
+        !narrative.activeSequence.applied.every((x) => typeof x === "string"))
+    )
+      return false;
+    if (
+      ![
+        s.director.tension,
+        s.director.lastCombat,
+        s.director.recoveryUntil,
+        s.director.lastEvent,
+        s.director.encounters,
+      ].every(Number.isFinite) ||
+      s.director.tension < 0 ||
+      s.director.tension > 100
+    )
+      return false;
+    if (s.director.pacing) {
+      const p = s.director.pacing;
+      if (
+        !record(p) ||
+        !["calm", "rising", "peak", "recovery"].includes(p.phase) ||
+        ![
+          p.phaseSince,
+          p.peakUntil,
+          p.lastSample,
+          p.lastHealth,
+          p.lastKills,
+          p.resourcePressure,
+          p.locationDanger,
+          p.eventCooldownUntil,
+          p.highestIntensity,
+        ].every(Number.isFinite) ||
+        !Array.isArray(p.recentKinds) ||
+        !p.recentKinds.every((x) => typeof x === "string") ||
+        p.recentKinds.length > 12
+      )
+        return false;
+    }
     if (
       !Number.isInteger(s.day) ||
       s.day < 1 ||
@@ -203,12 +334,68 @@ export function validateState(input: unknown): input is WorldState {
             "search",
             "flee",
             "cover",
+            "windup",
+            "recover",
+            "stagger",
+            "knockdown",
+            "getup",
+            "vault",
             "dead",
           ].includes(a.state) &&
           Object.hasOwn(ENEMIES, a.kind) &&
           vector(a.position) &&
           vector(a.home) &&
           vector(a.target) &&
+          [
+            a.stateAge,
+            a.speed,
+            a.verticalVelocity,
+            a.gaitPhase,
+            a.awareness,
+            a.legDamage,
+            a.armDamage,
+            a.deathStyle,
+            a.deathTime,
+          ].every(Number.isFinite) &&
+          [
+            "standing",
+            "feeding",
+            "sitting",
+            "lying",
+            "wallLean",
+            "twitch",
+            "patrol",
+          ].includes(a.behavior) &&
+          (a.attack === null ||
+            ([
+              a.attack.elapsed,
+              a.attack.duration,
+              a.attack.hitTime,
+              a.attack.yaw,
+            ].every(Number.isFinite) &&
+              typeof a.attack.hit === "boolean" &&
+              ["player", "door", "structure"].includes(a.attack.target) &&
+              typeof a.attack.targetId === "string")) &&
+          (a.reaction === null ||
+            ([
+              a.reaction.elapsed,
+              a.reaction.duration,
+              a.reaction.strength,
+            ].every(Number.isFinite) &&
+              vector(a.reaction.direction) &&
+              ["head", "chest", "leg", "arm"].includes(a.reaction.part) &&
+              ["front", "back", "left", "right"].includes(a.reaction.side) &&
+              ["bullet", "melee", "explosion", "vehicle"].includes(
+                a.reaction.source,
+              ))) &&
+          (a.traversal === null ||
+            (vector(a.traversal.from) &&
+              vector(a.traversal.to) &&
+              [
+                a.traversal.elapsed,
+                a.traversal.duration,
+                a.traversal.height,
+              ].every(Number.isFinite))) &&
           typeof a.health === "number",
       )
     )
@@ -251,6 +438,9 @@ export function validateState(input: unknown): input is WorldState {
     if (
       !["stand", "crouch", "prone"].includes(p.stance) ||
       typeof p.flashlight !== "boolean" ||
+      !Number.isFinite(p.flashlightCharge) ||
+      p.flashlightCharge < 0 ||
+      p.flashlightCharge > 100 ||
       ![p.distance, p.kills, p.deaths].every(Number.isFinite)
     )
       return false;
@@ -265,6 +455,27 @@ export function validateState(input: unknown): input is WorldState {
       )
     )
       return false;
+    for (const event of s.events) {
+      const e = event.encounter;
+      if (e === undefined) continue;
+      if (
+        !record(e) ||
+        e.version !== 1 ||
+        !Number.isInteger(e.stage) ||
+        e.stage < 0 ||
+        e.stage > 3 ||
+        ![e.stageAt, e.survivorHealth, e.lastUpdate].every(Number.isFinite) ||
+        e.survivorHealth < 0 ||
+        e.survivorHealth > 100 ||
+        !["active", "success", "failed", "expired"].includes(e.outcome) ||
+        !["none", "quiet", "force", "aid"].includes(e.approach) ||
+        typeof e.rewardClaimed !== "boolean" ||
+        !Array.isArray(e.hostileIds) ||
+        !e.hostileIds.every(validEntityId) ||
+        !generatePOIs(s.seed).some((p) => p.id === e.poiId)
+      )
+        return false;
+    }
     for (const list of [s.flags, s.journal, s.destroyed, s.discovered])
       if (!Array.isArray(list) || !list.every((v) => typeof v === "string"))
         return false;

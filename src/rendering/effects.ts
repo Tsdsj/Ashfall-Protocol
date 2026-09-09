@@ -28,6 +28,8 @@ export class EffectsRenderer {
     { fire: ParticleSystem; smoke: ParticleSystem; light: PointLight }
   >();
   private tracer: Mesh[] = [];
+  private decals: { mesh: Mesh; life: number }[] = [];
+  private sequenceParticles: { system: ParticleSystem; life: number }[] = [];
   constructor(
     private scene: Scene,
     private mats: MaterialFactory,
@@ -149,15 +151,58 @@ export class EffectsRenderer {
       return;
     if (!e.position) return;
     const blood = e.type === "hit" && e.kind !== "wall";
+    const material = e.material ?? "concrete";
+    const metal = material === "metal" || e.kind === "explosion";
+    if (e.type === "hit" && e.kind === "wall" && material !== "glass") {
+      if (this.decals.length >= 36) this.decals.shift()!.mesh.dispose();
+      const mark = MeshBuilder.CreateDisc(
+        "impact-mark",
+        { radius: material === "dirt" ? 0.065 : 0.035, tessellation: 9 },
+        this.scene,
+      );
+      mark.isPickable = false;
+      mark.material = this.mats.simple(
+        "impact-mark-" + material,
+        material === "wood"
+          ? "#33251b"
+          : material === "dirt"
+            ? "#4e4029"
+            : "#272b27",
+      );
+      mark.position.set(e.position.x, e.position.y, e.position.z);
+      const dir = e.direction ?? { x: 0, y: -1, z: 0 };
+      const normal = e.normal
+        ? new Vector3(e.normal.x, e.normal.y, e.normal.z)
+        : material === "dirt"
+          ? new Vector3(0, 1, 0)
+          : Math.abs(dir.y) > Math.max(Math.abs(dir.x), Math.abs(dir.z))
+            ? new Vector3(0, -Math.sign(dir.y), 0)
+            : Math.abs(dir.x) > Math.abs(dir.z)
+              ? new Vector3(-Math.sign(dir.x), 0, 0)
+              : new Vector3(0, 0, -Math.sign(dir.z));
+      mark.position.addInPlace(normal.scale(0.008));
+      mark.lookAt(mark.position.subtract(normal));
+      this.decals.push({ mesh: mark, life: 45 });
+    }
     for (let n = 0; n < (e.kind === "explosion" ? 24 : 7); n++) {
       const s = this.sparks.find((s) => s.life <= 0);
       if (!s) break;
       s.mesh.position.set(e.position.x, e.position.y, e.position.z);
       s.mesh.setEnabled(true);
       s.mesh.material = this.mats.simple(
-        blood ? "blood" : "spark",
-        blood ? "#633a2b" : "#d3a76e",
-        blood ? 0 : 1.4,
+        blood ? "blood" : "debris-" + material,
+        blood
+          ? "#633a2b"
+          : metal
+            ? "#d3a76e"
+            : material === "wood"
+              ? "#8b714b"
+              : material === "dirt"
+                ? "#706247"
+                : material === "glass"
+                  ? "#bdcfcb"
+                  : "#8f9287",
+        metal ? 1.4 : 0,
       );
       s.velocity.set(
         (Math.random() - 0.5) * 3,
@@ -167,6 +212,44 @@ export class EffectsRenderer {
       s.life = 0.2 + Math.random() * 0.5;
       s.maxLife = s.life;
     }
+  }
+  sequenceBurst(
+    position: Vec3,
+    effect: "dust" | "sparks" | "smoke" | "embers",
+    count: number,
+    duration: number,
+  ) {
+    if (this.sequenceParticles.length >= 6)
+      this.sequenceParticles.shift()!.system.dispose(false);
+    const system = new ParticleSystem(
+      "sequence-" + effect,
+      Math.min(250, count),
+      this.scene,
+    );
+    system.particleTexture = this.texture;
+    system.emitter = new Vector3(position.x, position.y, position.z);
+    system.minEmitBox = new Vector3(-0.45, 0, -0.45);
+    system.maxEmitBox = new Vector3(0.45, 0.25, 0.45);
+    system.direction1 = new Vector3(-0.3, 0.5, -0.3);
+    system.direction2 = new Vector3(0.5, 1.5, 0.5);
+    const glowing = effect === "sparks" || effect === "embers";
+    system.minSize = glowing ? 0.02 : 0.2;
+    system.maxSize = glowing ? 0.07 : 1.1;
+    system.minLifeTime = glowing ? 0.2 : 1;
+    system.maxLifeTime = glowing ? 1 : 3;
+    system.emitRate = Math.min(250, count) / Math.max(0.5, duration);
+    system.color1 = glowing
+      ? new Color4(1, 0.63, 0.2, 0.8)
+      : new Color4(0.36, 0.38, 0.32, 0.25);
+    system.color2 = glowing
+      ? new Color4(1, 0.3, 0.05, 0.5)
+      : new Color4(0.23, 0.26, 0.22, 0.15);
+    system.colorDead = new Color4(0.1, 0.1, 0.1, 0);
+    system.blendMode = glowing
+      ? ParticleSystem.BLENDMODE_ADD
+      : ParticleSystem.BLENDMODE_STANDARD;
+    system.start();
+    this.sequenceParticles.push({ system, life: duration });
   }
   private makeFire(id: string, pos: Vec3) {
     const p = new ParticleSystem("fire:" + id, 90, this.scene);
@@ -217,8 +300,20 @@ export class EffectsRenderer {
   }
   update(dt: number, time: number, rainAmount: number): void {
     const p = this.sim.state.player.position;
+    for (const entry of this.sequenceParticles) {
+      entry.life -= dt;
+      if (entry.life <= 0) entry.system.emitRate = 0;
+      if (entry.life < -3) entry.system.dispose(false);
+    }
+    this.sequenceParticles = this.sequenceParticles.filter((e) => e.life >= -3);
+    for (const decal of this.decals) {
+      decal.life -= dt;
+      decal.mesh.visibility = Math.min(1, decal.life / 5);
+      if (decal.life <= 0) decal.mesh.dispose();
+    }
+    this.decals = this.decals.filter((d) => d.life > 0);
     this.rain.emitter = new Vector3(p.x, p.y + 4, p.z);
-    this.rain.emitRate = rainAmount * (this.sim.indoors ? 100 : 1100);
+    this.rain.emitRate = rainAmount * (this.sim.indoors ? 0 : 1100);
     this.dust.emitter = new Vector3(p.x, p.y, p.z);
     for (const s of this.sparks) {
       if (s.life <= 0) continue;
@@ -243,7 +338,11 @@ export class EffectsRenderer {
       s.mesh.rotation.x += dt * 8;
       s.mesh.rotation.z += dt * 5;
       const ground =
-        this.sim.gen.height(s.mesh.position.x, s.mesh.position.z) + 0.012;
+        this.sim.collision.ground(
+          s.mesh.position.x,
+          s.mesh.position.z,
+          s.mesh.position.y,
+        ) + 0.012;
       if (s.mesh.position.y < ground) {
         s.mesh.position.y = ground;
         s.velocity.y = Math.abs(s.velocity.y) * 0.23;

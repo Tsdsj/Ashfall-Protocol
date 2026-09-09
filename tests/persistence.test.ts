@@ -20,6 +20,7 @@ describe("持久化与世界状态", () => {
   it("旧版 v1 存档补入默认世界规则且不丢失玩家数据", () => {
     const state = createWorld("legacy"),
       raw = JSON.parse(serialize(state));
+    raw.version = 1;
     delete raw.rules;
     const restored = deserialize(JSON.stringify(raw));
     expect(restored.rules.dayLength).toBe(60);

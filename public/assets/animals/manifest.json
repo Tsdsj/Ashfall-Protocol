@@ -1,0 +1,488 @@
+{
+  "license": "CC0-1.0",
+  "orientation": "+Z forward, +Y up, metre units, y=0 floor",
+  "prepared": "2026-09-08T20:46:11.528Z",
+  "sources": [
+    {
+      "file": "Stag.gltf",
+      "url": "https://drive.google.com/uc?export=download&id=1URNoFeIFblJXPFOV6qwPrxZr5dLZ3YGx",
+      "author": "Quaternius",
+      "source": "https://quaternius.com/packs/ultimateanimatedanimals.html",
+      "licenseEvidence": "https://www.patreon.com/quaternius/posts/ultimate-animals-53427821",
+      "scale": 0.43,
+      "bytes": 3224724,
+      "sha256": "170b964909d16d1ab4d428b1d714f25016913d32481acd9c3d62923192583be6",
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Wolf.gltf",
+      "url": "https://drive.google.com/uc?export=download&id=1lFQoQ9ln2Z2wGuFFWObj9i5jHqUl_ftG",
+      "author": "Quaternius",
+      "source": "https://quaternius.com/packs/ultimateanimatedanimals.html",
+      "licenseEvidence": "https://www.patreon.com/quaternius/posts/ultimate-animals-53427821",
+      "scale": 0.34,
+      "bytes": 3175890,
+      "sha256": "cc02e9d128b5715f352ee8bea086f97a35f1d875d240de99b0f9f2775c37d415",
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "boar.blend",
+      "url": "https://opengameart.org/sites/default/files/boar_0.blend",
+      "author": "Teh_Bucket",
+      "source": "https://opengameart.org/content/boar",
+      "licenseEvidence": "https://opengameart.org/content/boar",
+      "scale": 0.5,
+      "bytes": 1780848,
+      "sha256": "c16625680d056f0402d1be209c41d16a63394aec94b082a63ad32f562e9f2d2d",
+      "license": "CC0-1.0"
+    }
+  ],
+  "animals": {
+    "deer": {
+      "source": "https://quaternius.com/packs/ultimateanimatedanimals.html",
+      "scale": 0.43,
+      "forward": "+Z",
+      "groundY": 0,
+      "animations": {
+        "Attack": {
+          "duration": 0.800000011920929,
+          "loop": false,
+          "provenance": "original author animation",
+          "hitPhase": 0.46,
+          "contactNote": "Annotated from sampled authored windup, forward head/tusk strike and recovery. Runtime piecewise-remaps this phase to ActorAttack.hitTime."
+        },
+        "Kick": {
+          "duration": 0.800000011920929,
+          "loop": false,
+          "provenance": "original author animation"
+        },
+        "Death": {
+          "duration": 1.100000023841858,
+          "loop": false,
+          "provenance": "original author animation"
+        },
+        "Eat": {
+          "duration": 12.100000381469727,
+          "loop": true,
+          "provenance": "original author animation"
+        },
+        "Run": {
+          "duration": 0.5333333611488342,
+          "loop": true,
+          "provenance": "original author animation"
+        },
+        "Jump": {
+          "duration": 1.399999976158142,
+          "loop": false,
+          "provenance": "original author animation"
+        },
+        "Idle": {
+          "duration": 3.3333332538604736,
+          "loop": true,
+          "provenance": "original author animation"
+        },
+        "IdleLook": {
+          "duration": 3.3333332538604736,
+          "loop": true,
+          "provenance": "original author animation"
+        },
+        "Hit": {
+          "duration": 0.46666666865348816,
+          "loop": false,
+          "provenance": "original author animation"
+        },
+        "HitAlt": {
+          "duration": 0.5333333611488342,
+          "loop": false,
+          "provenance": "original author animation"
+        },
+        "Walk": {
+          "duration": 1.1666666269302368,
+          "loop": true,
+          "provenance": "original author animation"
+        }
+      },
+      "deathGrounding": [
+        {
+          "phase": 0,
+          "uncorrectedMinY": 0.004172448687741415,
+          "rootY": 0.0008275513122585855
+        },
+        {
+          "phase": 0.16666666666666666,
+          "uncorrectedMinY": -0.028630264430632657,
+          "rootY": 0.033630264430632655
+        },
+        {
+          "phase": 0.3333333333333333,
+          "uncorrectedMinY": -0.05020344355763573,
+          "rootY": 0.05520344355763573
+        },
+        {
+          "phase": 0.5,
+          "uncorrectedMinY": -0.07165900662528646,
+          "rootY": 0.07665900662528646
+        },
+        {
+          "phase": 0.6666666666666666,
+          "uncorrectedMinY": -0.15486781288498186,
+          "rootY": 0.15986781288498186
+        },
+        {
+          "phase": 0.8333333333333334,
+          "uncorrectedMinY": -0.1225267669077823,
+          "rootY": 0.1275267669077823
+        },
+        {
+          "phase": 1,
+          "uncorrectedMinY": -0.13575633096012396,
+          "rootY": 0.14075633096012397
+        }
+      ],
+      "hoofGrounding": {
+        "Attack": 0,
+        "Eat": 0,
+        "Run": 0.04853509404828538,
+        "Idle": 0,
+        "IdleLook": 0,
+        "Hit": 0,
+        "HitAlt": 0,
+        "Walk": 0.027285536892610148
+      },
+      "bounds": {
+        "min": [
+          -0.5430008494107437,
+          0.004172448687741415,
+          -0.774623108874195
+        ],
+        "max": [
+          0.5475159469720285,
+          2.3168185114127513,
+          1.3054242565813325
+        ]
+      },
+      "joints": 38,
+      "bones": {
+        "head": "Head",
+        "body": "Body",
+        "frontLeft": "FrontLowerLeg.L",
+        "frontRight": "FrontLowerLeg.R",
+        "backLeft": "BackLowerLeg.L",
+        "backRight": "BackLowerLeg.R"
+      },
+      "modifications": "Original quadruped skin and animations retained; metre scale; coincident-vertex coat normals smoothed; desaturated original coat colours; subtle authored fur grain.",
+      "sourceScale": 0.43,
+      "runtimeScale": 1
+    },
+    "wolf": {
+      "source": "https://quaternius.com/packs/ultimateanimatedanimals.html",
+      "scale": 0.34,
+      "forward": "+Z",
+      "groundY": 0,
+      "animations": {
+        "Attack": {
+          "duration": 1.3333333730697632,
+          "loop": false,
+          "provenance": "original author animation",
+          "hitPhase": 0.3,
+          "contactNote": "Annotated from sampled authored windup, forward head/tusk strike and recovery. Runtime piecewise-remaps this phase to ActorAttack.hitTime."
+        },
+        "Death": {
+          "duration": 1.0666667222976685,
+          "loop": false,
+          "provenance": "original author animation"
+        },
+        "Eat": {
+          "duration": 2.5333333015441895,
+          "loop": true,
+          "provenance": "original author animation"
+        },
+        "Run": {
+          "duration": 0.5666666626930237,
+          "loop": true,
+          "provenance": "original author animation"
+        },
+        "Jump": {
+          "duration": 0.9333333373069763,
+          "loop": false,
+          "provenance": "original author animation"
+        },
+        "Idle": {
+          "duration": 3.3333332538604736,
+          "loop": true,
+          "provenance": "original author animation"
+        },
+        "IdleLook": {
+          "duration": 3.3333332538604736,
+          "loop": true,
+          "provenance": "original author animation"
+        },
+        "Hit": {
+          "duration": 0.6666666865348816,
+          "loop": false,
+          "provenance": "original author animation"
+        },
+        "HitAlt": {
+          "duration": 0.6666666865348816,
+          "loop": false,
+          "provenance": "original author animation"
+        },
+        "Walk": {
+          "duration": 1.0666667222976685,
+          "loop": true,
+          "provenance": "original author animation"
+        }
+      },
+      "deathGrounding": [
+        {
+          "phase": 0,
+          "uncorrectedMinY": -0.00346889786345711,
+          "rootY": 0.008468897863457111
+        },
+        {
+          "phase": 0.16666666666666666,
+          "uncorrectedMinY": -0.026818986519143717,
+          "rootY": 0.031818986519143715
+        },
+        {
+          "phase": 0.3333333333333333,
+          "uncorrectedMinY": -0.032147585044688176,
+          "rootY": 0.037147585044688174
+        },
+        {
+          "phase": 0.5,
+          "uncorrectedMinY": -0.04516589182439157,
+          "rootY": 0.050165891824391566
+        },
+        {
+          "phase": 0.6666666666666666,
+          "uncorrectedMinY": -0.03788494790706509,
+          "rootY": 0.04288494790706509
+        },
+        {
+          "phase": 0.8333333333333334,
+          "uncorrectedMinY": -0.04964726500280392,
+          "rootY": 0.05464726500280392
+        },
+        {
+          "phase": 1,
+          "uncorrectedMinY": -0.06615031162938978,
+          "rootY": 0.07115031162938978
+        }
+      ],
+      "hoofGrounding": {
+        "Attack": 0.01666150592174431,
+        "Eat": 0.00746889786345711,
+        "Run": 0.03230541864008152,
+        "Idle": 0.00746889786345711,
+        "IdleLook": 0.00746889786345711,
+        "Hit": 0.00746889786345711,
+        "HitAlt": 0.00746889786345711,
+        "Walk": 0.02266249104102735
+      },
+      "bounds": {
+        "min": [
+          -0.17952186534883552,
+          -0.00346889786345711,
+          -0.9224805022949383
+        ],
+        "max": [
+          0.1795218045520972,
+          0.9056692314043033,
+          0.8708045717281934
+        ]
+      },
+      "joints": 51,
+      "bones": {
+        "head": "Head",
+        "body": "Body",
+        "frontLeft": "FrontLowerLeg.L",
+        "frontRight": "FrontLowerLeg.R",
+        "backLeft": "BackLowerLeg.L",
+        "backRight": "BackLowerLeg.R"
+      },
+      "modifications": "Original quadruped skin and animations retained; metre scale; coincident-vertex coat normals smoothed; desaturated original coat colours; subtle authored fur grain.",
+      "sourceScale": 0.34,
+      "runtimeScale": 1
+    },
+    "boar": {
+      "source": "https://opengameart.org/content/boar",
+      "scale": 0.5,
+      "forward": "+Z",
+      "groundY": 0,
+      "animations": {
+        "Attack": {
+          "duration": 0.6333333253860474,
+          "loop": false,
+          "provenance": "original author animation",
+          "hitPhase": 0.4,
+          "contactNote": "Annotated from sampled authored windup, forward head/tusk strike and recovery. Runtime piecewise-remaps this phase to ActorAttack.hitTime."
+        },
+        "Idle": {
+          "duration": 3,
+          "loop": true,
+          "provenance": "derived / authored for Ashfall"
+        },
+        "Walk": {
+          "duration": 1.3333333730697632,
+          "loop": true,
+          "provenance": "original author animation"
+        },
+        "Run": {
+          "duration": 0.7333333492279053,
+          "loop": true,
+          "provenance": "derived / authored for Ashfall"
+        },
+        "Hit": {
+          "duration": 0.41999998688697815,
+          "loop": false,
+          "provenance": "derived / authored for Ashfall"
+        },
+        "HitAlt": {
+          "duration": 0.46000000834465027,
+          "loop": false,
+          "provenance": "derived / authored for Ashfall"
+        },
+        "Death": {
+          "duration": 1.0499999523162842,
+          "loop": false,
+          "provenance": "derived / authored for Ashfall"
+        }
+      },
+      "deathGrounding": [
+        {
+          "phase": 0,
+          "uncorrectedMinY": 0.0002855658531188965,
+          "rootY": 0.004714434146881104
+        },
+        {
+          "phase": 0.16666666666666666,
+          "uncorrectedMinY": -0.007616002085852447,
+          "rootY": 0.022338223262923833
+        },
+        {
+          "phase": 0.3333333333333333,
+          "uncorrectedMinY": 0.024697415057670646,
+          "rootY": 0.11270256665562456
+        },
+        {
+          "phase": 0.5,
+          "uncorrectedMinY": 0.06704947007239903,
+          "rootY": 0.18424680819124306
+        },
+        {
+          "phase": 0.6666666666666666,
+          "uncorrectedMinY": 0.07828580692225146,
+          "rootY": 0.27671417534352655
+        },
+        {
+          "phase": 0.8333333333333334,
+          "uncorrectedMinY": 0.04832567102531443,
+          "rootY": 0.3066743230142211
+        },
+        {
+          "phase": 1,
+          "uncorrectedMinY": 0.019343708802764092,
+          "rootY": 0.33565628523677143
+        }
+      ],
+      "hoofGrounding": {
+        "Attack": 0.009107998847961426,
+        "Idle": 0.005643955707550049,
+        "Walk": 0.01747196102142334,
+        "Run": 0.01747196102142334,
+        "Hit": 0.007886221620956198,
+        "HitAlt": 0.007886172311874048
+      },
+      "bounds": {
+        "min": [
+          -0.3195306846047803,
+          0.0002855658531188965,
+          -0.8122040033340454
+        ],
+        "max": [
+          0.31953073655114733,
+          1.0789092481136322,
+          0.895286500453949
+        ]
+      },
+      "joints": 32,
+      "bones": {
+        "head": "head",
+        "body": "Hips",
+        "frontLeft": "body.001_L.002",
+        "frontRight": "body.001_R.002",
+        "backLeft": "body_L.002",
+        "backRight": "body_R.002"
+      },
+      "modifications": "Original CC0 Blender rig and walk/attack baked to glTF. Idle is the author neutral pose; Run is a retimed original walk; Hit/HitAlt/Death are authored action-root transitions.",
+      "sourceScale": 0.5,
+      "runtimeScale": 1
+    }
+  },
+  "files": [
+    {
+      "file": "deer-motion.glb",
+      "bytes": 346656,
+      "triangles": 0,
+      "sha256": "8c56fc75084e12813811305bedb541b1b0f6e4b6b48e91cd438bd7e8d54e9360",
+      "kind": "deer"
+    },
+    {
+      "file": "deer-high.glb",
+      "bytes": 143608,
+      "triangles": 3670,
+      "sha256": "1dac10d1723feb73c99b28464be2ced87e84eb9fd669a045770037aa938a19d5",
+      "kind": "deer"
+    },
+    {
+      "file": "deer-low.glb",
+      "bytes": 117312,
+      "triangles": 3146,
+      "sha256": "9620d6481fed3c2d4022f27f92d0e046e7a71a970e99fb711d67b84b72afb973",
+      "kind": "deer"
+    },
+    {
+      "file": "wolf-motion.glb",
+      "bytes": 434036,
+      "triangles": 0,
+      "sha256": "88a8951ef7e5129038ea5635d37cca11ada9cf517884867bd79f732d55609b99",
+      "kind": "wolf"
+    },
+    {
+      "file": "wolf-high.glb",
+      "bytes": 106056,
+      "triangles": 1962,
+      "sha256": "bfa976752697129012a93d1713dc9ae28da8701a58bbd6ffbe7ac850457644ef",
+      "kind": "wolf"
+    },
+    {
+      "file": "wolf-low.glb",
+      "bytes": 76936,
+      "triangles": 1465,
+      "sha256": "73f622de774b30694c3af2f3143fde02738e8c472563a4595da13eae51113f2d",
+      "kind": "wolf"
+    },
+    {
+      "file": "boar-motion.glb",
+      "bytes": 132596,
+      "triangles": 0,
+      "sha256": "71a456d0b1cd4b2266db9d514669d7263bd2e39f6ac05c90ad24c83a9a10c7e8",
+      "kind": "boar"
+    },
+    {
+      "file": "boar-high.glb",
+      "bytes": 85812,
+      "triangles": 1144,
+      "sha256": "02bc8035643947fc985ab97fe6605536e0f279ed1eadbf2f05de2b3f1b654ae0",
+      "kind": "boar"
+    },
+    {
+      "file": "boar-low.glb",
+      "bytes": 54600,
+      "triangles": 914,
+      "sha256": "3ff5c16241fefa76f196445c266dadf3f13cc5ea2cf1d2aec21e464cbbd19a0e",
+      "kind": "boar"
+    }
+  ]
+}

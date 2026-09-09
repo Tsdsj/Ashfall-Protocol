@@ -1,4 +1,13 @@
 import { scatterTrees } from "../world/scatter";
+import { openingWreckColliders } from "../rendering/environment-props";
+import { storyColliders } from "../world/story-geometry";
+import { stairColliders } from "../world/building-geometry";
+import {
+  facilityColliders,
+  facilityOrigin,
+  insideFacility,
+} from "../world/facility";
+import { orientedBoxContains } from "./doors";
 import {
   type Collider,
   type StructureData,
@@ -37,16 +46,24 @@ export function structureCollider(b: StructureData): Collider | null {
     maxZ: b.position.z + depth / 2,
     minY: b.position.y,
     maxY: b.position.y + h,
+    material: ["generator", "fridge"].includes(b.kind) ? "metal" : "wood",
   };
 }
 export class CollisionWorld {
+  queries = 0;
+  dynamicObjects: () => Collider[] = () => [];
+  dynamicDoors: (x: number, z: number, radius: number) => Collider[] = () => [];
   private staticColliders: Collider[];
   private trees = new Map<string, Collider[]>();
   constructor(
     private gen: WorldGenerator,
     private state: WorldState,
   ) {
-    this.staticColliders = gen.pois.flatMap((p) => gen.collidersFor(p));
+    this.staticColliders = [
+      ...gen.pois.flatMap((p) => gen.collidersFor(p)),
+      ...facilityColliders(gen),
+      ...openingWreckColliders(),
+    ];
   }
   private treeColliders(x: number, z: number, radius: number): Collider[] {
     const result: Collider[] = [];
@@ -71,6 +88,7 @@ export class CollisionWorld {
             maxZ: t.position.z + 0.24 * t.scale.x,
             minY: t.position.y,
             maxY: t.position.y + 4,
+            material: "wood",
           }));
           this.trees.set(key, colliders);
         }
@@ -87,8 +105,17 @@ export class CollisionWorld {
     return result;
   }
   nearby(x: number, z: number, radius = 30): Collider[] {
+    this.queries++;
     return [
-      ...this.staticColliders,
+      ...this.staticColliders.filter(
+        (c) =>
+          c.id !== "pine-3:shelf" &&
+          (!c.door || !this.state.doorStates[c.door]),
+      ),
+      ...this.dynamicDoors(x, z, radius),
+      ...this.dynamicObjects(),
+      ...storyColliders(this.gen, this.state),
+      ...this.state.structures.flatMap(stairColliders),
       ...this.treeColliders(x, z, radius),
       ...this.state.vehicles
         .filter((v) => v.id !== this.state.player.vehicle)
@@ -107,9 +134,14 @@ export class CollisionWorld {
             maxZ: v.position.z + sz,
             minY: v.position.y + 0.25,
             maxY: v.position.y + 1.95,
+            material: "metal",
           };
         }),
       ...this.state.structures
+        .filter(
+          (b) =>
+            !(["door", "gate"].includes(b.kind) && this.state.doorStates[b.id]),
+        )
         .map(structureCollider)
         .filter((c): c is Collider => c !== null),
     ].filter(
@@ -117,7 +149,9 @@ export class CollisionWorld {
         Math.abs((c.minX + c.maxX) / 2 - x) < radius + 12 &&
         Math.abs((c.minZ + c.maxZ) / 2 - z) < radius + 12 &&
         !this.state.destroyed.includes(c.id) &&
-        (!c.door || !this.state.doors[c.door]),
+        (!c.door ||
+          !!this.state.doorStates[c.door] ||
+          !this.state.doors[c.door]),
     );
   }
   blocked(
@@ -127,14 +161,17 @@ export class CollisionWorld {
     radius = 0.32,
     height = 1.7,
   ): boolean {
-    return this.nearby(x, z, 3).some(
-      (c) =>
-        x + radius > c.minX &&
-        x - radius < c.maxX &&
-        z + radius > c.minZ &&
-        z - radius < c.maxZ &&
-        y + height > c.minY + 0.2 &&
-        y < c.maxY - 0.05,
+    return this.nearby(x, z, 3).some((c) =>
+      c.id.includes(":stair-step:") && c.maxY - y <= 0.41
+        ? false
+        : c.obb
+          ? orientedBoxContains(c, { x, y, z }, radius, height)
+          : x + radius > c.minX &&
+            x - radius < c.maxX &&
+            z + radius > c.minZ &&
+            z - radius < c.maxZ &&
+            y + height > c.minY + 0.2 &&
+            y < c.maxY - 0.05,
     );
   }
   move(
@@ -164,10 +201,12 @@ export class CollisionWorld {
     return { x, y: position.y, z };
   }
   ground(x: number, z: number, y = Infinity): number {
-    let h = this.gen.height(x, z);
+    let h = insideFacility(this.gen, x, y, z)
+      ? facilityOrigin(this.gen).y
+      : this.gen.height(x, z);
     for (const c of this.nearby(x, z, 0.4)) {
       if (
-        c.maxY - c.minY <= 1.6 &&
+        (c.maxY - c.minY <= 1.6 || c.id.includes(":stair-step:")) &&
         x > c.minX - 0.1 &&
         x < c.maxX + 0.1 &&
         z > c.minZ - 0.1 &&
@@ -188,8 +227,6 @@ export class CollisionWorld {
         const top = b.position.y + (b.kind === "roof" ? 3.1 : 0.22);
         if (top < y + 0.55) h = Math.max(h, top);
       }
-      if (b.kind === "stairs" && dx < 1.2 && dz < 2)
-        h = Math.max(h, b.position.y + (0.5 - dz / 4) * 0.5);
     }
     return h;
   }
@@ -198,9 +235,10 @@ export class CollisionWorld {
     direction: Vec3,
     length: number,
     ignore?: string,
-  ): { distance: number; collider: Collider } | null {
+  ): { distance: number; collider: Collider; normal: Vec3 } | null {
     let nearest = length;
     let found: Collider | null = null;
+    let normal: Vec3 = { x: -direction.x, y: -direction.y, z: -direction.z };
     for (const c of this.nearby(origin.x, origin.z, length)) {
       if (c.id === ignore) continue;
       let tmin = 0,
@@ -214,8 +252,29 @@ export class CollisionWorld {
         [origin.y, direction.y, c.minY, c.maxY],
         [origin.z, direction.z, c.minZ, c.maxZ],
       ];
+      if (c.obb) {
+        const o = c.obb,
+          dx = origin.x - o.x,
+          dz = origin.z - o.z;
+        const cosine = Math.cos(o.yaw),
+          sine = Math.sin(o.yaw);
+        axes[0] = [
+          dx * cosine - dz * sine,
+          direction.x * cosine - direction.z * sine,
+          -o.halfWidth,
+          o.halfWidth,
+        ];
+        axes[2] = [
+          dx * sine + dz * cosine,
+          direction.x * sine + direction.z * cosine,
+          -o.halfDepth,
+          o.halfDepth,
+        ];
+      }
       let hit = true;
-      for (const [o, d, min, max] of axes) {
+      let face: Vec3 = { x: -direction.x, y: -direction.y, z: -direction.z };
+      for (let axis = 0; axis < axes.length; axis++) {
+        const [o, d, min, max] = axes[axis]!;
         if (Math.abs(d) < 1e-7) {
           if (o < min || o > max) {
             hit = false;
@@ -225,7 +284,11 @@ export class CollisionWorld {
           let a = (min - o) / d,
             b = (max - o) / d;
           if (a > b) [a, b] = [b, a];
-          tmin = Math.max(tmin, a);
+          if (a >= tmin) {
+            tmin = a;
+            face = { x: 0, y: 0, z: 0 };
+            face[(["x", "y", "z"] as const)[axis]!] = -Math.sign(d);
+          }
           tmax = Math.min(tmax, b);
           if (tmin > tmax) {
             hit = false;
@@ -236,18 +299,92 @@ export class CollisionWorld {
       if (hit && tmin < nearest) {
         nearest = tmin;
         found = c;
+        if (c.obb) {
+          const cosine = Math.cos(c.obb.yaw),
+            sine = Math.sin(c.obb.yaw);
+          normal = {
+            x: face.x * cosine + face.z * sine,
+            y: face.y,
+            z: -face.x * sine + face.z * cosine,
+          };
+        } else normal = face;
       }
     }
-    return found ? { distance: nearest, collider: found } : null;
+    return found ? { distance: nearest, collider: found, normal } : null;
   }
   visible(a: Vec3, b: Vec3): boolean {
     const dx = b.x - a.x,
       dy = b.y - a.y,
       dz = b.z - a.z,
       len = Math.hypot(dx, dy, dz);
-    return (
-      len < 0.01 ||
-      !this.ray(a, { x: dx / len, y: dy / len, z: dz / len }, len - 0.15)
-    );
+    if (len < 0.01) return true;
+    if (this.ray(a, { x: dx / len, y: dy / len, z: dz / len }, len - 0.15))
+      return false;
+    const steps = Math.min(40, Math.ceil(len / 3));
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      if (
+        a.y + dy * t <
+        (insideFacility(this.gen, a.x + dx * t, a.y + dy * t, a.z + dz * t)
+          ? facilityOrigin(this.gen).y
+          : this.gen.height(a.x + dx * t, a.z + dz * t)) +
+          0.06
+      )
+        return false;
+    }
+    return true;
+  }
+  terrainRay(
+    origin: Vec3,
+    direction: Vec3,
+    length: number,
+  ): { distance: number; collider: Collider; normal: Vec3 } | null {
+    if (insideFacility(this.gen, origin.x, origin.y, origin.z)) return null;
+    const steps = Math.max(1, Math.ceil(length / 0.5));
+    let previous = 0;
+    for (let n = 1; n <= steps; n++) {
+      const t = (n / steps) * length,
+        x = origin.x + direction.x * t,
+        z = origin.z + direction.z * t;
+      if (origin.y + direction.y * t <= this.gen.height(x, z)) {
+        let low = previous,
+          high = t;
+        for (let i = 0; i < 8; i++) {
+          const mid = (low + high) / 2;
+          if (
+            origin.y + direction.y * mid <=
+            this.gen.height(
+              origin.x + direction.x * mid,
+              origin.z + direction.z * mid,
+            )
+          )
+            high = mid;
+          else low = mid;
+        }
+        const px = origin.x + direction.x * high,
+          pz = origin.z + direction.z * high,
+          py = this.gen.height(px, pz);
+        const nx =
+            this.gen.height(px - 0.1, pz) - this.gen.height(px + 0.1, pz),
+          nz = this.gen.height(px, pz - 0.1) - this.gen.height(px, pz + 0.1),
+          length = Math.hypot(nx, 0.2, nz);
+        return {
+          distance: high,
+          normal: { x: nx / length, y: 0.2 / length, z: nz / length },
+          collider: {
+            id: "terrain",
+            minX: px - 0.05,
+            maxX: px + 0.05,
+            minZ: pz - 0.05,
+            maxZ: pz + 0.05,
+            minY: py - 0.1,
+            maxY: py,
+            material: "dirt",
+          },
+        };
+      }
+      previous = t;
+    }
+    return null;
   }
 }

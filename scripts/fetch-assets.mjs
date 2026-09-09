@@ -1,15 +1,16 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
-const assets = [
+const defaults = [
   "forest_ground_04",
   "bark_brown_02",
   "asphalt_02",
   "concrete_wall_003",
 ];
+const assets = process.argv.length > 2 ? process.argv.slice(2) : defaults;
 const headers = {
-  "User-Agent": "AshfallProtocol/1.0 (local CC0 asset preparation)",
+  "User-Agent": "AshfallProtocol/2.0 (local CC0 asset preparation)",
 };
-const manifest = [];
+const manifest = JSON.parse(await readFile("public/textures/manifest.json","utf8").catch(()=>"[]")).filter(entry=>!assets.includes(entry.asset));
 for (const asset of assets) {
   const metadata = await fetch("https://api.polyhaven.com/info/" + asset, {
     headers,

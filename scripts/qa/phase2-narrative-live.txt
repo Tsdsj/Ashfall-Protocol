@@ -1,0 +1,24 @@
+async(page)=>{
+ const errors=[],checks=[];page.on('pageerror',e=>errors.push(String(e)));
+ await page.reload();await page.getByRole('button',{name:/进入灰谷/}).waitFor({timeout:60000});await page.getByRole('button',{name:/进入灰谷/}).click();await page.getByLabel('生存记录名称').fill('QA 剧情场景联调');await page.getByRole('button',{name:'生成世界并开始'}).click();await page.locator('[data-action="resume"]').waitFor({timeout:60000});await page.locator('[data-action="resume"]').click();await page.waitForFunction(()=>window.__game.sim.narrative.frame().id==='opening');await page.keyboard.press('KeyX');
+ await page.evaluate(()=>{const g=window.__game;g.sim.god=true;g.command('time 12');g.command('weather clear');});
+ async function go(id){
+  await page.evaluate(async(id)=>{const g=window.__game;g.game.input.unlock();g.game.input.fallback=true;g.ui.show('play');g.ui.setLocked(true);const it=g.sim.narrative.interactions().find(i=>i.id==='narrative:'+id);if(!it)throw Error('missing interaction '+id);g.sim.state.player.stance='stand';g.sim.state.player.position={x:it.position.x,y:it.position.y,z:it.position.z-2.05};g.sim.state.player.yaw=0;g.sim.state.player.pitch=Math.atan2(1.68-(id.includes('shelter')?.3:1.2),2.05);g.sim.verticalVelocity=0;g.sim.grounded=true;g.sim.locomotion.reset();g.renderer.prepareView(.05,false,0);await g.renderer.world.stream(true);for(const a of Object.values(g.sim.state.actors))if(a.health>0&&Math.hypot(a.position.x-it.position.x,a.position.z-it.position.z)<22){a.health=0;a.deathTime=g.sim.state.elapsed;}},id);
+  await page.waitForTimeout(550);
+  const target=await page.evaluate(()=>window.__game.renderer.target());
+  if(!target||(target.id!=='narrative:'+id&&!target.id.startsWith('conversation:')))throw Error('target '+id+' got '+JSON.stringify(target));
+  await page.keyboard.press('KeyE');
+  if(target.id.startsWith('conversation:')) await page.locator('[data-action="narrative-interact"][data-id="narrative:'+id+'"]').click();
+  else {await page.waitForFunction(()=>!window.__game.sim.actions.pending,{timeout:10000});await page.waitForTimeout(200);}
+  const state=await page.evaluate(()=>({act:window.__game.sim.state.narrative.act,objective:window.__game.sim.narrative.objectives,seq:window.__game.sim.narrative.frame().id,position:window.__game.sim.state.player.position,error:window.__game.inspect().error,pending:window.__game.sim.actions.pending,fps:window.__game.renderer.stats.fps}));checks.push({id,target:target.id,...state});
+  if(!state.seq && !await page.evaluate(id=>window.__game.sim.state.narrative.sequenceFlags.includes('done:'+id),id))throw Error('Interaction did not complete: '+id+' '+JSON.stringify(state));
+  if(state.seq){await page.waitForTimeout(600);await page.keyboard.press('KeyX');await page.waitForTimeout(200);}
+ }
+ for(const id of ['ranger-supplies','ranger-shelter','ranger-radio','medical-record','military-record','contractor-record','missing-record','ashfall-decode','facility-enter'])await go(id);
+ await page.evaluate(()=>{const g=window.__game;g.sim.state.player.pitch=.06;g.sim.state.player.yaw=0;});await page.waitForTimeout(650);await page.screenshot({path:'docs/phase2/screenshots/facility-entry.png',scale:'css'});
+ await page.keyboard.down('KeyW');await page.waitForTimeout(650);await page.keyboard.up('KeyW');const undergroundMove=await page.evaluate(()=>({position:window.__game.sim.state.player.position,grounded:window.__game.sim.grounded,indoors:window.__game.sim.indoors}));
+ for(const id of ['facility-military','facility-research','facility-government','facility-contractor','facility-archive','facility-isolate','facility-control'])await go(id);
+ await page.screenshot({path:'docs/phase2/screenshots/finale-choices.png',scale:'css'});
+ const choices=await page.evaluate(()=>window.__game.sim.narrative.choices());
+ await page.keyboard.press('Escape');await page.keyboard.press('Escape');return{setup:'Developer positioning, threat removal and invulnerability only for isolated scene/interaction checks; progression uses actual E and conversation UI, no completion flags injected.',checks,undergroundMove,choices,errors};
+}

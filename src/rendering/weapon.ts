@@ -1,3 +1,5 @@
+import { FirstPersonArms } from "./view-arms";
+import { smoothstep } from "../core/motion";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { type Camera } from "@babylonjs/core/Cameras/camera";
 import { type Mesh } from "@babylonjs/core/Meshes/mesh";
@@ -7,29 +9,55 @@ import { ITEMS } from "../data/items";
 import type { MaterialFactory } from "./materials";
 import type { Simulation } from "../simulation/simulation";
 import type { GameSettings } from "../core/types";
+import type { FirstPersonMotionController } from "./first-person-motion";
+import type { CharacterAssetLibrary } from "./animated-assets";
+import { WeaponAssetLibrary, type WeaponAssetInstance } from "./weapon-assets";
+import type { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
+import { countItem } from "../simulation/inventory";
 export class WeaponRenderer {
   readonly root: TransformNode;
   private model: TransformNode | null = null;
   private last = "";
-  private swayX = 0;
-  private swayY = 0;
   private shot = 0;
   private inspectTime = 0;
   private meshes: Mesh[] = [];
   private flash: Mesh | null = null;
+  private arms: FirstPersonArms | null = null;
+  private external: WeaponAssetInstance | null = null;
+  private wetness = 0;
+  readonly weaponAssets: WeaponAssetLibrary;
+  private mechanics: {
+    mesh: Mesh;
+    x: number;
+    y: number;
+    z: number;
+    rz: number;
+    magazine: boolean;
+  }[] = [];
   constructor(
     private scene: Scene,
     private mats: MaterialFactory,
     camera: Camera,
     private sim: Simulation,
+    private motion: FirstPersonMotionController,
+    private assets: CharacterAssetLibrary,
   ) {
+    this.weaponAssets = new WeaponAssetLibrary(scene);
     this.root = new TransformNode("first-person-arms", scene);
     this.root.parent = camera;
     this.root.scaling.setAll(0.68);
   }
+  preload() {
+    return this.weaponAssets.preload();
+  }
   private rebuild(id: string) {
+    this.external?.dispose();
+    this.external = null;
+    this.arms?.dispose();
     this.model?.dispose(false);
     this.flash = null;
+    this.arms = null;
+    this.mechanics = [];
     this.model = new TransformNode("held-" + id, this.scene);
     this.model.parent = this.root;
     const b = new ModelBatch(this.scene, "viewmodel"),
@@ -39,28 +67,27 @@ export class WeaponRenderer {
       glove = this.mats.surface("cloth", "#8c9b86");
     const firearm = !!ITEMS[id]?.weapon?.ammo && id !== "bow",
       long = firearm && !["pistol", "pistol45"].includes(id);
-    b.cylinder(
-      "right-sleeve",
-      0.65,
-      0.18,
-      [0.17, -0.31, -0.13],
-      glove,
-      [-0.48, 0, -0.18],
-      0.16,
-    );
-    b.sphere("right-glove", [0.17, 0.22, 0.19], [0.095, -0.05, 0.13], glove);
-    for (let n = 0; n < 4; n++)
-      b.cylinder(
-        "finger",
-        0.13,
-        0.024,
-        [0.025 + n * 0.032, -0.015, 0.23],
-        glove,
-        [Math.PI / 2, 0, 0],
-        0.022,
-        6,
+    if (id === "hands") {
+      // Hands and the active consumable are provided by the articulated arm rig.
+    } else if (firearm && this.weaponAssets.ready(id)) {
+      this.external = this.weaponAssets.instantiate(
+        id,
+        this.model,
+        "held-asset-" + id,
+        this.sim.combat.equipped()?.attachments,
       );
-    if (firearm) {
+      if (this.sim.combat.equipped()?.attachments.includes("suppressor")) {
+        const muzzle = this.external!.info.anchors.muzzle;
+        b.cylinder(
+          "suppressor",
+          0.24,
+          0.052,
+          [muzzle[0]!, muzzle[1]!, muzzle[2]! + 0.12],
+          black,
+          [Math.PI / 2, 0, 0],
+        );
+      }
+    } else if (firearm) {
       b.beveledBox(
         "receiver",
         [0.11, 0.16, long ? 0.52 : 0.3],
@@ -157,17 +184,15 @@ export class WeaponRenderer {
             [0, 0.192, 0.39 + n * 0.05],
             steel,
           );
-        b.cylinder(
-          "left-sleeve",
-          0.7,
-          0.18,
-          [-0.25, -0.24, 0.23],
-          glove,
-          [-1, 0, 0.4],
-          0.14,
-        );
-        b.sphere("left-hand", [0.17, 0.13, 0.22], [-0.03, -0.02, 0.59], glove);
       }
+      if (!long)
+        b.beveledBox(
+          "magazine",
+          [0.072, 0.2, 0.094],
+          [0.005, -0.165, 0.13],
+          black,
+          [0.22, 0, 0],
+        );
       if (this.sim.combat.equipped()?.attachments.includes("scope")) {
         b.cylinder("scope", 0.32, 0.09, [0, 0.29, 0.32], black, [
           Math.PI / 2,
@@ -401,8 +426,43 @@ export class WeaponRenderer {
       this.flash.renderingGroupId = 1;
       this.flash.isPickable = false;
       this.flash.setEnabled(false);
+      if (this.external) {
+        const point = this.external.info.anchors.muzzle;
+        this.flash.position.set(point[0]!, point[1]!, point[2]! + 0.06);
+      }
     }
-    this.meshes = b.finish(this.model);
+    for (const mesh of [...b.meshes]) {
+      if (
+        /(?:slide|rear-sight-base|rear-sight-post|sight-dot|magazine)$/.test(
+          mesh.name,
+        )
+      ) {
+        b.take(mesh);
+        mesh.parent = this.model;
+        this.mechanics.push({
+          mesh,
+          x: mesh.position.x,
+          y: mesh.position.y,
+          z: mesh.position.z,
+          rz: mesh.rotation.z,
+          magazine: mesh.name.endsWith("magazine"),
+        });
+      }
+    }
+    this.arms = new FirstPersonArms(
+      this.scene,
+      this.mats,
+      this.model,
+      long,
+      id,
+      this.assets,
+      this.external?.info.anchors,
+    );
+    this.meshes = [
+      ...b.finish(this.model),
+      ...this.mechanics.map((m) => m.mesh),
+      ...(this.external?.meshes ?? []),
+    ];
     for (const m of this.meshes) {
       m.unfreezeWorldMatrix();
       m.renderingGroupId = 1;
@@ -417,19 +477,21 @@ export class WeaponRenderer {
     this.inspectTime = 2.2;
   }
   mouse(dx: number, dy: number) {
-    this.swayX += dx * 0.00003;
-    this.swayY += dy * 0.00003;
+    this.motion.mouse(dx, dy);
   }
   update(
     dt: number,
-    time: number,
-    aiming: boolean,
+    _time: number,
+    _aiming: boolean,
     settings: GameSettings,
     visible: boolean,
   ) {
     const equipped = this.sim.combat.equipped(),
-      id = equipped?.id ?? "knife",
-      key = id + ":" + equipped?.attachments.join(",");
+      id =
+        equipped && ["weapon", "tool"].includes(ITEMS[equipped.id]!.category)
+          ? equipped.id
+          : "hands";
+    const key = id + ":" + equipped?.attachments.join(",");
     if (key !== this.last) {
       this.last = key;
       this.rebuild(id);
@@ -437,53 +499,156 @@ export class WeaponRenderer {
     this.root.setEnabled(
       visible &&
         !this.sim.state.player.vehicle &&
-        !!equipped &&
-        ["weapon", "tool"].includes(ITEMS[equipped.id]!.category),
+        !(
+          equipped?.attachments.includes("scope") && this.motion.pose.ads > 0.92
+        ) &&
+        (id !== "hands" || this.motion.pose.interaction > 0.005),
     );
     this.shot = Math.max(0, this.shot - dt * 5);
     this.inspectTime = Math.max(0, this.inspectTime - dt);
-    this.swayX *= Math.exp(-dt * 8);
-    this.swayY *= Math.exp(-dt * 8);
-    const bob = this.sim.moving && !aiming ? settings.headBob : 0;
-    const reload =
-      this.sim.combat.reloadRemaining > 0
+    const pose = this.motion.pose;
+    const wetTarget =
+      !this.sim.indoors && ["rain", "storm"].includes(this.sim.state.weather)
+        ? 1
+        : 0;
+    this.wetness += (wetTarget - this.wetness) * (1 - Math.exp(-dt * 0.12));
+    for (const mesh of this.external?.meshes ?? []) {
+      const material = mesh.material as PBRMaterial;
+      if (material?.clearCoat)
+        material.clearCoat.intensity = this.wetness * 0.38;
+    }
+    this.root.position.set(
+      pose.weaponPosition.x,
+      pose.weaponPosition.y,
+      pose.weaponPosition.z,
+    );
+    this.root.rotation.set(
+      pose.weaponRotation.x,
+      pose.weaponRotation.y,
+      pose.weaponRotation.z,
+    );
+    if (this.external) {
+      const rear = this.external.info.anchors.rearSight,
+        front = this.external.info.anchors.frontSight;
+      const slope = Math.atan2(front[1]! - rear[1]!, front[2]! - rear[2]!);
+      this.root.rotation.x += pose.ads * slope;
+      const sightHeight =
+        rear[1]! * Math.cos(slope) - rear[2]! * Math.sin(slope);
+      this.root.position.y += pose.ads * (0.142 - sightHeight * 0.68);
+    }
+    const reloading = this.sim.combat.reloadRemaining > 0;
+    const clearing = reloading && this.sim.combat.reloadMode === "clear";
+    this.arms?.update(
+      pose,
+      reloading,
+      dt,
+      clearing,
+      Math.max(
+        1,
+        Math.min(
+          (ITEMS[id]?.weapon?.magazine ?? 1) - (equipped?.ammo ?? 0),
+          countItem(
+            this.sim.state.player.inventory,
+            ITEMS[id]?.weapon?.ammo ?? "",
+          ),
+        ),
+      ),
+    );
+    if (this.external) {
+      const rig = this.external;
+      rig.resetParts();
+      const magazine = rig.parts.magazine,
+        r = pose.reload;
+      const pull =
+        !reloading || clearing
+          ? 0
+          : r < 0.35
+            ? smoothstep((r - 0.14) / 0.21)
+            : r < 0.46
+              ? 1
+              : 1 - smoothstep((r - 0.46) / 0.26);
+      if (magazine) {
+        magazine.position.y -= pull * rig.info.magazineTravel;
+        magazine.position.x -= pull * 0.12;
+        magazine.rotation.z = pull * 0.15;
+        magazine.setEnabled(!reloading || clearing || r < 0.38 || r > 0.5);
+      }
+      const rack = reloading
         ? Math.sin(
-            (this.sim.combat.reloadRemaining / this.sim.combat.reloadTotal) *
-              Math.PI,
+            smoothstep(
+              (r - (clearing ? 0.3 : 0.76)) / (clearing ? 0.25 : 0.1),
+            ) * Math.PI,
           )
         : 0;
-    const baseX = aiming ? 0 : 0.23,
-      baseY = aiming ? -0.142 : -0.26,
-      baseZ = aiming ? 0.44 : 0.48;
-    this.root.position.x +=
-      (baseX +
-        Math.sin(time * 5) * 0.01 * bob -
-        this.swayX -
-        this.root.position.x) *
-      Math.min(1, dt * 14);
-    this.root.position.y +=
-      (baseY +
-        Math.sin(time * 10) * 0.014 * bob -
-        reload * 0.22 +
-        this.swayY -
-        this.root.position.y) *
-      Math.min(1, dt * 14);
-    this.root.position.z = baseZ - this.shot * 0.055;
+      if (rig.parts.slide)
+        rig.parts.slide.position.z += (this.shot + rack) * rig.info.slideTravel;
+      if (rig.parts.bolt) {
+        rig.parts.bolt.rotation.z = rack * 0.65;
+        rig.parts.bolt.position.z += rack * rig.info.slideTravel;
+      }
+      if (rig.parts.pump)
+        rig.parts.pump.position.z +=
+          (rack + Math.sin((1 - this.shot) * Math.PI) * this.shot) *
+          rig.info.slideTravel;
+    }
+    for (const part of this.mechanics) {
+      if (part.magazine) {
+        const r = pose.reload;
+        const pull =
+          !reloading || clearing
+            ? 0
+            : r < 0.35
+              ? smoothstep((r - 0.14) / 0.21)
+              : r < 0.46
+                ? 1
+                : 1 - smoothstep((r - 0.46) / 0.26);
+        part.mesh.position.set(
+          part.x - pull * 0.12,
+          part.y - pull * 0.35,
+          part.z,
+        );
+        part.mesh.rotation.z = part.rz + pull * 0.15;
+        part.mesh.setEnabled(!reloading || clearing || r < 0.38 || r > 0.5);
+      } else {
+        const rack = reloading
+          ? Math.sin(
+              smoothstep(
+                (pose.reload - (clearing ? 0.3 : 0.76)) /
+                  (clearing ? 0.25 : 0.1),
+              ) * Math.PI,
+            )
+          : 0;
+        part.mesh.position.z = part.z - this.shot * 0.035 - rack * 0.045;
+      }
+    }
     if (this.flash) this.flash.setEnabled(this.shot > 0.7);
     if (id === "torch")
       this.meshes
         .filter((m) => m.material?.name === "torch-flame")
         .forEach((m) => m.setEnabled((equipped?.durability ?? 0) > 0));
-    const melee = !ITEMS[id]?.weapon?.ammo;
-    this.root.rotation.x =
-      reload * 0.7 +
-      (melee ? Math.sin(this.shot * Math.PI) * 0.55 : -this.shot * 0.13);
-    this.root.rotation.z = this.sim.sprinting ? 0.14 : 0;
-    this.root.rotation.y = melee ? -Math.sin(this.shot * Math.PI) * 0.45 : 0;
-    if (this.inspectTime > 0) {
+    if (!ITEMS[id]?.weapon?.ammo && this.sim.combat.melee) {
+      const job = this.sim.combat.melee;
+      const windup = smoothstep(job.elapsed / job.hitTime);
+      const strike = smoothstep((job.elapsed - job.hitTime + 0.06) / 0.12);
+      const recover = smoothstep(
+        (job.elapsed - job.hitTime - 0.1) /
+          Math.max(0.1, job.duration - job.hitTime - 0.1),
+      );
+      this.root.rotation.x += (-0.28 * windup + strike * 0.83) * (1 - recover);
+      this.root.rotation.y += (0.3 * windup - strike * 0.75) * (1 - recover);
+      this.root.position.z +=
+        (strike * 0.13 - windup * (1 - strike) * 0.07) * (1 - recover);
+    }
+    if (this.inspectTime > 0 && !settings.reducedMotion) {
       const t = Math.sin((this.inspectTime / 2.2) * Math.PI);
       this.root.rotation.y += t * 0.75;
       this.root.rotation.z -= t * 0.35;
     }
+  }
+  dispose() {
+    this.arms?.dispose();
+    this.external?.dispose();
+    this.weaponAssets.dispose();
+    this.root.dispose(false);
   }
 }

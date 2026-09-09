@@ -1,8 +1,9 @@
 import { ITEMS } from "../data/items";
-import { distance, type Stack, type Vec3 } from "../core/types";
+import { distance, type Stack, type Vec3, type BodyPart } from "../core/types";
 import { countItem, removeItem } from "./inventory";
 import type { SimContext } from "./context";
 import type { AISystem } from "./ai";
+import { rayActorZones, type HitZone } from "./hit-zones";
 interface Projectile {
   position: Vec3;
   velocity: Vec3;
@@ -12,12 +13,24 @@ interface Projectile {
   range: number;
   penetration: number;
   active: boolean;
+  weapon: string;
+  impact: number;
 }
 export class CombatSystem {
+  readonly hitZones = new Map<string, HitZone[]>();
   cooldown = 0;
   reloadRemaining = 0;
   reloadTotal = 0;
   recoil = 0;
+  reloadMode: "magazine" | "clear" = "magazine";
+  melee: {
+    uid: string;
+    id: string;
+    elapsed: number;
+    hitTime: number;
+    duration: number;
+    hit: boolean;
+  } | null = null;
   private reloadUid: string | null = null;
   private shotIndex = 0;
   readonly projectiles: Projectile[] = Array.from({ length: 96 }, () => ({
@@ -29,6 +42,8 @@ export class CombatSystem {
     range: 0,
     penetration: 0,
     active: false,
+    weapon: "",
+    impact: 0,
   }));
   grenades: { position: Vec3; velocity: Vec3; timer: number }[] = [];
   constructor(
@@ -125,6 +140,8 @@ export class CombatSystem {
           z: (direction.z + sx * 0.7) * (w.velocity ?? 300),
         };
         bullet.damage = w.damage;
+        bullet.weapon = stack.id;
+        bullet.impact = w.damage * (w.pellets ? w.pellets * 0.7 : 1);
         bullet.life = 0;
         bullet.range = w.range;
         bullet.travel = 0;
@@ -139,68 +156,131 @@ export class CombatSystem {
         kind: "melee",
         value: 0.04,
       });
-      let best = Infinity;
-      let target: (typeof this.ctx.state.actors)[string] | null = null;
-      for (const actor of Object.values(this.ctx.state.actors)) {
-        if (actor.health <= 0) continue;
-        const d = distance(origin, actor.position);
-        const dx = actor.position.x - origin.x,
-          dz = actor.position.z - origin.z;
-        const dot =
-          (dx * direction.x + dz * direction.z) / (Math.hypot(dx, dz) || 1);
-        if (
-          d < w.range &&
-          dot > 0.72 &&
-          d < best &&
-          this.ctx.collision.visible(origin, {
-            ...actor.position,
-            y: actor.position.y + 1,
-          })
-        ) {
-          best = d;
-          target = actor;
-        }
-      }
-      if (target)
-        this.ai.hurt(target, w.damage, direction.y > 0.18 ? "head" : "chest");
-      else {
-        const hit = this.ctx.collision.ray(origin, direction, w.range);
-        if (hit) {
-          if (
-            hit.collider.door &&
-            ["hatchet", "crowbar", "machete"].includes(stack.id)
-          ) {
-            this.ctx.state.doors[hit.collider.door] = true;
-            this.ctx.state.destroyed.push(hit.collider.id);
-            this.ctx.notify("门锁已破坏");
-          }
-          const b = this.ctx.state.structures.find(
-            (b) => b.id === hit.collider.id,
-          );
-          if (b) b.health = Math.max(0, b.health - w.damage);
-          this.ctx.bus.emit({
-            type: "hit",
-            text: "击中障碍",
-            position: {
-              x: origin.x + direction.x * hit.distance,
-              y: origin.y + direction.y * hit.distance,
-              z: origin.z + direction.z * hit.distance,
-            },
-          });
-        }
-      }
+      this.melee = {
+        uid: stack.uid,
+        id: stack.id,
+        elapsed: 0,
+        hitTime: Math.min(0.24, w.interval * 0.27),
+        duration: w.interval,
+        hit: false,
+      };
     }
     return true;
+  }
+  private resolveMelee(id: string, origin: Vec3, direction: Vec3): void {
+    const w = ITEMS[id]!.weapon!;
+    let best = Infinity;
+    let bodyPart: BodyPart = "chest";
+    let target: (typeof this.ctx.state.actors)[string] | null = null;
+    for (const actor of Object.values(this.ctx.state.actors)) {
+      if (actor.health <= 0) continue;
+      const zones = this.hitZones.get(actor.id);
+      if (zones) {
+        const hit = rayActorZones(
+          origin,
+          direction,
+          zones,
+          Math.min(best, w.range),
+          0.12,
+        );
+        if (
+          hit &&
+          this.ctx.collision.visible(origin, {
+            x: origin.x + direction.x * hit.distance,
+            y: origin.y + direction.y * hit.distance,
+            z: origin.z + direction.z * hit.distance,
+          })
+        ) {
+          best = hit.distance;
+          target = actor;
+          bodyPart = hit.part;
+        }
+        continue;
+      }
+      const d = distance(origin, actor.position);
+      const dx = actor.position.x - origin.x,
+        dz = actor.position.z - origin.z;
+      const dot =
+        (dx * direction.x + dz * direction.z) /
+        ((Math.hypot(dx, dz) || 1) *
+          (Math.hypot(direction.x, direction.z) || 1));
+      const height =
+        origin.y +
+        (direction.y * d) / (Math.hypot(direction.x, direction.z) || 1) -
+        actor.position.y;
+      if (
+        d < w.range &&
+        dot > 0.72 &&
+        d < best &&
+        height > 0.08 &&
+        height < (["deer", "wolf", "boar"].includes(actor.kind) ? 1.5 : 1.95) &&
+        this.ctx.collision.visible(origin, {
+          ...actor.position,
+          y: actor.position.y + 1,
+        })
+      ) {
+        best = d;
+        target = actor;
+        bodyPart = height > 1.5 ? "head" : height < 0.65 ? "leg" : "chest";
+      }
+    }
+    if (target)
+      this.ai.hurt(target, w.damage, bodyPart, {
+        direction,
+        source: "melee",
+        weapon: id,
+        impact: w.damage,
+        position: {
+          x: origin.x + direction.x * best,
+          y: origin.y + direction.y * best,
+          z: origin.z + direction.z * best,
+        },
+      });
+    else {
+      const hit = this.ctx.collision.ray(origin, direction, w.range);
+      if (hit) {
+        if (
+          hit.collider.door &&
+          ["hatchet", "crowbar", "machete"].includes(id)
+        ) {
+          this.ctx.doors.damage(hit.collider.door, w.damage);
+          this.ctx.notify(
+            this.ctx.doors.get(hit.collider.door)?.status === "broken"
+              ? "门已被突破"
+              : "门正在受损",
+          );
+        }
+        const b = this.ctx.state.structures.find(
+          (b) => b.id === hit.collider.id,
+        );
+        if (b) b.health = Math.max(0, b.health - w.damage);
+        this.ctx.bus.emit({
+          type: "hit",
+          text: "击中障碍",
+          kind: "wall",
+          material: hit.collider.material ?? "concrete",
+          weapon: id,
+          direction,
+          normal: hit.normal,
+          position: {
+            x: origin.x + direction.x * hit.distance,
+            y: origin.y + direction.y * hit.distance,
+            z: origin.z + direction.z * hit.distance,
+          },
+        });
+      }
+    }
   }
   reload(): boolean {
     const stack = this.equipped(),
       w = stack && ITEMS[stack.id]?.weapon;
     if (!stack || !w?.ammo || this.reloadRemaining > 0) return false;
     if (this.jammed) {
-      this.jammed = false;
-      this.cooldown = 1.2;
-      this.ctx.notify("已清除卡壳");
-      this.ctx.bus.emit({ type: "sound", text: "reload", kind: "reload" });
+      this.reloadMode = "clear";
+      this.reloadUid = stack.uid;
+      this.reloadRemaining = this.reloadTotal = 1.2;
+      this.ctx.notify("正在排除卡壳");
+      this.ctx.bus.emit({ type: "sound", text: "clear", kind: "reload" });
       return true;
     }
     const max =
@@ -216,10 +296,15 @@ export class CombatSystem {
       this.ctx.notify("没有匹配的弹药", "warning");
       return false;
     }
+    this.reloadMode = "magazine";
     this.reloadUid = stack.uid;
     this.reloadTotal = w.reload ?? 1.5;
     this.reloadRemaining = this.reloadTotal;
-    this.ctx.bus.emit({ type: "sound", text: "reload", kind: "reload" });
+    this.ctx.bus.emit({
+      type: "sound",
+      text: "reload",
+      kind: ["rifle", "shotgun"].includes(stack.id) ? "mechanical" : "reload",
+    });
     return true;
   }
   cancelReload() {
@@ -229,26 +314,83 @@ export class CombatSystem {
   update(dt: number): void {
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.recoil *= Math.exp(-dt * 12);
+    if (this.melee) {
+      const job = this.melee;
+      if (
+        this.equipped()?.uid !== job.uid ||
+        this.ctx.state.player.stats.health <= 0
+      )
+        this.melee = null;
+      else {
+        job.elapsed = Math.min(job.duration, job.elapsed + dt);
+        if (!job.hit && job.elapsed >= job.hitTime) {
+          job.hit = true;
+          const p = this.ctx.state.player,
+            height =
+              p.stance === "prone" ? 0.48 : p.stance === "crouch" ? 1.06 : 1.68,
+            cp = Math.cos(p.pitch);
+          this.resolveMelee(
+            job.id,
+            { ...p.position, y: p.position.y + height },
+            {
+              x: Math.sin(p.yaw) * cp,
+              y: -Math.sin(p.pitch),
+              z: Math.cos(p.yaw) * cp,
+            },
+          );
+        }
+        if (job.elapsed >= job.duration) this.melee = null;
+      }
+    }
     if (this.reloadRemaining > 0) {
       if (this.equipped()?.uid !== this.reloadUid) {
         this.cancelReload();
       } else {
+        const before = 1 - this.reloadRemaining / this.reloadTotal;
         this.reloadRemaining = Math.max(0, this.reloadRemaining - dt);
+        const after = 1 - this.reloadRemaining / this.reloadTotal;
+        for (const [time, sound] of [
+          [0.18, "mag-out"],
+          [0.7, "mag-in"],
+          [0.86, "bolt"],
+        ] as const)
+          if (before < time && after >= time)
+            this.ctx.bus.emit({
+              type: "sound",
+              text:
+                this.reloadMode === "clear"
+                  ? "bolt"
+                  : ["rifle", "shotgun"].includes(this.equipped()?.id ?? "")
+                    ? sound === "bolt"
+                      ? "bolt"
+                      : "load-round"
+                    : sound,
+              kind: "mechanical",
+            });
         if (this.reloadRemaining === 0) {
           const stack = this.equipped()!,
             w = ITEMS[stack.id]!.weapon!;
-          const max =
-              (w.magazine ?? 1) +
-              (stack.attachments.includes("extendedmag")
-                ? Math.ceil((w.magazine ?? 1) * 0.5)
-                : 0),
-            n = Math.min(
-              max - stack.ammo,
-              countItem(this.ctx.state.player.inventory, w.ammo!),
-            );
-          if (n > 0 && removeItem(this.ctx.state.player.inventory, w.ammo!, n))
-            stack.ammo += n;
-          this.ctx.notify("换弹完成");
+          if (this.reloadMode === "clear") {
+            stack.jammed = false;
+            stack.dirt = Math.max(0, stack.dirt - 3);
+            this.ctx.notify("已排除卡壳");
+          } else {
+            const max =
+                (w.magazine ?? 1) +
+                (stack.attachments.includes("extendedmag")
+                  ? Math.ceil((w.magazine ?? 1) * 0.5)
+                  : 0),
+              n = Math.min(
+                max - stack.ammo,
+                countItem(this.ctx.state.player.inventory, w.ammo!),
+              );
+            if (
+              n > 0 &&
+              removeItem(this.ctx.state.player.inventory, w.ammo!, n)
+            )
+              stack.ammo += n;
+            this.ctx.notify("换弹完成");
+          }
           this.reloadUid = null;
         }
       }
@@ -256,17 +398,34 @@ export class CombatSystem {
     for (const b of this.projectiles) {
       if (!b.active) continue;
       const len = Math.hypot(b.velocity.x, b.velocity.y, b.velocity.z) * dt;
+      if (len < 0.000001) continue;
       const dir = {
         x: (b.velocity.x * dt) / len,
         y: (b.velocity.y * dt) / len,
         z: (b.velocity.z * dt) / len,
       };
-      const wall = this.ctx.collision.ray(b.position, dir, len);
+      const solid = this.ctx.collision.ray(b.position, dir, len);
+      const terrain = this.ctx.collision.terrainRay(
+        b.position,
+        dir,
+        solid?.distance ?? len,
+      );
+      const wall = terrain ?? solid;
       let nearest = wall?.distance ?? len;
       let target: (typeof this.ctx.state.actors)[string] | undefined;
-      let part: "head" | "chest" | "leg" = "chest";
+      let part: BodyPart = "chest";
       for (const actor of Object.values(this.ctx.state.actors)) {
         if (actor.health <= 0) continue;
+        const zones = this.hitZones.get(actor.id);
+        if (zones) {
+          const hit = rayActorZones(b.position, dir, zones, nearest);
+          if (hit) {
+            nearest = hit.distance;
+            target = actor;
+            part = hit.part;
+          }
+          continue;
+        }
         const dx = actor.position.x - b.position.x,
           dz = actor.position.z - b.position.z;
         const horizontal = dir.x * dir.x + dir.z * dir.z;
@@ -283,7 +442,15 @@ export class CombatSystem {
         ) {
           nearest = t;
           target = actor;
-          part = hy > 1.5 ? "head" : hy < 0.65 ? "leg" : "chest";
+          const side = hx * Math.cos(actor.yaw) - hz * Math.sin(actor.yaw);
+          part =
+            hy > 1.5
+              ? "head"
+              : hy < 0.65
+                ? "leg"
+                : !animal && Math.abs(side) > 0.22
+                  ? "arm"
+                  : "chest";
         }
       }
       if (target) {
@@ -291,6 +458,17 @@ export class CombatSystem {
           target,
           b.damage * Math.max(0.4, 1 - (b.travel / b.range) * 0.5),
           part,
+          {
+            direction: dir,
+            source: "bullet",
+            weapon: b.weapon,
+            impact: b.impact,
+            position: {
+              x: b.position.x + dir.x * nearest,
+              y: b.position.y + dir.y * nearest,
+              z: b.position.z + dir.z * nearest,
+            },
+          },
         );
         b.active = false;
       } else if (wall) {
@@ -304,15 +482,19 @@ export class CombatSystem {
           text: "弹着",
           position: hit,
           kind: "wall",
+          material: wall.collider.material ?? "concrete",
+          weapon: b.weapon,
+          direction: dir,
+          normal: wall.normal,
         });
         if (
           wall.collider.id.includes(":glass:") ||
           (b.penetration > 0.3 && wall.collider.door)
         ) {
           const glass = wall.collider.id.includes(":glass:");
-          this.ctx.state.destroyed.push(wall.collider.id);
+          if (glass) this.ctx.state.destroyed.push(wall.collider.id);
           if (wall.collider.door)
-            this.ctx.state.doors[wall.collider.door] = true;
+            this.ctx.doors.damage(wall.collider.door, b.damage * 0.8);
           b.damage *= glass ? 0.8 : 0.45;
           b.penetration = 0;
           b.position = {
@@ -349,7 +531,9 @@ export class CombatSystem {
       if (
         b.travel > b.range ||
         b.life > 5 ||
-        b.position.y < this.ctx.gen.height(b.position.x, b.position.z)
+        b.position.y <
+          this.ctx.collision.ground(b.position.x, b.position.z, b.position.y) -
+            0.08
       )
         b.active = false;
     }
@@ -360,7 +544,9 @@ export class CombatSystem {
       g.position.y += g.velocity.y * dt;
       g.position.z += g.velocity.z * dt;
       g.velocity.y -= 9.8 * dt;
-      const floor = this.ctx.gen.height(g.position.x, g.position.z) + 0.15;
+      const floor =
+        this.ctx.collision.ground(g.position.x, g.position.z, g.position.y) +
+        0.15;
       if (g.position.y < floor) {
         g.position.y = floor;
         g.velocity.y = Math.abs(g.velocity.y) * 0.3;
@@ -372,33 +558,55 @@ export class CombatSystem {
         g.velocity.x *= -0.5;
         g.velocity.z *= -0.5;
       }
-      if (g.timer <= 0) {
-        this.ctx.noise(g.position, 350, "explosion");
-        this.ctx.bus.emit({
-          type: "shot",
-          text: "爆炸",
-          position: g.position,
-          kind: "explosion",
-        });
-        for (const a of Object.values(this.ctx.state.actors)) {
-          const d = distance(a.position, g.position);
-          if (
-            d < 10 &&
-            this.ctx.collision.visible(g.position, {
-              ...a.position,
-              y: a.position.y + 1,
-            })
-          )
-            this.ai.hurt(a, (1 - d / 10) * 180);
-        }
-        const d = distance(this.ctx.state.player.position, g.position);
-        if (d < 9) this.ctx.damage((1 - d / 9) * 95, "爆炸");
-        for (const b of this.ctx.state.structures)
-          if (distance(b.position, g.position) < 8)
-            b.health = Math.max(0, b.health - 70);
-      }
+      if (g.timer <= 0) this.detonate(g.position);
     }
     this.grenades = this.grenades.filter((g) => g.timer > 0);
+  }
+  detonate(position: Vec3, damageScale = 1, radius = 10) {
+    this.ctx.noise(position, 350, "explosion");
+    this.ctx.bus.emit({
+      type: "shot",
+      text: "爆炸",
+      position,
+      kind: "explosion",
+    });
+    const spatialDistance = (p: Vec3) =>
+      Math.hypot(p.x - position.x, p.y - position.y, p.z - position.z);
+    if (damageScale <= 0) return;
+    for (const actor of Object.values(this.ctx.state.actors)) {
+      const target = { ...actor.position, y: actor.position.y + 0.8 },
+        d = spatialDistance(target);
+      if (
+        actor.health > 0 &&
+        d < radius &&
+        this.ctx.collision.visible(position, target)
+      )
+        this.ai.hurt(actor, (1 - d / radius) * 180 * damageScale, "chest", {
+          direction: {
+            x: actor.position.x - position.x,
+            y: 0.2,
+            z: actor.position.z - position.z,
+          },
+          source: "explosion",
+          impact: 120 * damageScale,
+          position: target,
+        });
+    }
+    const player = {
+        ...this.ctx.state.player.position,
+        y: this.ctx.state.player.position.y + 0.8,
+      },
+      d = spatialDistance(player);
+    if (d < radius * 0.9 && this.ctx.collision.visible(position, player))
+      this.ctx.damage((1 - d / (radius * 0.9)) * 95 * damageScale, "爆炸");
+    for (const structure of this.ctx.state.structures) {
+      const target = { ...structure.position, y: structure.position.y + 0.6 };
+      if (
+        spatialDistance(target) < radius * 0.8 &&
+        this.ctx.collision.visible(position, target)
+      )
+        structure.health = Math.max(0, structure.health - 70 * damageScale);
+    }
   }
   throw(origin: Vec3, direction: Vec3): boolean {
     if (

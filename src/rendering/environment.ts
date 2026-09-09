@@ -10,6 +10,7 @@ import { ShaderMaterial } from "@babylonjs/core/Materials/shaderMaterial";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Scene } from "@babylonjs/core/scene";
 import { CascadedShadowGenerator } from "@babylonjs/core/Lights/Shadows/cascadedShadowGenerator";
+import { ShadowGenerator } from "@babylonjs/core/Lights/Shadows/shadowGenerator";
 import { DefaultRenderingPipeline } from "@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/defaultRenderingPipeline";
 import { SSAO2RenderingPipeline } from "@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/ssao2RenderingPipeline";
 import { ImageProcessingConfiguration } from "@babylonjs/core/Materials/imageProcessingConfiguration";
@@ -20,6 +21,7 @@ import { type AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import type { GameSettings } from "../core/types";
 import type { MaterialFactory } from "./materials";
 import type { Simulation } from "../simulation/simulation";
+import { insideFacility } from "../world/facility";
 const skyVertex = `precision highp float;attribute vec3 position;uniform mat4 worldViewProjection;varying vec3 vDirection;void main(){vDirection=position;gl_Position=worldViewProjection*vec4(position,1.0);}`;
 const skyFragment = `precision highp float;varying vec3 vDirection;uniform vec3 sunDirection;uniform float day;uniform float time;uniform float clouds;uniform float dusk;
  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1)),f.x),f.y);}float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=noise(p)*a;p=p*2.07+3.1;a*=.5;}return v;}
@@ -31,6 +33,7 @@ export class LightingManager {
   readonly ambient: HemisphericLight;
   readonly shadows: CascadedShadowGenerator;
   readonly flashlight: SpotLight;
+  readonly flashlightShadows: ShadowGenerator;
   readonly muzzle: PointLight;
   readonly pipeline: DefaultRenderingPipeline;
   readonly sky: Mesh;
@@ -43,6 +46,9 @@ export class LightingManager {
   clouds = 0.5;
   daylight = 1;
   private flash = 0;
+  private casters = new Set<Mesh>();
+  private casterTimer = 0;
+  private shadowDistance = 120;
   constructor(
     readonly scene: Scene,
     private engine: AbstractEngine,
@@ -78,6 +84,15 @@ export class LightingManager {
     );
     this.shadows.numCascades = 2;
     this.shadows.shadowMaxZ = 140;
+    this.shadowDistance =
+      settings.quality === "low"
+        ? 55
+        : settings.quality === "medium"
+          ? 85
+          : settings.quality === "ultra"
+            ? 170
+            : 120;
+    this.shadows.shadowMaxZ = this.shadowDistance + 20;
     this.shadows.lambda = 0.7;
     this.shadows.cascadeBlendPercentage = 0.15;
     this.shadows.stabilizeCascades = true;
@@ -97,7 +112,19 @@ export class LightingManager {
     this.flashlight.intensity = 0;
     this.flashlight.diffuse = new Color3(1, 0.96, 0.84);
     this.flashlight.range = 45;
-    this.flashlight.shadowEnabled = false;
+    this.flashlightShadows = new ShadowGenerator(
+      settings.quality === "low"
+        ? 256
+        : settings.quality === "ultra"
+          ? 1024
+          : 512,
+      this.flashlight,
+    );
+    this.flashlightShadows.usePercentageCloserFiltering =
+      settings.quality !== "low";
+    this.flashlightShadows.bias = 0.0015;
+    this.flashlightShadows.normalBias = 0.012;
+    this.flashlightShadows.darkness = 0.12;
     this.muzzle = new PointLight("muzzle", Vector3.Zero(), scene);
     this.muzzle.intensity = 0;
     this.muzzle.range = 9;
@@ -210,11 +237,17 @@ export class LightingManager {
   addCaster(mesh: Mesh) {
     if (mesh.name.includes("grass") || mesh.name.includes("fern")) return;
     this.shadows.addShadowCaster(mesh);
+    this.casters.add(mesh);
+    this.casterTimer = 0;
+    if (!mesh.name.startsWith("view-") && !mesh.name.includes("first-person"))
+      this.flashlightShadows.addShadowCaster(mesh);
     if (this.mirror.renderList && this.mirror.renderList.length < 90)
       this.mirror.renderList.push(mesh);
   }
   removeCaster(mesh: Mesh) {
+    this.casters.delete(mesh);
     this.shadows.removeShadowCaster(mesh);
+    this.flashlightShadows.removeShadowCaster(mesh);
     if (this.mirror.renderList)
       this.mirror.renderList = this.mirror.renderList.filter((m) => m !== mesh);
   }
@@ -223,6 +256,26 @@ export class LightingManager {
     this.flash = 0.08;
   }
   update(dt: number, time: number, sim: Simulation, menu = false): void {
+    this.casterTimer -= dt;
+    if (this.casterTimer <= 0) {
+      this.casterTimer = 0.45;
+      const near = (mesh: Mesh, range: number) => {
+        if (mesh.isDisposed() || !mesh.isEnabled() || !mesh.isVisible)
+          return false;
+        const sphere = mesh.getBoundingInfo().boundingSphere;
+        return (
+          Vector3.Distance(sphere.centerWorld, this.camera.position) -
+            sphere.radiusWorld <
+          range
+        );
+      };
+      const all = [...this.casters];
+      const sunMap = this.shadows.getShadowMap(),
+        handMap = this.flashlightShadows.getShadowMap();
+      if (sunMap)
+        sunMap.renderList = all.filter((m) => near(m, this.shadowDistance));
+      if (handMap) handMap.renderList = all.filter((m) => near(m, 65));
+    }
     const hour = sim.state.time,
       angle = ((hour - 6) / 24) * Math.PI * 2,
       alt = Math.sin(angle);
@@ -258,6 +311,16 @@ export class LightingManager {
       daylight,
     );
     this.sun.intensity = daylight * (2.3 - this.clouds * 1.35) + 0.035;
+    const underground = insideFacility(
+      sim.gen,
+      this.camera.position.x,
+      this.camera.position.y,
+      this.camera.position.z,
+    );
+    const sunMap = this.shadows.getShadowMap(),
+      sunRate = underground ? 0 : 1;
+    if (sunMap && sunMap.refreshRate !== sunRate) sunMap.refreshRate = sunRate;
+    if (underground) this.sun.intensity = 0;
     this.ambient.intensity =
       (0.18 + daylight * 0.58) * (sim.indoors && !menu ? 0.63 : 1);
     this.scene.environmentIntensity =
@@ -300,6 +363,20 @@ export class LightingManager {
       : held?.attachments.includes("weaponlight")
         ? 65
         : 45;
+    const charge = sim.state.player.flashlightCharge;
+    if (!torch && charge < 15) this.flashlight.intensity *= 0.6 + charge / 37.5;
+    if (
+      !torch &&
+      charge < 7 &&
+      Math.sin(time * 8.7) * Math.sin(time * 2.3) > 0.84
+    )
+      this.flashlight.intensity *= 0.25;
+    // Keep the shadow sampler contract stable across WebGPU material variants.
+    // An unlit flashlight reuses one cached shadow map instead of rebuilding it.
+    const flashlightMap = this.flashlightShadows.getShadowMap();
+    const flashlightRate = this.flashlight.intensity > 0 ? 1 : 0;
+    if (flashlightMap && flashlightMap.refreshRate !== flashlightRate)
+      flashlightMap.refreshRate = flashlightRate;
     this.flashlight.diffuse = torch
       ? new Color3(1, 0.58, 0.23)
       : new Color3(1, 0.96, 0.84);
@@ -324,11 +401,22 @@ export class LightingManager {
       Math.hypot(this.camera.position.x + 570, this.camera.position.z + 615) <
       650;
     this.water.setEnabled(waterVisible);
-    this.mirror.refreshRate = waterVisible ? 2 : 0;
+    const mirrorRate = waterVisible ? 2 : 0;
+    if (this.mirror.refreshRate !== mirrorRate)
+      this.mirror.refreshRate = mirrorRate;
   }
   settings(settings: GameSettings) {
     this.engine.setHardwareScalingLevel(
-      1 / (Math.min(devicePixelRatio, 1.5) * settings.resolution),
+      1 /
+        (Math.min(
+          devicePixelRatio,
+          settings.quality === "ultra"
+            ? 1.5
+            : settings.quality === "high"
+              ? 1.25
+              : 1,
+        ) *
+          settings.resolution),
     );
     this.pipeline.bloomEnabled = settings.quality !== "low";
     this.pipeline.grainEnabled = !settings.reducedMotion;

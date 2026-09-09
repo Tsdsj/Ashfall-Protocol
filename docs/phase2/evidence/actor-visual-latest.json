@@ -1,0 +1,23 @@
+{
+  "hasSkin": true,
+  "nodes": 74,
+  "clips": [
+    {
+      "name": "LayToIdle",
+      "weight": 1,
+      "phase": 0.7280000000056769
+    }
+  ],
+  "state": "getup",
+  "health": 68,
+  "error": "",
+  "stats": {
+    "fps": 65.37371976592827,
+    "chunks": 9,
+    "meshes": 796,
+    "triangles": 94564.33333333333,
+    "drawCalls": 1375
+  },
+  "errors": [],
+  "setup": "Staged visual inspection with developer positioning and invulnerability; knockdown triggered through the damage system for repeatable pose inspection."
+}

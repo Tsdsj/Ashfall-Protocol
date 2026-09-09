@@ -1,4 +1,5 @@
 import { hash, noise, random, choose } from "../core/random";
+import { environmentPropColliders } from "../rendering/environment-props";
 import { clamp, type POI, type Vec3, type Collider } from "../core/types";
 export const WORLD_SIZE = 4096;
 export const CHUNK_SIZE = 256;
@@ -79,12 +80,12 @@ export const STORY: Record<
   ranger: {
     title: "林务员的最后一班",
     text: "北边的广播塔还在供电。他们每天重复同一份撤离通告，可昨天我在河边又发现了幸存者。如果有人看到这本日志，去诊所找米拉。不要相信官方的“全部撤离”。",
-    clue: "松谷诊所的米拉知道渡鸦要塞的通行卡。",
+    clue: "先接通林务站接收机，核验广播，再去诊所询问米拉。",
   },
   clinic: {
     title: "隔离病例记录",
     text: "病人的编号不是按症状划分，而是按接触区域。军方取走了全部血样，却没有带走任何病人。米拉说，通行卡被锁在要塞的军械箱里。",
-    clue: "前往渡鸦要塞，寻找研究站访问卡。",
+    clue: "向米拉核验转运名单，再比对军方、承包商和市立医院记录。",
   },
   industry: {
     title: "第七批次货单",
@@ -94,7 +95,7 @@ export const STORY: Record<
   fort: {
     title: "撤防命令 19-B",
     text: "终止救援。封闭所有外部交通。保留研究区供电。不允许任何未经许可的样本离开灰谷。指挥官用红笔划掉了“样本”，写下“人”。",
-    clue: "使用访问卡进入第七研究站。",
+    clue: "在雷达控制室比对四地记录。访问卡可用于研究站升降台。",
   },
   mine: {
     title: "矿工的手绘便条",
@@ -102,9 +103,9 @@ export const STORY: Record<
     clue: "第七研究站位于矿区东北方。",
   },
   lab: {
-    title: "ASHFALL / 原始协议",
-    text: "计划目的：在受控区域测试感染后的环境适应性。撤离公告为行为稳定措施。灰烬协议不是为了清除灾难，而是为了掩埋证据。所有实验记录已复制到随身数据盘。",
-    clue: "把档案带到松谷北面的广播站，向封锁区外发送。",
+    title: "R-07 / 地表查询端",
+    text: "访问卡仍有效，但地表查询端只保留了设施索引。原始资料分别存放在地下八米的军方联络、研究观察、地方协调和承包商控制终端。ASHFALL 清理回路与实验记录相互关联；在核验全部终端之前，不能把这份索引当作完整证据。",
+    clue: "从升降台进入地下设施，核验四个终端，再复制完整档案。",
   },
   broadcast: {
     title: "封锁线之外",
@@ -393,6 +394,12 @@ export class WorldGenerator {
       maxZ,
       minY,
       maxY,
+      material:
+        id === "table" || id === "shelf" || id === "door"
+          ? "wood"
+          : id.startsWith("glass:")
+            ? "glass"
+            : "concrete",
     });
     const out = [
       box("back", x - w, x + w, z + d - 0.2, z + d + 0.2),
@@ -447,6 +454,7 @@ export class WorldGenerator {
           ),
         );
     }
+    out.push(...environmentPropColliders(p, y));
     return out;
   }
 }

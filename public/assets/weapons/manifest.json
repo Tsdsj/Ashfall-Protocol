@@ -1,0 +1,609 @@
+{
+  "version": 1,
+  "author": "Quaternius",
+  "license": "CC0-1.0",
+  "source": "https://quaternius.com/packs/ultimategun.html",
+  "verified": "2026-09-09",
+  "totalBytes": 688492,
+  "files": [
+    {
+      "id": "pistol",
+      "file": "pistol.glb",
+      "sourceName": "Pistol_2",
+      "author": "Quaternius",
+      "source": "https://quaternius.com/packs/ultimategun.html",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sources": [
+        {
+          "file": "Pistol_2.obj",
+          "url": "https://drive.google.com/uc?export=download&id=12llZNaR14v9Y-Q2l0rQeo4bSdorD7Cqb",
+          "sha256": "ab5d4150082cca3085a07010525c77fafa3d12fd123b52878aa73e0fb9583e49"
+        },
+        {
+          "file": "Pistol_2.mtl",
+          "url": "https://drive.google.com/uc?export=download&id=1faP9JIzB13CbvPYvn0butiewcJ64W1BZ",
+          "sha256": "9ffd9bb32ca0e44b758b13df29fb5a0d3305da15cab5a16d421cbf6b5b0912c6"
+        }
+      ],
+      "bytes": 137024,
+      "sha256": "ada87923ab8985806da3999a938098b8a8d4b236032319fd82030e8e7972c3fe",
+      "triangles": 1221,
+      "originalPolygons": 567,
+      "dimensions": [
+        0.09734,
+        0.36172,
+        0.54794
+      ],
+      "bounds": {
+        "min": [
+          -0.04867,
+          -0.20445,
+          0.02196
+        ],
+        "max": [
+          0.04867,
+          0.15728,
+          0.5699
+        ]
+      },
+      "nativeToView": {
+        "scale": 0.30116359,
+        "widthMultiplier": 1,
+        "originY": -0.06831964,
+        "originZ": 0.12698836,
+        "direction": "source +X becomes runtime +Z; source +Z becomes runtime +X after standard Babylon glTF handedness conversion"
+      },
+      "parts": {
+        "body": {
+          "node": "part_body",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "triangles": 764
+        },
+        "slide": {
+          "node": "part_slide",
+          "pivot": [
+            0,
+            0.10743,
+            0.2969
+          ],
+          "triangles": 433
+        },
+        "magazine": {
+          "node": "part_magazine",
+          "pivot": [
+            0,
+            0.00697,
+            0.11795
+          ],
+          "triangles": 24
+        }
+      },
+      "anchors": {
+        "muzzle": [
+          0,
+          0.105,
+          0.57
+        ],
+        "rightGrip": [
+          0.0438,
+          -0.08037,
+          0.13
+        ],
+        "leftGrip": [
+          -0.052,
+          -0.08037,
+          0.14
+        ],
+        "rearSight": [
+          0,
+          0.14912,
+          0.09085
+        ],
+        "frontSight": [
+          0,
+          0.15695,
+          0.51248
+        ],
+        "magazine": [
+          0,
+          0.00697,
+          0.11795
+        ],
+        "support": [
+          -0.052,
+          -0.08037,
+          0.14
+        ]
+      },
+      "slideTravel": 0.055,
+      "magazineTravel": 0.32,
+      "changes": "Converted original OBJ/MTL with concave polygon triangulation; preserved normals and silhouette; topology-based moving parts; added fitted pistol magazine or small bolt/charging handle; muted PBR materials and original procedural micro-surface textures; normalized +Z grip/muzzle anchors; welded and deduplicated."
+    },
+    {
+      "id": "military",
+      "file": "military.glb",
+      "sourceName": "AssaultRifle_2",
+      "author": "Quaternius",
+      "source": "https://quaternius.com/packs/ultimategun.html",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sources": [
+        {
+          "file": "AssaultRifle_2.obj",
+          "url": "https://drive.google.com/uc?export=download&id=1kBflhIVyhk-H998dHv1eI6iQ5-k0fat7",
+          "sha256": "095ab814defe0855ae23c7111c9fdac260a49dc093272077c39863fdc868251d"
+        },
+        {
+          "file": "AssaultRifle_2.mtl",
+          "url": "https://drive.google.com/uc?export=download&id=1SgejkPlxDb4to0j51vII_n37PTGIWdYS",
+          "sha256": "b9e0429254528b93ce6134e513fbb114a8ee40872778f05e91ca1fccb320b1c2"
+        }
+      ],
+      "bytes": 144512,
+      "sha256": "39530104dd45454766924927e565992df3ceb4e84a11703c50c77859bf1fd8c5",
+      "triangles": 1322,
+      "originalPolygons": 616,
+      "dimensions": [
+        0.13775,
+        0.38903,
+        1.31712
+      ],
+      "bounds": {
+        "min": [
+          -0.04286,
+          -0.21569,
+          -0.26715
+        ],
+        "max": [
+          0.09489,
+          0.17334,
+          1.04996
+        ]
+      },
+      "nativeToView": {
+        "scale": 0.24293636,
+        "widthMultiplier": 1.8,
+        "originY": -0.03553868,
+        "originZ": 0.12271191,
+        "direction": "source +X becomes runtime +Z; source +Z becomes runtime +X after standard Babylon glTF handedness conversion"
+      },
+      "parts": {
+        "body": {
+          "node": "part_body",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "triangles": 982
+        },
+        "magazine": {
+          "node": "part_magazine",
+          "pivot": [
+            0,
+            0.06498,
+            0.37014
+          ],
+          "triangles": 316
+        },
+        "bolt": {
+          "node": "part_bolt",
+          "pivot": [
+            0,
+            0.09322,
+            0.33407
+          ],
+          "triangles": 24
+        }
+      },
+      "anchors": {
+        "muzzle": [
+          0,
+          0.105,
+          1.05
+        ],
+        "rightGrip": [
+          0.06199,
+          -0.0404,
+          0.13
+        ],
+        "leftGrip": [
+          -0.07434,
+          0.04949,
+          0.6013
+        ],
+        "rearSight": [
+          0,
+          0.17339,
+          0.21989
+        ],
+        "frontSight": [
+          0,
+          0.17339,
+          1.00943
+        ],
+        "magazine": [
+          0,
+          0.06498,
+          0.37014
+        ],
+        "support": [
+          -0.07434,
+          0.04949,
+          0.6013
+        ]
+      },
+      "slideTravel": 0.065,
+      "magazineTravel": 0.42,
+      "changes": "Converted original OBJ/MTL with concave polygon triangulation; preserved normals and silhouette; topology-based moving parts; added fitted pistol magazine or small bolt/charging handle; muted PBR materials and original procedural micro-surface textures; normalized +Z grip/muzzle anchors; welded and deduplicated."
+    },
+    {
+      "id": "rifle",
+      "file": "rifle.glb",
+      "sourceName": "SniperRifle_6",
+      "author": "Quaternius",
+      "source": "https://quaternius.com/packs/ultimategun.html",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sources": [
+        {
+          "file": "SniperRifle_6.obj",
+          "url": "https://drive.google.com/uc?export=download&id=1KHVUBuaaS3n_W1RZEsbh--5_vn7obTq-",
+          "sha256": "4443de0a39820158a8e490918f6843ac0de59a05a471d5fd30332fac336fa636"
+        },
+        {
+          "file": "SniperRifle_6.mtl",
+          "url": "https://drive.google.com/uc?export=download&id=1VJiS1gxKd53zazUXxE4kIKTZMwjXqjo1",
+          "sha256": "9e90c92e0fceabbe2493e17f780c7ea7151f49e05b4c52687c7f77fce3ab2989"
+        }
+      ],
+      "bytes": 155212,
+      "sha256": "b40b0ef45e2ed7f93afb885af011cc9b13995cfc8439782be3282ade3f8c2f14",
+      "triangles": 1442,
+      "originalPolygons": 635,
+      "dimensions": [
+        0.14705,
+        0.30155,
+        1.43122
+      ],
+      "bounds": {
+        "min": [
+          -0.05638,
+          -0.10465,
+          -0.25122
+        ],
+        "max": [
+          0.09067,
+          0.1969,
+          1.18
+        ]
+      },
+      "nativeToView": {
+        "scale": 0.19861537,
+        "widthMultiplier": 1.5,
+        "originY": 0.04601124,
+        "originZ": 0.13794461,
+        "direction": "source +X becomes runtime +Z; source +Z becomes runtime +X after standard Babylon glTF handedness conversion"
+      },
+      "parts": {
+        "body": {
+          "node": "part_body",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "triangles": 874
+        },
+        "scope": {
+          "node": "part_scope",
+          "pivot": [
+            0,
+            0.15532,
+            0.33693
+          ],
+          "triangles": 428
+        },
+        "bolt": {
+          "node": "part_bolt",
+          "pivot": [
+            0,
+            0.09925,
+            0.19052
+          ],
+          "triangles": 68
+        },
+        "sights": {
+          "node": "part_sights",
+          "pivot": [
+            0,
+            0.13638,
+            0.64789
+          ],
+          "triangles": 72
+        }
+      },
+      "anchors": {
+        "muzzle": [
+          0,
+          0.105,
+          1.18
+        ],
+        "rightGrip": [
+          0.06617,
+          -0.01953,
+          0.13
+        ],
+        "leftGrip": [
+          -0.05363,
+          0.03807,
+          0.56695
+        ],
+        "rearSight": [
+          0,
+          0.15823,
+          0.1876
+        ],
+        "frontSight": [
+          0,
+          0.15873,
+          1.11712
+        ],
+        "magazine": [
+          0,
+          0.02218,
+          0.28691
+        ],
+        "support": [
+          -0.05363,
+          0.03807,
+          0.56695
+        ]
+      },
+      "slideTravel": 0.085,
+      "magazineTravel": 0.42,
+      "changes": "Converted original OBJ/MTL with concave polygon triangulation; preserved normals and silhouette; topology-based moving parts; added fitted pistol magazine or small bolt/charging handle; muted PBR materials and original procedural micro-surface textures; normalized +Z grip/muzzle anchors; welded and deduplicated."
+    },
+    {
+      "id": "shotgun",
+      "file": "shotgun.glb",
+      "sourceName": "Shotgun_3",
+      "author": "Quaternius",
+      "source": "https://quaternius.com/packs/ultimategun.html",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sources": [
+        {
+          "file": "Shotgun_3.obj",
+          "url": "https://drive.google.com/uc?export=download&id=1mFvkxFHf6RYBGtkZygc3gH88mv11oRYY",
+          "sha256": "fd7d443f7504c34766d504e05cbbbbcfa6062104c192d40f0487e9ddf3ee4c81"
+        },
+        {
+          "file": "Shotgun_3.mtl",
+          "url": "https://drive.google.com/uc?export=download&id=1YoiaVqd4xs4TefmaXQ80uAIlmp2XKe_a",
+          "sha256": "748f6e8752bec9cf2080910330e4975fae7265a3ecdfea63214d0d8dd864fd6d"
+        }
+      ],
+      "bytes": 120912,
+      "sha256": "8332e2bef0d1c5f0b24e73a7328b455df17a3a43c5a038c79204d6af0ae91999",
+      "triangles": 990,
+      "originalPolygons": 453,
+      "dimensions": [
+        0.09939,
+        0.22413,
+        1.37541
+      ],
+      "bounds": {
+        "min": [
+          -0.04689,
+          -0.08016,
+          -0.23547
+        ],
+        "max": [
+          0.0525,
+          0.14397,
+          1.13994
+        ]
+      },
+      "nativeToView": {
+        "scale": 0.23775895,
+        "widthMultiplier": 1.6,
+        "originY": 0.05376295,
+        "originZ": 0.11573446,
+        "direction": "source +X becomes runtime +Z; source +Z becomes runtime +X after standard Babylon glTF handedness conversion"
+      },
+      "parts": {
+        "body": {
+          "node": "part_body",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "triangles": 802
+        },
+        "pump": {
+          "node": "part_pump",
+          "pivot": [
+            0,
+            0.05262,
+            0.61674
+          ],
+          "triangles": 176
+        },
+        "bolt": {
+          "node": "part_bolt",
+          "pivot": [
+            0,
+            0.0918,
+            0.29643
+          ],
+          "triangles": 12
+        }
+      },
+      "anchors": {
+        "muzzle": [
+          0,
+          0.105,
+          1.14
+        ],
+        "rightGrip": [
+          0.04473,
+          0.01572,
+          0.13
+        ],
+        "leftGrip": [
+          -0.06087,
+          0.02761,
+          0.61503
+        ],
+        "rearSight": [
+          0,
+          0.14411,
+          0.16448
+        ],
+        "frontSight": [
+          0,
+          0.13841,
+          1.0216
+        ],
+        "magazine": [
+          0,
+          0.02523,
+          0.29405
+        ],
+        "support": [
+          -0.06087,
+          0.02761,
+          0.61503
+        ]
+      },
+      "slideTravel": 0.1,
+      "magazineTravel": 0.42,
+      "changes": "Converted original OBJ/MTL with concave polygon triangulation; preserved normals and silhouette; topology-based moving parts; added fitted pistol magazine or small bolt/charging handle; muted PBR materials and original procedural micro-surface textures; normalized +Z grip/muzzle anchors; welded and deduplicated."
+    },
+    {
+      "id": "smg",
+      "file": "smg.glb",
+      "sourceName": "SubmachineGun_3",
+      "author": "Quaternius",
+      "source": "https://quaternius.com/packs/ultimategun.html",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sources": [
+        {
+          "file": "SubmachineGun_3.obj",
+          "url": "https://drive.google.com/uc?export=download&id=1WY8fQrATsTk7OpdysejeeYbiOC4RTlCr",
+          "sha256": "6f05a2465dad783ac0f0b04506ae14d6c6832794e8ba76ce5add78ad758a0efd"
+        },
+        {
+          "file": "SubmachineGun_3.mtl",
+          "url": "https://drive.google.com/uc?export=download&id=1nj7gPirFF3jUNgXnBNJWgXM37IuH_hmD",
+          "sha256": "7df8ef73c3df2107acdc0b4f653f6a091c999655a1a3fbd1d37952355cda40b5"
+        }
+      ],
+      "bytes": 130832,
+      "sha256": "a4ad9c52f0beeefcd44fa0c578e22f04bc5d11bbb689a0be4cee456f6606947d",
+      "triangles": 1590,
+      "originalPolygons": 699,
+      "dimensions": [
+        0.17113,
+        0.49659,
+        1.30376
+      ],
+      "bounds": {
+        "min": [
+          -0.05974,
+          -0.29436,
+          -0.46369
+        ],
+        "max": [
+          0.11139,
+          0.20223,
+          0.84007
+        ]
+      },
+      "nativeToView": {
+        "scale": 0.32613689,
+        "widthMultiplier": 1.15,
+        "originY": -0.04942582,
+        "originZ": 0.14793753,
+        "direction": "source +X becomes runtime +Z; source +Z becomes runtime +X after standard Babylon glTF handedness conversion"
+      },
+      "parts": {
+        "body": {
+          "node": "part_body",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "triangles": 1506
+        },
+        "magazine": {
+          "node": "part_magazine",
+          "pivot": [
+            0,
+            0.03915,
+            0.37958
+          ],
+          "triangles": 60
+        },
+        "bolt": {
+          "node": "part_bolt",
+          "pivot": [
+            0,
+            0.11364,
+            0.30122
+          ],
+          "triangles": 24
+        }
+      },
+      "anchors": {
+        "muzzle": [
+          0,
+          0.105,
+          0.84
+        ],
+        "rightGrip": [
+          0.07701,
+          -0.08204,
+          0.13
+        ],
+        "leftGrip": [
+          -0.06376,
+          -0.08856,
+          0.63714
+        ],
+        "rearSight": [
+          0,
+          0.2017,
+          0.11532
+        ],
+        "frontSight": [
+          0,
+          0.2017,
+          0.70889
+        ],
+        "magazine": [
+          0,
+          0.03915,
+          0.37958
+        ],
+        "support": [
+          -0.06376,
+          -0.08856,
+          0.63714
+        ]
+      },
+      "slideTravel": 0.05,
+      "magazineTravel": 0.42,
+      "changes": "Converted original OBJ/MTL with concave polygon triangulation; preserved normals and silhouette; topology-based moving parts; added fitted pistol magazine or small bolt/charging handle; muted PBR materials and original procedural micro-surface textures; normalized +Z grip/muzzle anchors; welded and deduplicated."
+    }
+  ]
+}

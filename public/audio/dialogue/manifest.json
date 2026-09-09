@@ -1,0 +1,744 @@
+{
+  "model": "hexgrad/Kokoro-82M-v1.1-zh",
+  "revision": "01e7505bd6a7a2ac4975463114c3a7650a9f7218",
+  "modelSha256": "b1d8410fa44dfb5c15471fd6c4225ea6b4e9ac7fa03c98e8bea47a9928476e2b",
+  "license": "Apache-2.0",
+  "source": "https://huggingface.co/hexgrad/Kokoro-82M-v1.1-zh/tree/01e7505bd6a7a2ac4975463114c3a7650a9f7218",
+  "voiceFiles": {
+    "zf_001": "9bdc9a87e13e9bb1ea3e7803259c2ecbfebaeeb2ff80b5d0c76df1a464c1c962",
+    "zm_010": "d2eeba86192eee269f600ca6821038034abd017532a1fe68ff7b0e86c2983b2a"
+  },
+  "authorship": "Original ASHFALL PROTOCOL Chinese script; synthesized locally with licensed model voices. No imitation of a named real person.",
+  "changes": "Chinese pronunciation normalization; speaker segmentation; 24kHz mono; highpass 90Hz lowpass 11.5kHz; peak normalization followed by additional -2dB mastering headroom; MP3 64kbps.",
+  "assets": [
+    {
+      "id": "opening-impact",
+      "file": "opening-impact.mp3",
+      "speaker": "你",
+      "title": "最后一辆车",
+      "text": "车翻了。司机的手还压在门闩上。运输单说车上有二十六个人，可后面的座位全空了……先离开公路。",
+      "delivery": "voice",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "587bc9d2b168247dd95a616abf9009849d34f8a94bdfc1b0dcdf05613d057a3f",
+      "duration": 11.9,
+      "peakDbFS": -3.2,
+      "bytes": 95852,
+      "sha256": "fadbdd8406838422a690645faef12d78e2f3ace7110f8be09d997eaaf93582b8"
+    },
+    {
+      "id": "opening-order",
+      "file": "opening-order.mp3",
+      "speaker": "撤离广播",
+      "title": "2037 年 10 月 17 日",
+      "text": "灰谷居民请注意：本区已完成全部撤离。任何未登记生命活动均视为污染信号。请停留原地，等待后续指令。",
+      "delivery": "radio",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "fb69b5b2ed58f4fca65cff56fad148282c39e0342737d2bdc1bbf7e1464c8007",
+      "duration": 12.25,
+      "peakDbFS": -5.36,
+      "bytes": 98732,
+      "sha256": "9fa89d62815d6b66c2a62f3696c0daaea191ad605347b5fb5653b1ac39c1da76"
+    },
+    {
+      "id": "opening-mira",
+      "file": "opening-mira.mp3",
+      "speaker": "陌生女人",
+      "title": "另一个频段",
+      "text": "如果你听得见，别等那辆车了。松谷林务站有食物。关好门，入夜后别开外灯。我叫米拉。我还在这里。",
+      "delivery": "radio",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "e0dd60705bf5abf5e3d6a5407dbb84bf76182a2b517239013d8a14632517fc87",
+      "duration": 15.05,
+      "peakDbFS": -5.4,
+      "bytes": 121196,
+      "sha256": "9e7efb94241fb92612a159710ee72ddd200df9762e7d0557f18ae8fb18cf39a6"
+    },
+    {
+      "id": "evac-loop",
+      "file": "evac-loop.mp3",
+      "speaker": "撤离广播",
+      "title": "没有翻页的通告",
+      "text": "本区已完成全部撤离。通告编号十七。播发日期：十月十四日。本区已完成全部撤离……",
+      "delivery": "radio",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "567dd7eea56f8a3b0ee86e2adba7ae201a076fc12e9c6a4c19d288f2c0df6910",
+      "duration": 12.85,
+      "peakDbFS": -4.73,
+      "bytes": 103532,
+      "sha256": "496c1125214fb8a49d65a2cc3bf7d52b1df565c0983a1c6d97d886dc3cddaf93"
+    },
+    {
+      "id": "ranger-warning",
+      "file": "ranger-warning.mp3",
+      "speaker": "林务员周岑",
+      "title": "水壶仍是热的",
+      "text": "这是十月十七日。三个孩子刚从桥边过来，所以你听到的撤离通告是假的。我把最后的罐头放在站里。去诊所找米拉，别把幸存者名字报给军方。",
+      "delivery": "log",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "a3fa4a0098b94aa3d81a2a9dab18a6d773547272266233ef2c6d316e3bd3546d",
+      "duration": 17.8,
+      "peakDbFS": -6.05,
+      "bytes": 143084,
+      "sha256": "999fb5237332529b303f23954fb64ff686111e66e1cdd2d81004d3fd10af8ab1"
+    },
+    {
+      "id": "mira-cases",
+      "file": "mira-cases.mp3",
+      "speaker": "米拉",
+      "title": "人不是接触区域",
+      "text": "你：广播为什么说没人了？\n米拉：因为他们把没上车的人改成了样本。看这四份病历，发热日期不同，注射批次却一样。我弟弟没生病，也在名单上。去市立医院找转运簿，别只找药。",
+      "delivery": "dialogue",
+      "voices": [
+        "zf_001",
+        "zm_010"
+      ],
+      "textSha256": "12de35bfd4f6cd2903e1130b77f7a835f10f866f7b8e08062d8a56f1f098df1a",
+      "duration": 21.4,
+      "peakDbFS": -5.56,
+      "bytes": 171884,
+      "sha256": "ea21a302e442df17af8a07dfb19e75a0030aa70b06ae19a9326d13e4a31aa5e2"
+    },
+    {
+      "id": "military-order",
+      "file": "military-order.mp3",
+      "speaker": "沈维上尉",
+      "title": "十九号命令",
+      "text": "我被命令拦住感染者，因为城外还有两百万人。我答应了。后来命令改成拦住所有人。谁把边界画在人身上？访问卡留在终端下；我不再替这道门签字。",
+      "delivery": "log",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "1076c7bcea863cbaccf622dcae258bcb9790c7ac7f48da4ba649abf445894dbe",
+      "duration": 21.175,
+      "peakDbFS": -3.65,
+      "bytes": 170156,
+      "sha256": "ea2b9709f8162a78d9662bed9d8d6ff3d287688db07392874963549446e49e5a"
+    },
+    {
+      "id": "contractor-ledger",
+      "file": "contractor-ledger.mp3",
+      "speaker": "衡川承包商审计员",
+      "title": "提前两年的账单",
+      "text": "第七研究站采购单：人口适应舱四十二套，清理燃料八十吨。审批早于事故两年。公司把清理写成设备维护，把参与者写成耗材。尾款没有支付条件，只有保密条件。",
+      "delivery": "log",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "0af01bad0235ae8d3ea7bffb4bfb659b6bb14c8050c022563233c3305a5709f8",
+      "duration": 18.175,
+      "peakDbFS": -5.5,
+      "bytes": 146156,
+      "sha256": "a273d124db3c65fddc11be2b53904aa2bb277a312c7275224cfff2fb10bcd425"
+    },
+    {
+      "id": "missing-voices",
+      "file": "missing-voices.mp3",
+      "speaker": "转运车内的录音",
+      "title": "零号家属",
+      "text": "男人：我的儿子在哪？\n护士：他的血氧已经适应了，我们只是转院。\n男人：你昨天说适应的人能回家。\n记录员：删除家属栏。编号不需要家属。\n最后一页写着：送往 R-07 地下一层，非撤离。",
+      "delivery": "log",
+      "voices": [
+        "zf_001",
+        "zm_010"
+      ],
+      "textSha256": "b738a1b1a0d9ea70e10ad260944f31ad344ae5dc055f2453c88a50cde611ec06",
+      "duration": 21.6,
+      "peakDbFS": -5.42,
+      "bytes": 173420,
+      "sha256": "22911037b9368887b8f9d3a2e24e2e9e11500d88b766137c59476bf90cc8b516"
+    },
+    {
+      "id": "mayor-session",
+      "file": "mayor-session.mp3",
+      "speaker": "副市长林漪",
+      "title": "没有落款的会议",
+      "text": "我签字是为了保住医院和冬天的供暖。研究站承诺治疗矿尘病，承包商承诺工作。那时我相信可以先活下去，再谈风险。可封锁后，我仍替他们录了“全部撤离”。这份录音请原样留下，包括我的名字。",
+      "delivery": "log",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "68e62b4a66b3ceee59dbc4ecbed6f6ffa6b4d86dec9e014b59801d64bfe8e445",
+      "duration": 24.4,
+      "peakDbFS": -5.55,
+      "bytes": 195884,
+      "sha256": "dafe98e29195b809902d80aea509a75e73a81740aa5f28c0a9974ec33b70edd2"
+    },
+    {
+      "id": "ashfall-countdown",
+      "file": "ashfall-countdown.mp3",
+      "speaker": "要塞控制系统",
+      "title": "信号归类变更",
+      "text": "ASHFALL 阶段三获准。救援频道转为行为稳定广播。居民计数归零。启动封锁区清理准备。",
+      "delivery": "radio",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "51c25db5e542128d9cd2dfa6417766e0cac9d63d93c6d12aba160067f596c00b",
+      "duration": 13.475,
+      "peakDbFS": -5.93,
+      "bytes": 108524,
+      "sha256": "8d757b4fa93e314654fb885ce3b2a8c132a77262c8afc8883d8d18522e67f9f2"
+    },
+    {
+      "id": "ashfall-reveal",
+      "file": "ashfall-reveal.mp3",
+      "speaker": "米拉",
+      "title": "不是救援",
+      "text": "你：归零的是人，还是数据库？\n米拉：数据库。我们仍活着，所以他们要再归零一次。ASHFALL 不是救援，是把封锁区清理干净的程序。研究站下面还在供电。要停下它，得找到是谁把我们接进了机器。",
+      "delivery": "radio",
+      "voices": [
+        "zf_001",
+        "zm_010"
+      ],
+      "textSha256": "dd3e587772dee0ef19fd192f9e5f54b2d94b6b0efa58bf5cf353def7006c7ae1",
+      "duration": 24.1,
+      "peakDbFS": -4.57,
+      "bytes": 193580,
+      "sha256": "c60af4e195e5a05157b238bf240648a6f247343acc8926cf8be1aa74c0fafd8d"
+    },
+    {
+      "id": "facility-adaptation",
+      "file": "facility-adaptation.mp3",
+      "speaker": "叶知微研究员",
+      "title": "适应者",
+      "text": "最初目标是让矿工在低氧和重金属环境里活得久一些。免疫改写在第一批受试者身上奏效，我们把短暂稳定误认成永久适应。第二轮出现神经增殖时，项目委员会删掉了停止条件。失败不是一个瞬间，是我们每次都说再试一次。",
+      "delivery": "log",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "7c658ae3fc171385f4428f28a898b8abf5b1c3f8e35f5db43bae42244a055b3c",
+      "duration": 24.95,
+      "peakDbFS": -4.48,
+      "bytes": 200300,
+      "sha256": "eddecaea55fa1bae577870b5bcb8f4ff8abd25af94ba0f8b50a006a32f4439c9"
+    },
+    {
+      "id": "facility-military",
+      "file": "facility-military.mp3",
+      "speaker": "军方联络官",
+      "title": "边界",
+      "text": "军方需要可在污染区行动的士兵，也需要灰谷外的人安全。我批准封锁，没有批准居民试验。可军方提供的强制隔离，让试验继续了九天。我不能用不知道细节免除责任。",
+      "delivery": "log",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "d4ca3469c3888d515f031d7874c2c1bb34dd904c191805f5b4d4e66baa16d29c",
+      "duration": 20.025,
+      "peakDbFS": -3.23,
+      "bytes": 160940,
+      "sha256": "886df8cc8c545acd78f1d036e96bf9f0d8df8791be4bd71ecfbf4c532cdd3f2f"
+    },
+    {
+      "id": "facility-research",
+      "file": "facility-research.mp3",
+      "speaker": "叶知微研究员",
+      "title": "停止条件",
+      "text": "药物让身体适应，却让神经无法停止修复。我们曾有机会停下。我用二十六人的失败去换下一批的预算，最后把整座城变成样本。原始记录保留在主机，不是为了证明我们有多接近成功，而是让别人不必再走这条路。",
+      "delivery": "log",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "673eef5bbe0719070f300abc38254a18d8a1b703f1ab846b4f4e7f0dd968db62",
+      "duration": 23.15,
+      "peakDbFS": -5.67,
+      "bytes": 185900,
+      "sha256": "c92323cfea8c039fb9712ccfe17704b1479268dea2bbb5f2b352027e6daf5991"
+    },
+    {
+      "id": "facility-government",
+      "file": "facility-government.mp3",
+      "speaker": "地方协调会议",
+      "title": "冬季预算",
+      "text": "地方政府用土地与居民健康数据换医院补贴，默认矿工参加的是自愿治疗。撤离名额只覆盖签过保密协议的人。市政手册把留下的居民统计为已安置，这个数字最终成了军方封锁的依据。",
+      "delivery": "log",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "3ac66ee1148e5a8e2d15165ead5118eba8592fc9f004526b1f632d61ae1b87f0",
+      "duration": 19.6,
+      "peakDbFS": -3.29,
+      "bytes": 157484,
+      "sha256": "85c8fc7c8ecc70d8efc8c7b082b0c16a878b2909f03fd854434d2cce93e35a4f"
+    },
+    {
+      "id": "facility-contractor",
+      "file": "facility-contractor.mp3",
+      "speaker": "衡川工程总监",
+      "title": "外包的责任",
+      "text": "我们造舱、修门、运样本，合同说不碰医学判断。研究站说清理系统由军方负责，军方说燃料回路由我们认证。每个人只签自己那一栏。现在阀门会把整个谷地当成一个焚化舱。手动隔离能切断它，但必须有人在里面操作。",
+      "delivery": "log",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "53128358b8e46a455556fa9731e7a96d1070a392c61554b9d564415d2e60e7b0",
+      "duration": 25.975,
+      "peakDbFS": -5.32,
+      "bytes": 208556,
+      "sha256": "db101da7d95a0c063290ddf4922547382b77aae5f999a17cd958becf71c2b021"
+    },
+    {
+      "id": "facility-reveal",
+      "file": "facility-reveal.mp3",
+      "speaker": "米拉",
+      "title": "二十六盏灯",
+      "text": "你：运输单上的二十六个人，一直都在这里。\n米拉：别关他们的名字。关那台把名字变成编号的机器。公开档案需要活着的证人；烧掉它能阻止下一批实验，却也会烧掉我们的证据。留下来，就得先让外面的人有水和退路。",
+      "delivery": "radio",
+      "voices": [
+        "zf_001",
+        "zm_010"
+      ],
+      "textSha256": "81a91f0bd371a65dca7c758a8dd58953e9e12fda79bd8062308d33ff22f212aa",
+      "duration": 26.1,
+      "peakDbFS": -5.62,
+      "bytes": 209516,
+      "sha256": "f422a46d3ee28929f1ced9d250bc785bf96ae8f96aae84c6354fa61e27dcb48b"
+    },
+    {
+      "id": "finale-choice",
+      "file": "finale-choice.mp3",
+      "speaker": "控制主机",
+      "title": "最后一个人工条件",
+      "text": "远程清理命令等待本地确认。你可以公开档案、隔离并销毁样本与资料，或关闭远程控制并留下维护封锁。请选择你能承担的后果。没有任何选项会把已经死去的人带回来。",
+      "delivery": "voice",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "0924697149e3140b8f40725be05197740537e8b1934834342c69950db3bbaa86",
+      "duration": 20.075,
+      "peakDbFS": -5.39,
+      "bytes": 161324,
+      "sha256": "ae40858d81cdde282fd5c315bce388da673759ef6cabe003b7969437560282a3"
+    },
+    {
+      "id": "ending-truth",
+      "file": "ending-truth.mp3",
+      "speaker": "乔榆 / 米拉",
+      "title": "Truth · 灰谷有姓名",
+      "text": "乔榆：封锁线外收到了完整档案、沈维的证词和市政录音。他们第一次问的是幸存者人数，不是污染等级。\n米拉：调查不会让弟弟回来，至少他不再是零号样本。\n你走向接应点。广播里逐个念出姓名，这一次没有循环。",
+      "delivery": "radio",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "1604dd011b990a1a1fbec17e369c9591843f5308744aef712ad60478722486c8",
+      "duration": 24.6,
+      "peakDbFS": -4.86,
+      "bytes": 197420,
+      "sha256": "33343c7a697e301d0fa56e22e697a8eec65eda6351d27d72fef63d910cda71c1"
+    },
+    {
+      "id": "ending-ash",
+      "file": "ending-ash.mp3",
+      "speaker": "你 / 米拉",
+      "title": "Ash · 没有第二批",
+      "text": "隔离阀先关闭，焚毁的是地下样本库，不是灰谷。黑烟从废弃排气井升起，所有可复制的实验资料一起变成灰。\n米拉：他们会说这只是一场火。\n你：那就由活着的人记住。\n清理命令停止了，追责的证据也永远少了一份。",
+      "delivery": "voice",
+      "voices": [
+        "zf_001",
+        "zm_010"
+      ],
+      "textSha256": "2e42707b6f92d558a6d7ba7fd524bd31fd6b585090a291e4d0e4d12d938077fa",
+      "duration": 24.626,
+      "peakDbFS": -5.16,
+      "bytes": 197804,
+      "sha256": "12ba5a23dfe3c9308dd3d61cf493aaac52f5ae8b28f24ce931ad425d233ca8b7"
+    },
+    {
+      "id": "ending-survivor",
+      "file": "ending-survivor.mp3",
+      "speaker": "米拉 / 猎人罗岚",
+      "title": "Survivor · 留下的人",
+      "text": "米拉：水泵转起来了，湖边的路今晚可以走。\n罗岚：你不跟我们走？\n你：远程系统已经断开，但低温回路还需要人值守。等山口安全，再换班。\n灰谷没有获救的庆典。第二天，你打开林务站的门，门口多了两只等着灌满的水桶。",
+      "delivery": "radio",
+      "voices": [
+        "zf_001",
+        "zm_010"
+      ],
+      "textSha256": "034af612ed5d5582b64bece0d301a405e6331a060545a34c5008d153e86f0bc3",
+      "duration": 25.625,
+      "peakDbFS": -4.24,
+      "bytes": 205676,
+      "sha256": "8780996303221c13733cdd5398624ec87a6283d411cf772814418f338d09e6c4"
+    },
+    {
+      "id": "shelf-collapse",
+      "file": "shelf-collapse.mp3",
+      "speaker": "你",
+      "title": "货架后的刻痕",
+      "text": "货架倒下，露出墙上按日期刻的身高线。最后一道写着十月十六日。有人在“全部撤离”之后，又在这里过了一次生日。",
+      "delivery": "voice",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "e782324de12c1249498e24e8cd414228052255f27218140296a5db0403eee31b",
+      "duration": 14.075,
+      "peakDbFS": -4.55,
+      "bytes": 113324,
+      "sha256": "2e0904a7fa332abf1228ae9bf8dc442a46b0a18412043d28db963c6b10926ea7"
+    },
+    {
+      "id": "fort-alarm",
+      "file": "fort-alarm.mp3",
+      "speaker": "军事警报",
+      "title": "未经登记的生命",
+      "text": "周界检测到未经登记的生命活动。停止向大门聚集。重复：救援车不会进入封锁区。附近感染者被警报引向围墙。",
+      "delivery": "radio",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "a53e6c49209e633e183e423f096fca6c79ee82bb4ef4d0c589557e395567ab7d",
+      "duration": 16.0,
+      "peakDbFS": -4.35,
+      "bytes": 128684,
+      "sha256": "48c5bd58be07718954739062609a3e85a517180933518dc09f5d9b1ef51e77f3"
+    },
+    {
+      "id": "doctor-request",
+      "file": "doctor-request.mp3",
+      "speaker": "米拉",
+      "title": "没有回来的医生",
+      "text": "你：还有谁在救人？\n米拉：韩医生去矿场诊所取转院底单，昨天该回来了。带两卷绷带去。他总说伤口不大，那往往是最需要包扎的时候。",
+      "delivery": "dialogue",
+      "voices": [
+        "zf_001",
+        "zm_010"
+      ],
+      "textSha256": "2f58db79a50de26a87b8c6a6203c32a9cea075679c481ef5ebaea1607d6ebfa3",
+      "duration": 16.7,
+      "peakDbFS": -4.27,
+      "bytes": 134252,
+      "sha256": "7aead52660b0ebeb1644a7bb92195bb23c766a4f8249d24670fe85c15208e79e"
+    },
+    {
+      "id": "doctor-found",
+      "file": "doctor-found.mp3",
+      "speaker": "韩医生",
+      "title": "迟到的病历",
+      "text": "韩医生：我没被抓，只是脚走不了了。谢谢你的绷带。这里有完整的转院底单，能证明患者在封锁前就被送进地下。\n你：我带你回去。\n韩医生：我沿林线慢慢走。你先把底单送到米拉手里，别让我的腿把证据也困住。",
+      "delivery": "dialogue",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "9b2214b843fa81eeaa6462bc1a4578f37f5e3c27b75c90d708889befc91aaf95",
+      "duration": 24.125,
+      "peakDbFS": -3.93,
+      "bytes": 193772,
+      "sha256": "de13dc36d25da9df7f277f0d418dd8de4fd304940f517b56a9c7ff11bf7abf8d"
+    },
+    {
+      "id": "doctor-return",
+      "file": "doctor-return.mp3",
+      "speaker": "米拉",
+      "title": "名字留在病历上",
+      "text": "韩医生的脚步声我认得，他已经到了后屋。底单和我的记录对上了。你留着抗生素，还有这张急救包配方。我们能做的治疗很少，但每个病历都必须留下名字。",
+      "delivery": "dialogue",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "9d880476b40cd38b7cf6a6c8dfb5ae8772de9d0740f8f44129351139890876bb",
+      "duration": 18.9,
+      "peakDbFS": -5.19,
+      "bytes": 151916,
+      "sha256": "c6125e49fbf41e0ef41eb537d642133ab0fa0b3604d1821113b1db42425d9500"
+    },
+    {
+      "id": "hunter-request",
+      "file": "hunter-request.mp3",
+      "speaker": "罗岚",
+      "title": "湖边的家人",
+      "text": "我妻子带孩子往林边住宅去了。她不会走大路，沿途会留下三道斜杠。找到她们，带一罐肉和一瓶水；别开枪报信，湖那头什么都听得见。",
+      "delivery": "dialogue",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "6706354962e869fd7bbdfad9249cc915ac918fbce09cb2c09dc4b68024dae9dd",
+      "duration": 17.725,
+      "peakDbFS": -5.75,
+      "bytes": 142508,
+      "sha256": "73f951f3f10331160d916dca4a4f29785d5728104dfe53da45adbca2bf67fce6"
+    },
+    {
+      "id": "hunter-route",
+      "file": "hunter-route.mp3",
+      "speaker": "许禾",
+      "title": "三道斜杠",
+      "text": "你：罗岚还在湖边等。\n许禾：孩子扭伤了脚，我们等雾散才走。这是巡林小路，绕开军方探照灯。把路线交给他，也交给别的想活下去的人。",
+      "delivery": "dialogue",
+      "voices": [
+        "zf_001",
+        "zm_010"
+      ],
+      "textSha256": "bc4715ab7163697835ec38ceedd2da4b74ded100deac1ac53acad8726a9230b8",
+      "duration": 17.125,
+      "peakDbFS": -5.66,
+      "bytes": 137708,
+      "sha256": "5c955b97f7f41cc55fcb4394901cf44d1b38e72ce27cb9adea0fd595bb401df3"
+    },
+    {
+      "id": "hunter-return",
+      "file": "hunter-return.mp3",
+      "speaker": "罗岚",
+      "title": "有人等你回家",
+      "text": "她们到岸边了。孩子说你给的肉有节日的味道。我把钓竿给你，也把这条湖岸路线标好。它不是安全的保证，只是比公路多一点活下去的机会。",
+      "delivery": "dialogue",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "b57c83f6657ca4646bcc061267bd551e8b79c2e9c2e8c042b51c0049f2c208cf",
+      "duration": 17.4,
+      "peakDbFS": -4.56,
+      "bytes": 139820,
+      "sha256": "3f051738c75dc27a5ab6908f586ecd2143519dc15cf0b453de510dfa7e4dc320"
+    },
+    {
+      "id": "checkpoint-request",
+      "file": "checkpoint-request.mp3",
+      "speaker": "守卫阿衡",
+      "title": "没有发出的口粮",
+      "text": "检查站被弃了，但仓库还有一批写着“已派发”的药箱。后勤仓库的封条能证明东西根本没出去。把它带回来，我就打开侧门；别让后来的人还在正门排队。",
+      "delivery": "dialogue",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "6cd91cc3c2cb357d5df96ca6d7e9ca5e0244db6b63d0054e7620bec79bd19775",
+      "duration": 18.675,
+      "peakDbFS": -4.34,
+      "bytes": 150188,
+      "sha256": "6c6fee2fd8d10d5cc6a256aab1a19c7d094961f3ad87b87cbc6ef1b6b8c5d9eb"
+    },
+    {
+      "id": "checkpoint-proof",
+      "file": "checkpoint-proof.mp3",
+      "speaker": "后勤交接录音",
+      "title": "空白的签收人",
+      "text": "账上口粮四百份，发放人数零。最后一道命令要求把收据盖完章再撤。箱子留在原处，封条背面写着守卫阿衡的交接时间，他不是丢下这些东西逃走的那一个。",
+      "delivery": "log",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "0cb4289589e97e2e7e600e50b0cf24324c139c271904270e6020304c1a03454a",
+      "duration": 18.1,
+      "peakDbFS": -5.82,
+      "bytes": 145580,
+      "sha256": "be49cbf74c2d981b0c02972fa6fcecdaeb126bf9081c08405e0fc3a7c821e133"
+    },
+    {
+      "id": "checkpoint-return",
+      "file": "checkpoint-return.mp3",
+      "speaker": "守卫阿衡",
+      "title": "打开侧门",
+      "text": "谢谢。现在大家知道不是我们把药吃了。侧门留给还在走路的人，这件背心给你。我守着这里，不再检查谁有没有登记。",
+      "delivery": "dialogue",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "254fa5dd26dfc8fa34715f6aacfb6ae3c7ee06bd09722f26f73db339364b24ce",
+      "duration": 15.35,
+      "peakDbFS": -5.31,
+      "bytes": 123500,
+      "sha256": "54509d70aa89ec5bd3344d9e497e3f52b245717f73c98e0963bdc3a707c40a2b"
+    },
+    {
+      "id": "raider-request",
+      "file": "raider-request.mp3",
+      "speaker": "旅馆炊事员陈娅",
+      "title": "一锅人的份量",
+      "text": "工业区的人抢走了我们的滤芯。他们的头领叫唐砾，以前是货运调度。带两罐豆子去谈，他知道弹药填不饱肚子。告诉他，旅馆愿意按人数分水，别再按枪分。",
+      "delivery": "dialogue",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "d75bd764ae249cef42a3bfc8306700870df07f7cc79ead6f13ff35cbd6df4fd0",
+      "duration": 19.025,
+      "peakDbFS": -4.77,
+      "bytes": 152876,
+      "sha256": "4bd2d9fcf43a06b036fede7eeed4b49dd5266d8e3e1422bba831cef23ecf25f2"
+    },
+    {
+      "id": "raider-deal",
+      "file": "raider-deal.mp3",
+      "speaker": "唐砾",
+      "title": "另一本账",
+      "text": "唐砾：你就带这个来？\n你：两罐豆子。和一份每个人都能喝水的约定。\n唐砾：……滤芯拿回去。告诉陈娅，算上我们六个人。我会撤掉地铁口的拦路队，但有人饿着，约定就会坏。",
+      "delivery": "dialogue",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "088fd488576586622e4766bd2c39ec6e99e5844da9f2c9e657b2554285fba8e7",
+      "duration": 21.1,
+      "peakDbFS": -5.08,
+      "bytes": 169580,
+      "sha256": "7cf1818f4f5b5a8e734d6b8aa8bc671167890c4cef6d3c5fbed412c881134ab0"
+    },
+    {
+      "id": "raider-return",
+      "file": "raider-return.mp3",
+      "speaker": "陈娅",
+      "title": "第七把椅子",
+      "text": "滤芯装上了。我给唐砾他们留了六份，再给送东西的人留一份。消声器是老房客留下的，你比我用得上。地铁通道已经撤了路障，谁都别再把这条路当领地。",
+      "delivery": "dialogue",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "68068d49ad3dcf1cf0de89371ce16fcbb6aec5820334eadeab10c43127f96bc8",
+      "duration": 18.475,
+      "peakDbFS": -6.26,
+      "bytes": 148460,
+      "sha256": "56848235a93f435067b84bc11192867ba4e08a1a76c9704b2b21a26391300b1d"
+    },
+    {
+      "id": "radio-request",
+      "file": "radio-request.mp3",
+      "speaker": "乔榆",
+      "title": "有人在另一端吗",
+      "text": "台里剩的备用线只能接收。去黑岭变电站，把收发器、三个电子元件和一块电池接到中继台。我会留在这里守频段。听见回声时，先别高兴，那可能还是我们自己。",
+      "delivery": "dialogue",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "2cfa8fa6e1bf5a3ecad825abcc6d1cd264a2186d93456ffeba626cf6f9938eed",
+      "duration": 19.3,
+      "peakDbFS": -5.17,
+      "bytes": 155180,
+      "sha256": "8a502299c8889db6817841942d940341e15838853cd0c528d2c4d2c5c4487bd2"
+    },
+    {
+      "id": "radio-repair",
+      "file": "radio-repair.mp3",
+      "speaker": "乔榆",
+      "title": "第一次不是回声",
+      "text": "收到了，电压稳定。外面的短波台在问坐标，但军方还占着紧急频道。先回来确认频率。等拿到可以核验的档案，我们才能让他们知道这不是一场假警报。",
+      "delivery": "radio",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "7a9913c3cbbea375860d3469b32ed1e766d0738cc27647c9679d1ca4b734cbd5",
+      "duration": 18.225,
+      "peakDbFS": -5.97,
+      "bytes": 146540,
+      "sha256": "8ba9ca84c0c7b8ce4a4ca940a35d039a49c9248dae7bc4e6c105da88a66b25cd"
+    },
+    {
+      "id": "radio-return",
+      "file": "radio-return.mp3",
+      "speaker": "乔榆",
+      "title": "留给真话的频段",
+      "text": "线路确认完毕。备用电池给你，这张低耗收发器接线图也带上。别只发送一份文件：带上证人和完整记录，才不会被一句“伪造”抹掉。",
+      "delivery": "dialogue",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "cd09c2b6f50fa9d54b897f4a920004af735313b08aac22780f40378b7ecd9ad3",
+      "duration": 15.3,
+      "peakDbFS": -5.98,
+      "bytes": 123116,
+      "sha256": "665e582c962f476561b7698a5d3c8f76ce6bc081866efd31b2b2f35abebafe57"
+    },
+    {
+      "id": "shelter-request",
+      "file": "shelter-request.mp3",
+      "speaker": "避难所管理员许弥",
+      "title": "地下还有灯",
+      "text": "地铁门后有十一位老人，储水撑不过今晚。水库值班站的旧泵能接过来，需要两片净水片和一个电子元件。修好后带一份燃料回来，我们把备用机接上。",
+      "delivery": "dialogue",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "08cfa5c0a492a5f9c8ce3d5975951ad5a0a2f5176dd6fae80841dff480f3fe7f",
+      "duration": 17.15,
+      "peakDbFS": -5.98,
+      "bytes": 137900,
+      "sha256": "c91196783e8ec3449571da15402cdb955122bce969663cbe6f6a09c4cdfe2c92"
+    },
+    {
+      "id": "shelter-power",
+      "file": "shelter-power.mp3",
+      "speaker": "许弥",
+      "title": "管道里的声音",
+      "text": "水到了。先是锈色，现在清了。你修的不是一台泵，是明天早上的十一杯水。备用机还没转，带燃料回来，我们一起看着它启动。",
+      "delivery": "radio",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "df4fb3575f11c578f40cb8e088b1cbc600c9a0cd054c8d7d636dc3197050b57e",
+      "duration": 16.1,
+      "peakDbFS": -4.3,
+      "bytes": 129452,
+      "sha256": "34965353919171ae8cde3cb9612b0d0440797b38e7894412f4b3b1021f7358b8"
+    },
+    {
+      "id": "shelter-return",
+      "file": "shelter-return.mp3",
+      "speaker": "许弥",
+      "title": "明天早上的水",
+      "text": "电源接通，储水罐在涨。这是我们的净水余量和循环净水配方。地铁西门会保持打开。你要是决定留下，这里有人愿意轮班，不用一个人守到最后。",
+      "delivery": "dialogue",
+      "voices": [
+        "zf_001"
+      ],
+      "textSha256": "66714cdc99e5e20ec1af9128e17f130d5874452849971b35226c216f9e44e7ea",
+      "duration": 18.1,
+      "peakDbFS": -5.56,
+      "bytes": 145580,
+      "sha256": "64b9d3dfb5b883e6505b8df33e055fff53ef04e8504ebf472c6a5dbf681e6763"
+    },
+    {
+      "id": "officer-request",
+      "file": "officer-request.mp3",
+      "speaker": "沈维上尉",
+      "title": "不删掉我的名字",
+      "text": "我说过自己只服从命令，那是我最懦弱的一句话。医疗营房的录音能证明我知道有人没撤离。拿它回来，我会签完整证词，连我没有开门的那一晚也写进去。",
+      "delivery": "dialogue",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "716899f4d8c9b98ef3537d3eb8b9ce7a3ae57fc05cb8879edbcd09ea010849d6",
+      "duration": 17.275,
+      "peakDbFS": -3.94,
+      "bytes": 138860,
+      "sha256": "67a60298270017596b73c5cbdb6b74ac6e9ae3e31ad6d2835e208052bd90744a"
+    },
+    {
+      "id": "officer-proof",
+      "file": "officer-proof.mp3",
+      "speaker": "医疗营房录音",
+      "title": "门外的叩击",
+      "text": "军医：门外是平民，没有症状。\n沈维：命令没有例外。\n军医：那你自己告诉他们。\n长达四十秒的静默里，门外始终有人轻轻敲门。随后记录到手动侧门开启。",
+      "delivery": "log",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "022b9e2871f5c5428d9af5cd148adab47449a20c4f9cca7b4f7f63b3cfb9c4b5",
+      "duration": 18.675,
+      "peakDbFS": -4.44,
+      "bytes": 150188,
+      "sha256": "e9cd659bf60b3af9591c66e13cfc87bccc5d9e591a3894b4bba8021cb69c01c6"
+    },
+    {
+      "id": "officer-return",
+      "file": "officer-return.mp3",
+      "speaker": "沈维上尉",
+      "title": "完整证词",
+      "text": "我签完了。开侧门不能抵消之前的服从，幸存者也不欠我原谅。证词和隔离阀的手动编号都给你。公开的时候，把我的军衔和名字一起发出去。",
+      "delivery": "dialogue",
+      "voices": [
+        "zm_010"
+      ],
+      "textSha256": "19627d5e2ecc473e32f99e00c6c44484a7f395e55ed21d23603824ba52e19128",
+      "duration": 18.0,
+      "peakDbFS": -4.37,
+      "bytes": 144620,
+      "sha256": "f615fe0c3ef747838c100ed8a1558c967c690dbf5a77a149f1abbc2ccd90c1a5"
+    }
+  ],
+  "totalBytes": 6910524
+}

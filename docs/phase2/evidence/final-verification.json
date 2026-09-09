@@ -1,0 +1,18 @@
+{
+  "requirements": 119,
+  "passed": 118,
+  "conditionalAlternative": 1,
+  "pending": 0,
+  "unitTests": 180,
+  "sourceSha256": "3350fb782e8e6c78f219d076459b5d5f68bba015c0c9ab7c84479864c15b8a37",
+  "buildVersion": "586f284659e78bb8",
+  "productionChecks": 8,
+  "firefoxChecks": 15,
+  "soakSeconds": 1800.0223999998184,
+  "soakFrames": 112974,
+  "soakErrors": 0,
+  "soakWarnings": 0,
+  "deadMeshesRetained": 0,
+  "linksMissing": 0,
+  "gitDiffCheck": "passed"
+}

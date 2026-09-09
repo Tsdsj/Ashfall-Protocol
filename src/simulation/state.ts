@@ -7,6 +7,7 @@ import type {
 } from "../core/types";
 import { addItem, newInventory } from "./inventory";
 import { WorldGenerator } from "../world/generator";
+import { initialDirector, initialNarrative } from "./quality-state";
 export function initialStats(): Stats {
   return {
     oxygen: 100,
@@ -44,7 +45,7 @@ export function createWorld(
     addItem(inv, id, count);
   const knife = inv.items.find((i) => i.id === "knife")!.uid;
   return {
-    version: 1,
+    version: 2,
     waypoint: null,
     cooldowns: {},
     rules: {
@@ -79,6 +80,7 @@ export function createWorld(
       quickSlots: [knife, null, null, null, null],
       selected: 0,
       flashlight: false,
+      flashlightCharge: 100,
       stance: "stand",
       spawn: gen.position(-14, -28),
       vehicle: null,
@@ -91,6 +93,9 @@ export function createWorld(
     structures: [],
     vehicles: [],
     doors: {},
+    doorStates: {},
+    narrative: initialNarrative(),
+    director: initialDirector(),
     destroyed: [],
     discovered: [],
     journal: ["crash"],
@@ -123,6 +128,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
     right: "KeyD",
     interact: "KeyE",
     sprint: "ShiftLeft",
+    walk: "AltLeft",
     jump: "Space",
     crouch: "ControlLeft",
     prone: "KeyZ",

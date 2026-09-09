@@ -9,6 +9,8 @@ import {
   sortInventory,
   splitItem,
   transfer,
+  transferAt,
+  dimensions,
 } from "../simulation/inventory";
 import type { SaveEntry } from "../save/storage";
 import { icon, escapeHtml } from "./icons";
@@ -16,7 +18,6 @@ import { inventoryView, resolveInventory, itemDetail } from "./inventory-view";
 import { craftingView, buildingView } from "./crafting-view";
 import {
   mapView,
-  journalView,
   bodyView,
   vehicleView,
   tradeView,
@@ -35,6 +36,7 @@ import {
   brand,
 } from "./views";
 import { drawMap } from "./map";
+import { narrativeJournal, conversationView } from "./narrative-view";
 export type Screen =
   | "play"
   | "menu"
@@ -45,6 +47,7 @@ export type Screen =
   | "building"
   | "map"
   | "journal"
+  | "conversation"
   | "body"
   | "pause"
   | "settings"
@@ -89,14 +92,23 @@ export class GameUI {
   locked = false;
   binding: string | null = null;
   debugVisible = false;
+  scopeWeight = 0;
   private root: HTMLElement;
   private layer: HTMLElement;
   private hud: HTMLElement;
   private notices: HTMLElement;
   private interaction: Interaction | null = null;
   private lastHud = 0;
-  private drag: { uid: string; source: string; rotated: boolean } | null = null;
+  private drag: {
+    uid: string;
+    source: string;
+    rotated: boolean;
+    grabX: number;
+    grabY: number;
+  } | null = null;
+  private dragPoint: { grid: HTMLElement; x: number; y: number } | null = null;
   private lastJob = "";
+  private actionRevision = 0;
   private regionTimeout = 0;
   onAction: (action: string, element: HTMLElement) => void = () => {};
   constructor(private settings: GameSettings) {
@@ -105,7 +117,15 @@ export class GameUI {
     this.layer = document.querySelector("#ui-layer")!;
     this.hud = document.querySelector("#hud-root")!;
     this.notices = document.querySelector(".toasts")!;
+    this.root.insertAdjacentHTML(
+      "beforeend",
+      `<div id="action-progress" class="action-progress hidden" role="status"><div><span id="action-label"></span><span id="action-time" class="mono"></span></div><progress id="action-meter" max="1" value="0" aria-label="操作进度"></progress><button data-action="cancel-action" class="quiet">取消 <kbd>Esc</kbd></button></div>`,
+    );
     this.bind();
+    this.root.insertAdjacentHTML(
+      "beforeend",
+      `<div id="sequence-overlay" class="sequence-overlay hidden"><div class="sequence-title" id="sequence-title"></div><div class="sequence-subtitle"><strong id="sequence-speaker"></strong><p id="sequence-text"></p></div><button id="sequence-skip" class="quiet" data-action="skip-sequence">跳过 <kbd>X</kbd></button></div>`,
+    );
   }
   private bind() {
     this.root.addEventListener("click", (e) => {
@@ -162,7 +182,24 @@ export class GameUI {
         uid: el.dataset.uid!,
         source: el.dataset.source!,
         rotated: false,
+        grabX: 0,
+        grabY: 0,
       };
+      const stack = resolveInventory(this.sim!, this.drag.source)?.items.find(
+          (i) => i.uid === this.drag!.uid,
+        ),
+        rect = el.getBoundingClientRect();
+      if (stack) {
+        const [w, h] = dimensions(stack);
+        this.drag.grabX = Math.max(
+          0,
+          Math.floor(((e.clientX - rect.left) / rect.width) * w),
+        );
+        this.drag.grabY = Math.max(
+          0,
+          Math.floor(((e.clientY - rect.top) / rect.height) * h),
+        );
+      }
       e.dataTransfer.setData("text/plain", JSON.stringify(this.drag));
       e.dataTransfer.effectAllowed = "move";
       this.selectedUid = this.drag.uid;
@@ -175,14 +212,23 @@ export class GameUI {
       if (!grid || !this.drag) return;
       e.preventDefault();
       grid.classList.add("drop-active");
+      this.previewDrop(grid, e.clientX, e.clientY);
     });
-    this.root.addEventListener("dragleave", (e) =>
-      (e.target as HTMLElement)
-        .closest("[data-grid]")
-        ?.classList.remove("drop-active"),
-    );
+    this.root.addEventListener("dragleave", (e) => {
+      const grid = (e.target as HTMLElement).closest("[data-grid]");
+      if (
+        grid &&
+        !(e.relatedTarget instanceof Node && grid.contains(e.relatedTarget))
+      ) {
+        grid.classList.remove("drop-active");
+        grid.querySelector(".drop-preview")?.remove();
+        this.dragPoint = null;
+      }
+    });
     this.root.addEventListener("dragend", () => {
       this.drag = null;
+      this.dragPoint = null;
+      this.root.querySelectorAll(".drop-preview").forEach((e) => e.remove());
       this.root
         .querySelectorAll(".drop-active")
         .forEach((e) => e.classList.remove("drop-active"));
@@ -196,18 +242,81 @@ export class GameUI {
       const from = resolveInventory(this.sim, this.drag.source),
         to = resolveInventory(this.sim, target.dataset.grid!);
       if (!from || !to) return;
-      let ok = false;
-      if (from === to) {
-        const rect = target.getBoundingClientRect(),
-          x = Math.floor(((e.clientX - rect.left) / rect.width) * to.width),
-          y = Math.floor(((e.clientY - rect.top) / rect.height) * to.height);
-        ok = moveItem(to, this.drag.uid, x, y, this.drag.rotated);
-      } else ok = transfer(from, to, this.drag.uid);
-      if (ok) this.sim.actions.cleanup();
-      else this.toast("此处空间不足或与其他物品重叠。", "warning");
+      const rect = target.getBoundingClientRect(),
+        x =
+          Math.floor(((e.clientX - rect.left) / rect.width) * to.width) -
+          this.drag.grabX,
+        y =
+          Math.floor(((e.clientY - rect.top) / rect.height) * to.height) -
+          this.drag.grabY;
+      const result = transferAt(
+        from,
+        to,
+        this.drag.uid,
+        x,
+        y,
+        this.drag.rotated,
+      );
+      if (result.ok) {
+        this.sim.actions.cleanup();
+        this.sim.bus.emit({ type: "sound", text: "pickup", kind: "pickup" });
+        if (result.merged)
+          this.toast("已合并 " + result.merged + " 个物资。", "success");
+      } else this.toast(result.reason, "warning");
       this.drag = null;
       this.render();
     });
+  }
+  private previewDrop(grid: HTMLElement, clientX: number, clientY: number) {
+    if (!this.drag || !this.sim) return;
+    this.dragPoint = { grid, x: clientX, y: clientY };
+    this.root.querySelectorAll(".drop-preview").forEach((el) => {
+      if (el.parentElement !== grid) el.remove();
+    });
+    const from = resolveInventory(this.sim, this.drag.source),
+      to = resolveInventory(this.sim, grid.dataset.grid!);
+    if (!from || !to) return;
+    const stack = from.items.find((i) => i.uid === this.drag!.uid);
+    if (!stack) return;
+    const candidate = {
+        ...stack,
+        rotated: this.drag.rotated ? !stack.rotated : stack.rotated,
+      },
+      [w, h] = dimensions(candidate),
+      rect = grid.getBoundingClientRect();
+    const x =
+        Math.floor(((clientX - rect.left) / rect.width) * to.width) -
+        Math.min(w - 1, this.drag.grabX),
+      y =
+        Math.floor(((clientY - rect.top) / rect.height) * to.height) -
+        Math.min(h - 1, this.drag.grabY);
+    const sourceCopy = structuredClone(from),
+      targetCopy = from === to ? sourceCopy : structuredClone(to),
+      result = transferAt(
+        sourceCopy,
+        targetCopy,
+        this.drag.uid,
+        x,
+        y,
+        this.drag.rotated,
+      );
+    let preview = grid.querySelector<HTMLElement>(".drop-preview");
+    if (!preview) {
+      preview = document.createElement("div");
+      preview.className = "drop-preview";
+      grid.appendChild(preview);
+    }
+    preview.classList.toggle("invalid", !result.ok);
+    preview.classList.toggle("merging", result.merged > 0);
+    preview.style.left = (x / to.width) * 100 + "%";
+    preview.style.top = (y / to.height) * 100 + "%";
+    preview.style.width = (w / to.width) * 100 + "%";
+    preview.style.height = (h / to.height) * 100 + "%";
+    preview.textContent = result.ok
+      ? result.merged
+        ? "合并 " + result.merged
+        : "可放置"
+      : "无法放置";
   }
   private handleLocal(action: string, el: HTMLElement): boolean {
     if (action === "tab") {
@@ -221,6 +330,11 @@ export class GameUI {
     }
     const sim = this.sim;
     if (!sim) return false;
+    if (action === "cancel-action") {
+      sim.actions.cancel();
+      sim.cancelCraft();
+      return true;
+    }
     const uid = el.dataset.uid ?? "";
     if (action === "select-item") {
       if (!uid) return true;
@@ -377,6 +491,13 @@ export class GameUI {
   rotateSelected() {
     if (this.drag) {
       this.drag.rotated = !this.drag.rotated;
+      [this.drag.grabX, this.drag.grabY] = [this.drag.grabY, this.drag.grabX];
+      if (this.dragPoint)
+        this.previewDrop(
+          this.dragPoint.grid,
+          this.dragPoint.x,
+          this.dragPoint.y,
+        );
       return;
     }
     const el = document.createElement("button");
@@ -384,10 +505,33 @@ export class GameUI {
     this.handleLocal("rotate-item", el);
   }
   show(screen: Screen) {
+    const changed = screen !== this.screen;
+    const animate =
+      !this.settings.reducedMotion &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (changed && screen === "play" && animate) {
+      const old = this.layer.querySelector(".panel-shell");
+      if (old) {
+        const fading = old.cloneNode(true) as HTMLElement;
+        fading
+          .querySelectorAll("[id]")
+          .forEach((el) => el.removeAttribute("id"));
+        fading.setAttribute("aria-hidden", "true");
+        fading.classList.add("panel-closing");
+        this.root.appendChild(fading);
+        fading.addEventListener("animationend", () => fading.remove(), {
+          once: true,
+        });
+      }
+    }
     this.screen = screen;
     this.render();
+    if (changed && animate)
+      this.layer.querySelector(".panel-shell")?.classList.add("panel-entering");
   }
   render() {
+    this.root.dataset.screen = this.screen;
+    this.root.classList.toggle("in-panel", this.screen !== "play");
     const scroll = this.layer.querySelector(".panel-body")?.scrollTop ?? 0;
     this.hud.classList.toggle("hidden", this.screen !== "play");
     this.layer.innerHTML = this.view();
@@ -429,7 +573,7 @@ export class GameUI {
       "trade",
       "structure",
     ].includes(this.screen);
-    return `<div class="panel-shell"><header class="panel-header">${brand()}${gameTabs ? `<nav class="panel-tabs" aria-label="生存手册">${tabs.map(([screen, name]) => `<button class="${this.screen === screen ? "active" : ""}" data-action="tab" data-screen="${screen}">${name}</button>`).join("")}</nav>` : `<span class="muted">${{ settings: "设置", saves: "生存记录", credits: "关于" }[this.screen as "settings"] ?? ""}</span>`}<button class="panel-close" data-action="close-panel"><span>返回</span><kbd>Esc</kbd></button></header><main class="panel-body">${content}</main><footer class="panel-footer"><span>${gameTabs ? "<kbd>Tab</kbd> 背包  <kbd>C</kbd> 制作  <kbd>M</kbd> 地图" : "ASHFALL PROTOCOL · 灰谷自治区"}</span><span>${gameTabs ? "查看手册时游戏已暂停" : "你的设置和生存记录仅保存在本机"}</span></footer></div>`;
+    return `<div class="panel-shell"><header class="panel-header">${brand()}${gameTabs ? `<nav class="panel-tabs" aria-label="生存手册">${tabs.map(([screen, name]) => `<button class="${this.screen === screen ? "active" : ""}" data-action="tab" data-screen="${screen}">${name}</button>`).join("")}</nav>` : `<span class="muted">${{ settings: "设置", saves: "生存记录", credits: "关于" }[this.screen as "settings"] ?? ""}</span>`}<button class="panel-close" data-action="close-panel"><span>返回</span><kbd>Esc</kbd></button></header><main class="panel-body">${content}</main><footer class="panel-footer"><span>${gameTabs ? "<kbd>Tab</kbd> 背包  <kbd>C</kbd> 制作  <kbd>M</kbd> 地图" : "ASHFALL PROTOCOL · 灰谷自治区"}</span><span>${gameTabs ? "手册中世界继续运转；返回后按 Esc 暂停" : "你的设置和生存记录仅保存在本机"}</span></footer></div>`;
   }
   private view(): string {
     const sim = this.sim;
@@ -478,7 +622,9 @@ export class GameUI {
       case "map":
         return this.panel(mapView(sim!));
       case "journal":
-        return this.panel(journalView(sim!, this.journalId));
+        return this.panel(narrativeJournal(sim!, this.journalId));
+      case "conversation":
+        return this.panel(conversationView(sim!, this.entityId));
       case "body":
         return this.panel(bodyView(sim!));
       case "vehicle":
@@ -495,7 +641,7 @@ export class GameUI {
     this.layer.innerHTML = loadingView(stage, percent);
   }
   private hudHTML(): string {
-    return `<div class="hud"><div class="hud-top"><div class="hud-context"><div class="location" id="hud-location">松谷镇</div><div class="hud-time" id="hud-time">DAY 01  15:24</div></div><div class="hud-objective"><div class="small-title">生存手记 <kbd>J</kbd></div><div id="hud-objective">沿公路寻找松谷林务站</div></div></div><div class="compass"><span id="compass-left">NW</span><span>·</span><span class="bearing" id="compass-heading">N</span><span>·</span><span id="compass-right">NE</span></div><div id="hud-waypoint" class="hud-waypoint"></div><div class="crosshair" id="crosshair"></div><div id="interaction-prompt" class="interaction-prompt hidden"></div><div class="vitals">${[
+    return `<div class="hud"><div id="scope-mask" class="scope-mask hidden" aria-hidden="true"><div class="scope-aperture"><i class="reticle-h"></i><i class="reticle-v"></i><b></b></div></div><div class="hud-top"><div class="hud-context"><div class="location" id="hud-location">松谷镇</div><div class="hud-time" id="hud-time">DAY 01  15:24</div></div><div class="hud-objective"><div class="small-title">生存手记 <kbd>J</kbd></div><div id="hud-objective">沿公路寻找松谷林务站</div></div></div><div class="compass"><span id="compass-left">NW</span><span>·</span><span class="bearing" id="compass-heading">N</span><span>·</span><span id="compass-right">NE</span></div><div id="hud-waypoint" class="hud-waypoint"></div><div class="crosshair" id="crosshair"></div><div id="interaction-prompt" class="interaction-prompt hidden"></div><div class="vitals">${[
       ["health", "生命", "health"],
       ["stamina", "体力", "stamina"],
       ["hydration", "水分", "water"],
@@ -527,6 +673,64 @@ export class GameUI {
     const $ = (id: string) => document.getElementById(id);
     const p = sim.state.player,
       s = p.stats;
+    const sequence = sim.narrative.frame();
+    const subtitle = this.settings.subtitles ? sequence.subtitle : null;
+    const showSequence =
+      !!(sequence.id || subtitle) &&
+      ["play", "journal", "conversation"].includes(this.screen);
+    $("sequence-overlay")?.classList.toggle("hidden", !showSequence);
+    $("sequence-overlay")?.classList.toggle("cinematic", sequence.blocking);
+    if (showSequence) {
+      $("sequence-title")!.textContent = sequence.blocking
+        ? sequence.title
+        : "";
+      $("sequence-speaker")!.textContent = subtitle?.speaker ?? "";
+      $("sequence-text")!.textContent = subtitle?.text ?? "";
+      $("sequence-skip")!.classList.toggle("hidden", !sequence.skippable);
+    }
+    this.hud.classList.toggle("cinematic-hidden", sequence.blocking);
+    this.root.classList.toggle("in-cinematic", sequence.blocking);
+    const pending =
+      sim.actions.pending ??
+      (sim.craftJob
+        ? {
+            label:
+              "正在制作 " +
+              (sim.recipes.find((r) => r.id === sim.craftJob!.id)?.name ?? ""),
+            total: sim.craftJob.total,
+            remaining: sim.craftJob.remaining,
+          }
+        : null);
+    const actionProgress = $("action-progress");
+    actionProgress?.classList.toggle(
+      "hidden",
+      !pending ||
+        [
+          "menu",
+          "newgame",
+          "loading",
+          "pause",
+          "settings",
+          "saves",
+          "death",
+          "end",
+        ].includes(this.screen),
+    );
+    if (pending) {
+      $("action-label")!.textContent = pending.label;
+      $("action-time")!.textContent = pending.remaining.toFixed(1) + "s";
+      ($("action-meter") as HTMLProgressElement).value =
+        1 - pending.remaining / pending.total;
+    }
+    if (this.actionRevision !== sim.actions.revision) {
+      this.actionRevision = sim.actions.revision;
+      if (
+        ["inventory", "body", "structure", "vehicle", "crafting"].includes(
+          this.screen,
+        )
+      )
+        this.render();
+    }
     if (this.screen === "crafting") {
       const job = sim.craftJob;
       const signature = job?.id ?? "";
@@ -573,6 +777,7 @@ export class GameUI {
       s.temperature < 35 ? "体温偏低" : "",
       s.wetness > 60 ? "衣物湿透" : "",
       p.stance !== "stand" ? (p.stance === "crouch" ? "蹲行" : "匍匐") : "",
+      p.flashlight ? "手电 " + Math.ceil(p.flashlightCharge) + "%" : "",
     ]
       .filter(Boolean)
       .join("  ");
@@ -584,18 +789,7 @@ export class GameUI {
         ) +
         " m"
       : "";
-    const flags = sim.state.flags;
-    $("hud-objective")!.textContent = flags.includes("broadcast")
-      ? "前往广播站东侧接应点"
-      : sim.state.journal.includes("lab")
-        ? "修复松谷北岭广播站，发送档案"
-        : sim.state.journal.includes("fort")
-          ? "前往第七研究站"
-          : sim.state.journal.includes("clinic")
-            ? "寻找渡鸦要塞的访问卡"
-            : sim.state.journal.includes("ranger")
-              ? "前往松谷诊所寻找米拉"
-              : "沿公路寻找松谷林务站";
+    $("hud-objective")!.textContent = sim.narrative.objectives[0] ?? "探索灰谷";
     $("quickbar")!.innerHTML = p.quickSlots
       .map((uid, n) => {
         const i = p.inventory.items.find((i) => i.uid === uid);
@@ -622,6 +816,14 @@ export class GameUI {
               ? "耐久 " + Math.round(gun!.durability) + "%"
               : "";
     $("crosshair")?.classList.toggle("aiming", aiming);
+    const scoped =
+      !!gun?.attachments.includes("scope") && this.scopeWeight > 0.55;
+    $("scope-mask")?.classList.toggle("hidden", !scoped);
+    if ($("scope-mask"))
+      $("scope-mask")!.style.opacity = String(
+        Math.max(0, Math.min(1, (this.scopeWeight - 0.55) / 0.37)),
+      );
+    $("crosshair")?.classList.toggle("hidden", scoped);
     const target = this.interaction,
       pr = $("interaction-prompt")!;
     pr.classList.toggle("hidden", !target || sim.building.active);

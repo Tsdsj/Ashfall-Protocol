@@ -64,6 +64,8 @@ export class InputController {
       forward: Number(this.down("forward")) - Number(this.down("backward")),
       side: Number(this.down("right")) - Number(this.down("left")),
       sprint: this.down("sprint"),
+      walk: this.down("walk"),
+      aiming: this.aiming,
       jump: this.down("jump"),
       brake: this.down("jump"),
     };

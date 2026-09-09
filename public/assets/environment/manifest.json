@@ -1,0 +1,368 @@
+{
+  "license": "CC0-1.0",
+  "licenseUrl": "https://polyhaven.com/license",
+  "acquired": "2026-09-08T19:56:52.790Z",
+  "assets": [
+    {
+      "id": "fern_02",
+      "title": "Fern 02",
+      "authors": {
+        "Rob Tuytel": "scanning",
+        "Rico Cilliers": "modeling"
+      },
+      "source": "https://polyhaven.com/a/fern_02",
+      "sourceMetadata": "https://api.polyhaven.com/info/fern_02",
+      "sourceGeometryBytes": 176176,
+      "acquiredGeometryBytes": 176176,
+      "sourceSha256": "fe1abb762bcbbc7ad9e86925c8080437a62add257d9280e9142fdc85c226e64c",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "rock_moss_set_01",
+      "title": "Rock Moss Set 01",
+      "authors": {
+        "Kless Gyzen": "All"
+      },
+      "source": "https://polyhaven.com/a/rock_moss_set_01",
+      "sourceMetadata": "https://api.polyhaven.com/info/rock_moss_set_01",
+      "sourceGeometryBytes": 1466380,
+      "acquiredGeometryBytes": 1466380,
+      "sourceSha256": "de8360e6175879aaf02c171911069cf5f1852547f9ca7f10e440085dbcc3315e",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "painted_wooden_chair_01",
+      "title": "Painted Wooden Chair 01",
+      "authors": {
+        "Kuutti Siitonen": "All"
+      },
+      "source": "https://polyhaven.com/a/painted_wooden_chair_01",
+      "sourceMetadata": "https://api.polyhaven.com/info/painted_wooden_chair_01",
+      "sourceGeometryBytes": 37112,
+      "acquiredGeometryBytes": 37112,
+      "sourceSha256": "eaf952048db1e770c45898049b8abe28deb83d3dbbaad81d5e7e43e22a322295",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "painted_wooden_table",
+      "title": "Painted Wooden Table",
+      "authors": {
+        "Kirill Sannikov": "All"
+      },
+      "source": "https://polyhaven.com/a/painted_wooden_table",
+      "sourceMetadata": "https://api.polyhaven.com/info/painted_wooden_table",
+      "sourceGeometryBytes": 25552,
+      "acquiredGeometryBytes": 25552,
+      "sourceSha256": "aac5e2e7411a319b8fdf6915cdb452a3b490179c354c75785a22f560e8413059",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "trashbag",
+      "title": "Trashbag",
+      "authors": {
+        "Benny Weimer": "All"
+      },
+      "source": "https://polyhaven.com/a/trashbag",
+      "sourceMetadata": "https://api.polyhaven.com/info/trashbag",
+      "sourceGeometryBytes": 106316,
+      "acquiredGeometryBytes": 106316,
+      "sourceSha256": "7bfac5b9c39a058af347944b437f712718ec129ec883c16339179862cc155fe2",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "barrel_03",
+      "title": "Barrel 03",
+      "authors": {
+        "Serhii Khromov": "All"
+      },
+      "source": "https://polyhaven.com/a/barrel_03",
+      "sourceMetadata": "https://api.polyhaven.com/info/barrel_03",
+      "sourceGeometryBytes": 44872,
+      "acquiredGeometryBytes": 44872,
+      "sourceSha256": "10f3202e9ac9acf8dd896f1562c64db58311ffef89efb402d8433e03ad486427",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "metal_jerrycan_green",
+      "title": "Metal Jerrycan Green",
+      "authors": {
+        "Ulan Cabanilla": "All"
+      },
+      "source": "https://polyhaven.com/a/metal_jerrycan_green",
+      "sourceMetadata": "https://api.polyhaven.com/info/metal_jerrycan_green",
+      "sourceGeometryBytes": 273368,
+      "acquiredGeometryBytes": 273368,
+      "sourceSha256": "386534027d20514402c05d68115f4bff7b466db0b02022f9ab51ac6a576bb3fa",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "cardboard_box_01",
+      "title": "Cardboard Box 01",
+      "authors": {
+        "Rahul Chaudhary": "All"
+      },
+      "source": "https://polyhaven.com/a/cardboard_box_01",
+      "sourceMetadata": "https://api.polyhaven.com/info/cardboard_box_01",
+      "sourceGeometryBytes": 381936,
+      "acquiredGeometryBytes": 381936,
+      "sourceSha256": "7212d43b4cb56459e46d31ab34dc7c310fcfbe170f4a588416dea07ae5628a4b",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "adjustable_wrench",
+      "title": "Adjustable Wrench",
+      "authors": {
+        "Mateusz Sadek": "All"
+      },
+      "source": "https://polyhaven.com/a/adjustable_wrench",
+      "sourceMetadata": "https://api.polyhaven.com/info/adjustable_wrench",
+      "sourceGeometryBytes": 189556,
+      "acquiredGeometryBytes": 189556,
+      "sourceSha256": "6a61050c0eb32f4139c49168fe403f04d255e9ca9255bc293e4cd4f503bd5883",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "portable_generator",
+      "title": "Portable Generator",
+      "authors": {
+        "James Ray Cock": "All"
+      },
+      "source": "https://polyhaven.com/a/portable_generator",
+      "sourceMetadata": "https://api.polyhaven.com/info/portable_generator",
+      "sourceGeometryBytes": 939572,
+      "acquiredGeometryBytes": 939572,
+      "sourceSha256": "fb7dcfedec1331ad541569e4ca8d4157284b2164084b7fe5a97928d4abc0ea2d",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "pine_tree_01",
+      "title": "Pine Tree 01",
+      "authors": {
+        "Rob Tuytel": "photography",
+        "Rico Cilliers": "modeling"
+      },
+      "source": "https://polyhaven.com/a/pine_tree_01",
+      "sourceMetadata": "https://api.polyhaven.com/info/pine_tree_01",
+      "sourceGeometryBytes": 948849556,
+      "acquiredGeometryBytes": 3175876,
+      "sourceSha256": "c0a8add714423d6959d217929b5d774bd03ab16ab242f262a4906d21ce66eece",
+      "license": "CC0-1.0"
+    }
+  ],
+  "files": [
+    {
+      "file": "fern-high.glb",
+      "bytes": 134496,
+      "triangles": 2384,
+      "sha256": "06e68e33519ea8f1f895488fcc326679a93117ecda7c328c190ee0f4006e7f77",
+      "source": "fern_02",
+      "maxTexture": 512,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "fern-low.glb",
+      "bytes": 49112,
+      "triangles": 762,
+      "sha256": "86d9d63fbb209c3978884b8a80c255b6dad7954680bb13d2b859ca6c852930e7",
+      "source": "fern_02",
+      "maxTexture": 512,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "rocks-high.glb",
+      "bytes": 499928,
+      "triangles": 3848,
+      "sha256": "b1c044c3bad34755bce8da78bf7fbe9797195476ce46bd7f63452290cf8c7e64",
+      "source": "rock_moss_set_01",
+      "maxTexture": 1024,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "rocks-low.glb",
+      "bytes": 54948,
+      "triangles": 880,
+      "sha256": "4a2eb261f5a726fd9d68d0f0dcd60956dfa8c15e00f82d45ba3a8d4e64d08f2f",
+      "source": "rock_moss_set_01",
+      "maxTexture": 1024,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "chair-high.glb",
+      "bytes": 128192,
+      "triangles": 724,
+      "sha256": "757e54cb632a3fb25067c4eb711703655cf8c4d4187a99417c4deb4b334e876a",
+      "source": "painted_wooden_chair_01",
+      "maxTexture": 512,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "chair-low.glb",
+      "bytes": 57744,
+      "triangles": 366,
+      "sha256": "9a0ab10ccd83a19b5320d718035ab4d08fbe0e675a80dd522c80b97e213799bb",
+      "source": "painted_wooden_chair_01",
+      "maxTexture": 512,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "table-high.glb",
+      "bytes": 272432,
+      "triangles": 600,
+      "sha256": "9e7261c2ee02d05a847f177152c14d2e97a9e06a99e56b612001b4c6be347afb",
+      "source": "painted_wooden_table",
+      "maxTexture": 1024,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "table-low.glb",
+      "bytes": 38092,
+      "triangles": 300,
+      "sha256": "0c089eaf157e52b0f42fb2bfdc13f80534eebae71bcf6196fd24a771fed62dbb",
+      "source": "painted_wooden_table",
+      "maxTexture": 1024,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "trash-high.glb",
+      "bytes": 199848,
+      "triangles": 2912,
+      "sha256": "4883b7aeafc53828a3eb77ce9786322336f6c8deae6c2fe5e2f37a4ad8a80bc1",
+      "source": "trashbag",
+      "maxTexture": 512,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "trash-low.glb",
+      "bytes": 68932,
+      "triangles": 806,
+      "sha256": "d644f660dcb5e238a1717225f322c257dddcc402f084557a74230e83edea1f61",
+      "source": "trashbag",
+      "maxTexture": 512,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "barrel-high.glb",
+      "bytes": 157164,
+      "triangles": 1473,
+      "sha256": "5d92f49c246c702d3ec4b50c6119ab90b1fe985e836bc7789d05f50c79cecdf8",
+      "source": "barrel_03",
+      "maxTexture": 512,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "barrel-low.glb",
+      "bytes": 55048,
+      "triangles": 588,
+      "sha256": "ca26db619db5d875e1dcda8375be2a91d98c5a9c4c25ed539b6624068595ddf7",
+      "source": "barrel_03",
+      "maxTexture": 512,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "jerrycan-high.glb",
+      "bytes": 354912,
+      "triangles": 6744,
+      "sha256": "3bd6ed34048382eea008ace5bb306f7437e96f336bc116d425da5282076f413f",
+      "source": "metal_jerrycan_green",
+      "maxTexture": 512,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "jerrycan-low.glb",
+      "bytes": 116896,
+      "triangles": 1925,
+      "sha256": "998c188bd86208fee846be913652a62a1594c29437a12e6f9155fd7de2f54ec8",
+      "source": "metal_jerrycan_green",
+      "maxTexture": 512,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "carton-high.glb",
+      "bytes": 257508,
+      "triangles": 5932,
+      "sha256": "5b47c3c251c9391fd8cd6ec58bfbd594d5849135839c50a330fbb65dc5c63190",
+      "source": "cardboard_box_01",
+      "maxTexture": 512,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "carton-low.glb",
+      "bytes": 78192,
+      "triangles": 1694,
+      "sha256": "643a7a7453cb96ef4acf5b0813c1159e5ef831261857d4b14ab309a972bf1b43",
+      "source": "cardboard_box_01",
+      "maxTexture": 512,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "wrench-high.glb",
+      "bytes": 185600,
+      "triangles": 3503,
+      "sha256": "49fd2bca4fdb7956eb5e224f3e02f29db4b2a06ad651c19f0421a37564f00820",
+      "source": "adjustable_wrench",
+      "maxTexture": 256,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "wrench-low.glb",
+      "bytes": 102592,
+      "triangles": 1000,
+      "sha256": "64adf56792779d6b3f9ec8d0e9c9ca02f73702c8ef5fad36fa9c5a84f5bb3918",
+      "source": "adjustable_wrench",
+      "maxTexture": 256,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "generator-high.glb",
+      "bytes": 1124260,
+      "triangles": 13189,
+      "sha256": "c4dc1e0073f87546ca2e3767b67e6a53a98839d33ecfc12eaefd40f6559af82a",
+      "source": "portable_generator",
+      "maxTexture": 1024,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "generator-low.glb",
+      "bytes": 332304,
+      "triangles": 4984,
+      "sha256": "7facb8bf978c85f5931b8248af73ac10773c7b0bd68a6f6f07ce5d4aee18bceb",
+      "source": "portable_generator",
+      "maxTexture": 1024,
+      "modifications": "Removed unused data; welded; flattened static nodes; material-compatible mesh join; Meshopt simplification; WebP PBR textures. Runtime normalizes floor pivot and dimensions in metres."
+    },
+    {
+      "file": "pine-wood-high.glb",
+      "bytes": 1587308,
+      "triangles": 4657,
+      "sha256": "bf7b1838a89b0b546a322e91e87799635042ae2588e0b8f7231a2e3ee60113a5",
+      "source": "pine_tree_01",
+      "maxTexture": 1024,
+      "modifications": "Extracted first scanned trunk and branch primitives by streaming only the first 3.18 MB; removed original 6.8-million-vertex needles. Runtime rebuilds crowns using CC0 photographed twig alpha cards."
+    },
+    {
+      "file": "pine-wood-low.glb",
+      "bytes": 137332,
+      "triangles": 1145,
+      "sha256": "96d12a768d480574acd9a30cbf0722d2e1d0894da8b33bfc30a90745d62f66e0",
+      "source": "pine_tree_01",
+      "maxTexture": 256,
+      "modifications": "Extracted first scanned trunk and branch primitives by streaming only the first 3.18 MB; removed original 6.8-million-vertex needles. Runtime rebuilds crowns using CC0 photographed twig alpha cards."
+    },
+    {
+      "file": "/textures/phase2-environment/pine-twig.webp",
+      "bytes": 46892,
+      "sha256": "7e581c1a1a59cd06598714c14375b4a62078df8eb701c12b72b67b421dae37da",
+      "source": "pine_tree_01",
+      "maxTexture": 512,
+      "modifications": "Registered original diffuse/alpha at 1024px, materialized RGBA before cropping the isolated photographed sprig, resized to 256x512. Prevents Sharp multi-resize alpha misregistration."
+    },
+    {
+      "file": "/textures/phase2-environment/pine-bough.webp",
+      "bytes": 425130,
+      "sha256": "307cbeb183187f5068e3b0cfa04417a2e3bf9952eac6b5fb384e95ecf8a9bb4e",
+      "source": "pine_tree_01",
+      "maxTexture": 1024,
+      "modifications": "Authored 15-sprig branch atlas from the aligned CC0 needle photograph, with a minimal connective stem; used on radial, predominantly horizontal branch cards."
+    }
+  ]
+}

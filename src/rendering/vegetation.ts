@@ -2,121 +2,107 @@ import { scatterTrees } from "../world/scatter";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Vector3, type Matrix } from "@babylonjs/core/Maths/math.vector";
+import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
+import { Texture } from "@babylonjs/core/Materials/Textures/texture";
+import { Material } from "@babylonjs/core/Materials/material";
 import { type Scene } from "@babylonjs/core/scene";
-import { random } from "../core/random";
-import { ModelBatch, applyThinInstances, transform } from "./geometry";
+import { noise, random } from "../core/random";
+import { ModelBatch, transform } from "./geometry";
 import type { MaterialFactory } from "./materials";
 import type { WorldGenerator } from "../world/generator";
+import type { EnvironmentAssetLibrary } from "./environment-assets";
+import { environmentApproaches, groundCoverAllowed } from "./environment-props";
+
 export class VegetationLibrary {
-  private trees: { wood: Mesh; leaves: Mesh }[] = [];
+  private crowns: Mesh[][] = [];
   private grass: Mesh;
-  private fern: Mesh;
-  private rock: Mesh;
   constructor(
     private scene: Scene,
     private materials: MaterialFactory,
+    private assets: EnvironmentAssetLibrary,
   ) {
+    const needles = new PBRMaterial("photographed-pine-needles", scene);
+    needles.albedoTexture = new Texture(
+      "/textures/phase2-environment/pine-bough.webp",
+      scene,
+      false,
+      false,
+    );
+    needles.albedoTexture.hasAlpha = true;
+    needles.useAlphaFromAlbedoTexture = true;
+    needles.transparencyMode = Material.MATERIAL_ALPHATEST;
+    needles.alphaCutOff = 0.28;
+    needles.backFaceCulling = false;
+    needles.twoSidedLighting = true;
+    needles.albedoColor.set(0.92, 1.0, 0.82);
+    needles.metallic = 0;
+    needles.roughness = 0.95;
+    needles.subSurface.isTranslucencyEnabled = true;
+    needles.subSurface.translucencyIntensity = 0.16;
+    // Irregular crowns use one photographed sprig; geometry decreases 8x with distance.
     for (let variant = 0; variant < 3; variant++) {
-      const rng = random("tree:" + variant),
-        wood = new ModelBatch(scene, "treewood-" + variant),
-        leaves: Mesh[] = [];
-      const h = 13 + variant * 3,
-        leafMat = materials.foliage(variant === 2 ? "leaf" : "pine"),
-        barkMat = materials.surface(
-          "bark",
-          variant === 2 ? "#dadbc7" : "#aeb4a3",
-        );
-      wood.cylinder(
-        "trunk",
-        h,
-        0.48,
-        [0, h / 2, 0],
-        barkMat,
-        [0, 0, 0],
-        0.08,
-        10,
-      );
-      for (let level = 0; level < 9; level++) {
-        const y = 2.3 + (level * (h - 3)) / 9,
-          r = (1 - level / 10) * (variant === 2 ? 3.1 : 4.1);
-        for (let k = 0; k < 5; k++) {
-          const a = (k / 5) * Math.PI * 2 + level * 0.47 + rng() * 0.4;
-          const lx = Math.sin(a) * r,
-            lz = Math.cos(a) * r;
-          wood.pipe(
-            "branch",
-            [0, y, 0],
-            [lx, y + 0.55, lz],
-            0.08 * (1 - level / 11),
-            barkMat,
-          );
-          const leaf = MeshBuilder.CreatePlane(
-            "needle-spray",
-            {
-              width: r * 1.3,
-              height: r * 1.65,
-              sideOrientation: Mesh.DOUBLESIDE,
-            },
-            scene,
-          );
-          leaf.position.set(lx * 0.65, y + 0.45, lz * 0.65);
-          leaf.rotation.set(Math.PI / 2 - 0.25, a, Math.sin(a) * 0.12);
-          leaf.material = leafMat;
-          leaves.push(leaf);
-          if (level % 2 === 0) {
-            const upright = leaf.clone("upright-spray");
-            upright.rotation.x = 0.6;
-            upright.position.y += 0.3;
-            leaves.push(upright);
+      const levels: Mesh[] = [];
+      for (const [lod, rings, spokes] of [
+        [0, 15, 9],
+        [1, 11, 7],
+        [2, 8, 6],
+      ]) {
+        const rng = random("needle-crown:" + variant + ":" + lod),
+          cards: Mesh[] = [];
+        const height = 15.8 + variant * 1.2;
+        for (let level = 0; level < rings; level++) {
+          const t = level / (rings - 1),
+            y = height * (0.3 + t * 0.66);
+          const radius = (2.35 + variant * 0.28) * Math.pow(1 - t, 0.68) + 0.14;
+          for (let k = 0; k < spokes; k++) {
+            const angle =
+              (k / spokes) * Math.PI * 2 + level * 1.7 + rng() * 0.5;
+            const length = radius * (lod === 2 ? 1.9 : 1.65) + 0.35,
+              width = length * (lod === 2 ? 0.92 : 0.8);
+            for (let spray = 0; spray < (lod === 0 ? 2 : 1); spray++) {
+              const card = MeshBuilder.CreatePlane(
+                "scanned-needle-card",
+                { width, height: length, sideOrientation: Mesh.DOUBLESIDE },
+                scene,
+              );
+              const reach = radius * (spray ? 0.45 : 0.66);
+              card.position.set(
+                Math.sin(angle) * reach,
+                y + (rng() - 0.5) * 0.65,
+                Math.cos(angle) * reach,
+              );
+              card.rotation.set(
+                (spray ? 0.79 : Math.PI / 2 - 0.18) + (rng() - 0.5) * 0.38,
+                angle + spray * 0.24,
+                (rng() - 0.5) * 0.22,
+              );
+              card.material = needles;
+              cards.push(card);
+            }
           }
         }
+        const crown = Mesh.MergeMeshes(cards, true, true)!;
+        crown.name = "scanned-pine-crown:" + variant + ":" + lod;
+        crown.material = needles;
+        crown.setEnabled(false);
+        levels.push(crown);
       }
-      const branches = wood.finish()[0]!;
-      const needles = Mesh.MergeMeshes(leaves, true, true)!;
-      needles.material = leafMat;
-      branches.setEnabled(false);
-      needles.setEnabled(false);
-      this.trees.push({ wood: branches, leaves: needles });
+      this.crowns.push(levels);
     }
-    const makePlant = (
-      kind: "grass" | "fern",
-      width: number,
-      height: number,
-    ) => {
-      const planes: Mesh[] = [];
-      for (let n = 0; n < 3; n++) {
-        const p = MeshBuilder.CreatePlane(
-          kind,
-          { width, height, sideOrientation: Mesh.DOUBLESIDE },
-          scene,
-        );
-        p.position.y = height / 2;
-        p.rotation.y = (n * Math.PI) / 3;
-        planes.push(p);
-      }
-      const m = Mesh.MergeMeshes(planes, true, true)!;
-      m.material = materials.foliage(kind);
-      m.setEnabled(false);
-      return m;
-    };
-    this.grass = makePlant("grass", 1.5, 1.05);
-    this.fern = makePlant("fern", 1.65, 1.05);
-    this.rock = MeshBuilder.CreateIcoSphere(
-      "rock-template",
-      { radius: 1, subdivisions: 2, flat: false },
-      scene,
-    );
-    const positions = this.rock.getVerticesData("position")!;
-    const rng = random(44);
-    for (let n = 0; n < positions.length; n += 3) {
-      const s = 0.82 + rng() * 0.32;
-      positions[n]! *= s;
-      positions[n + 1]! *= s * 0.65;
-      positions[n + 2]! *= s;
+    const planes: Mesh[] = [];
+    for (let n = 0; n < 3; n++) {
+      const plane = MeshBuilder.CreatePlane(
+        "meadow-grass",
+        { width: 1.15, height: 0.65, sideOrientation: Mesh.DOUBLESIDE },
+        scene,
+      );
+      plane.position.y = 0.325;
+      plane.rotation.y = (n * Math.PI) / 3;
+      planes.push(plane);
     }
-    this.rock.updateVerticesData("position", positions);
-    this.rock.material = materials.surface("stone");
-    this.rock.setEnabled(false);
+    this.grass = Mesh.MergeMeshes(planes, true, true)!;
+    this.grass.material = materials.foliage("grass");
+    this.grass.setEnabled(false);
   }
   buildChunk(
     gen: WorldGenerator,
@@ -126,10 +112,21 @@ export class VegetationLibrary {
   ): Mesh[] {
     const rng = random(gen.seed + ":scatter:" + cx + "," + cz),
       trees: Matrix[][] = [[], [], []],
+      wood: Matrix[][] = [[], [], []],
       grasses: Matrix[] = [],
       ferns: Matrix[] = [],
       rocks: Matrix[] = [];
     const output: Mesh[] = [];
+    const pois = gen.pois.filter(
+      (p) =>
+        p.x > cx * 256 - 80 &&
+        p.x < (cx + 1) * 256 + 80 &&
+        p.z > cz * 256 - 80 &&
+        p.z < (cz + 1) * 256 + 80,
+    );
+    const paths = environmentApproaches(gen, pois);
+    const cover = (x: number, z: number) =>
+      groundCoverAllowed(gen, x, z, pois, paths);
     for (const t of scatterTrees(gen, cx, cz)) {
       trees[t.variant]!.push(
         transform(
@@ -142,63 +139,214 @@ export class VegetationLibrary {
           t.yaw,
         ),
       );
-    }
-    for (let n = 0; n < Math.round(2200 * density); n++) {
-      const x = cx * 256 + rng() * 256,
-        z = cz * 256 + rng() * 256;
-      if (gen.isClearing(x, z)) continue;
-      const y = gen.height(x, z);
-      if (y < -4) continue;
-      const m = transform(
-        x,
-        y - 0.04,
-        z,
-        0.6 + rng() * 0.9,
-        0.55 + rng() * 0.7,
-        0.6 + rng() * 0.7,
-        rng() * 6.28,
+      wood[t.variant]!.push(
+        transform(
+          t.position.x,
+          t.position.y,
+          t.position.z,
+          t.scale.x * 1.85,
+          t.scale.y * (15.8 + t.variant * 1.2),
+          t.scale.z * 2.12,
+          t.yaw,
+        ),
       );
-      if (n % 17 === 0) ferns.push(m);
-      else grasses.push(m);
     }
-    for (let n = 0; n < 95; n++) {
+    for (let n = 0; n < Math.round(7100 * density); n++) {
       const x = cx * 256 + rng() * 256,
         z = cz * 256 + rng() * 256;
-      if (gen.isClearing(x, z)) continue;
+      if (!cover(x, z)) continue;
+      const patch = noise(x / 19, z / 19, gen.seedNumber + 41);
+      if (patch < 0.26 && rng() > 0.2) continue;
       const y = gen.height(x, z),
-        s = 0.35 + rng() * 1.5;
-      rocks.push(transform(x, y, z, s, s, s * 0.8, rng() * 6.28));
+        size = 0.85 + rng() * 1.1;
+      if (n % 19 === 0)
+        ferns.push(
+          transform(
+            x,
+            y - 0.015,
+            z,
+            size * 1.3,
+            size * 0.65,
+            size * 1.25,
+            rng() * 6.28,
+          ),
+        );
+      else
+        grasses.push(
+          transform(x, y - 0.035, z, size, size, size, rng() * 6.28),
+        );
     }
-    this.trees.forEach((tree, i) => {
-      if (trees[i]!.length) {
-        output.push(
-          applyThinInstances(
-            tree.wood,
-            trees[i]!,
-            `chunk:${cx},${cz}:trunk${i}`,
-          ),
+    // Dense pockets along verges, wall bases and tree skirts replace the old 12m bare rings.
+    const addPocket = (x: number, z: number, count: number, size: number) => {
+      for (let i = 0; i < count; i++) {
+        const angle = rng() * Math.PI * 2,
+          radius = Math.sqrt(rng()) * 2.8;
+        const px = x + Math.sin(angle) * radius,
+          pz = z + Math.cos(angle) * radius;
+        if (
+          px < cx * 256 ||
+          px >= (cx + 1) * 256 ||
+          pz < cz * 256 ||
+          pz >= (cz + 1) * 256 ||
+          !cover(px, pz)
+        )
+          continue;
+        const s = size * (0.6 + rng() * 0.7),
+          yaw = rng() * 6.28,
+          y = gen.height(px, pz);
+        grasses.push(
+          transform(px, y - 0.025, pz, s, s * (0.65 + rng() * 0.45), s, yaw),
         );
-        output.push(
-          applyThinInstances(
-            tree.leaves,
-            trees[i]!,
-            `chunk:${cx},${cz}:foliage${i}`,
-          ),
-        );
+        if (i % 11 === 0)
+          ferns.push(
+            transform(
+              px + 0.3,
+              y - 0.025,
+              pz,
+              s * (i === 0 ? 1.65 : 0.95),
+              s * (i === 0 ? 0.85 : 0.5),
+              s * (i === 0 ? 1.65 : 0.95),
+              yaw,
+            ),
+          );
       }
-    });
-    if (grasses.length)
-      output.push(
-        applyThinInstances(this.grass, grasses, `chunk:${cx},${cz}:grass`),
+    };
+    for (let i = 0; i < 54; i++) {
+      const z = cz * 256 + i * 4.8 + rng() * 2,
+        spine = -9 + Math.sin(z * 0.003) * 12;
+      for (const side of [-1, 1])
+        addPocket(
+          spine + side * (7.8 + rng() * 3),
+          z,
+          Math.round(12 * density),
+          1.25,
+        );
+    }
+    for (const roadZ of [225, -420])
+      if (roadZ > cz * 256 - 12 && roadZ < (cz + 1) * 256 + 12)
+        for (let i = 0; i < 44; i++)
+          for (const side of [-1, 1])
+            addPocket(
+              cx * 256 + i * 5.8,
+              roadZ + side * 8.4,
+              Math.round(11 * density),
+              1.25,
+            );
+    for (const p of pois)
+      for (const side of [-1, 1])
+        for (let k = 0; k < 4; k++) {
+          addPocket(
+            p.x + side * (p.width / 2 + 1.8),
+            p.z - p.depth / 2 + 1 + (k * (p.depth - 2)) / 3,
+            Math.round(15 * density),
+            1.15,
+          );
+          if (k < 2)
+            addPocket(
+              p.x + (k - 0.5) * (p.width - 3),
+              p.z + p.depth / 2 + 1.6,
+              Math.round(14 * density),
+              1.1,
+            );
+        }
+    // Stones remain below step height; major rocks require authored colliders.
+    for (let n = 0; n < 150; n++) {
+      const x = cx * 256 + rng() * 256,
+        z = cz * 256 + rng() * 256;
+      if (gen.isClearing(x, z) || gen.isWater(x, z)) continue;
+      const size = 0.35 + rng() * 0.9;
+      rocks.push(
+        transform(
+          x,
+          gen.height(x, z) - 0.11,
+          z,
+          size,
+          0.16 + rng() * 0.14,
+          size * 1.45,
+          rng() * 6.28,
+        ),
       );
-    if (ferns.length)
+    }
+    const prefix = `chunk:${cx},${cz}`;
+    for (let v = 0; v < 3; v++) {
       output.push(
-        applyThinInstances(this.fern, ferns, `chunk:${cx},${cz}:fern`),
+        ...this.assets.instances(
+          this.assets.sources("pine-wood", "high"),
+          wood[v]!,
+          prefix + ":scanned-trunk-high:" + v,
+          0,
+          64,
+        ),
       );
-    if (rocks.length)
       output.push(
-        applyThinInstances(this.rock, rocks, `chunk:${cx},${cz}:rocks`),
+        ...this.assets.instances(
+          this.assets.sources("pine-wood", "low"),
+          wood[v]!,
+          prefix + ":scanned-trunk-low:" + v,
+          64,
+          390,
+        ),
       );
+      for (const [lod, min, max] of [
+        [0, 0, 70],
+        [1, 70, 175],
+        [2, 175, 390],
+      ])
+        output.push(
+          ...this.assets.instances(
+            [this.crowns[v]![lod]!],
+            trees[v]!,
+            prefix + ":scanned-foliage:" + v + ":" + lod,
+            min,
+            max,
+          ),
+        );
+    }
+    output.push(
+      ...this.assets.instances(
+        [this.grass],
+        grasses,
+        prefix + ":grass",
+        0,
+        60 + 24 * Math.min(1.5, density),
+      ),
+    );
+    output.push(
+      ...this.assets.instances(
+        this.assets.sources("fern", "high"),
+        ferns,
+        prefix + ":fern-high",
+        0,
+        28,
+      ),
+    );
+    output.push(
+      ...this.assets.instances(
+        this.assets.sources("fern", "low"),
+        ferns,
+        prefix + ":fern-low",
+        28,
+        85,
+      ),
+    );
+    output.push(
+      ...this.assets.instances(
+        this.assets.sources("rocks", "high"),
+        rocks,
+        prefix + ":rocks-high",
+        0,
+        40,
+      ),
+    );
+    output.push(
+      ...this.assets.instances(
+        this.assets.sources("rocks", "low"),
+        rocks,
+        prefix + ":rocks-low",
+        40,
+        165,
+      ),
+    );
     return output;
   }
   distantBirds(): Mesh[] {
@@ -219,12 +367,17 @@ export class VegetationLibrary {
         this.materials.simple("bird", "#333a36"),
         [0, 0, 0.12],
       );
-      const m = b.finish()[0]!;
-      m.unfreezeWorldMatrix();
-      m.position = new Vector3(n * 2, 35 + n * 0.6, 40 + n * 1.2);
-      m.isPickable = false;
-      meshes.push(m);
+      const mesh = b.finish()[0]!;
+      mesh.unfreezeWorldMatrix();
+      mesh.position = new Vector3(n * 2, 35 + n * 0.6, 40 + n * 1.2);
+      mesh.isPickable = false;
+      meshes.push(mesh);
     }
     return meshes;
+  }
+  dispose() {
+    this.grass.dispose();
+    for (const variants of this.crowns)
+      variants.forEach((mesh) => mesh.dispose());
   }
 }

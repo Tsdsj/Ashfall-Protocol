@@ -1,0 +1,4 @@
+
+> ashfall-protocol@1.0.0 lint
+> eslint src tests && tsc --noEmit
+

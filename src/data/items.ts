@@ -373,8 +373,57 @@ item(
   "protocol",
   "ASHFALL 原始档案",
   "quest",
-  "记录着封锁区真正用途的加密数据。前往广播站发送它。",
+  "核验地下四方终端后复制的完整档案。最终控制台的公开、销毁或保留选择都需要它。",
   { maxStack: 1, weight: 0.1, rarity: "experimental", value: 0 },
+);
+item(
+  "raven_vest",
+  "渡鸦侦察员护甲",
+  "armor",
+  "要塞军械官留下的轻量复合护甲。仅在渡鸦装备库的封存箱中找到。",
+  {
+    slot: "vest",
+    protection: 0.57,
+    weight: 3.2,
+    width: 2,
+    height: 3,
+    maxStack: 1,
+    rarity: "military",
+    icon: "armor",
+    value: 110,
+  },
+);
+item(
+  "r07_injector",
+  "R-07 净化注射器",
+  "medical",
+  "冷冻仓中的一次性实验制剂。恢复生命并处置出血、感染和中毒；使用后不会再生。",
+  {
+    healing: 45,
+    cure: "all",
+    weight: 0.15,
+    maxStack: 1,
+    rarity: "experimental",
+    icon: "medical",
+    value: 150,
+  },
+);
+item(
+  "mining_coat",
+  "老矿工的隔寒外套",
+  "clothing",
+  "矿区检修站保留的厚实外套。较高保暖能力适合长时间雨夜探索。",
+  {
+    slot: "chest",
+    insulation: 0.65,
+    weight: 2.2,
+    width: 2,
+    height: 2,
+    maxStack: 1,
+    rarity: "rare",
+    icon: "cloth",
+    value: 90,
+  },
 );
 item(
   "radio",

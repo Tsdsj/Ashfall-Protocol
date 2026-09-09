@@ -1,0 +1,12 @@
+External environment resources are derived from Poly Haven assets licensed CC0-1.0.
+License: https://polyhaven.com/license
+CC0 deed: https://creativecommons.org/publicdomain/zero/1.0/
+
+Per-resource source URLs, authors, modifications and SHA-256 hashes are in manifest.json.
+Runtime preparation, LOD and composition notes are in docs/phase2/ENVIRONMENT.md.
+
+Authors represented: Rob Tuytel, Rico Cilliers, Kless Gyzen, Kuutti Siitonen,
+Kirill Sannikov, Benny Weimer, Serhii Khromov, Ulan Cabanilla, Rahul Chaudhary,
+Mateusz Sadek and James Ray Cock.
+
+Poly Haven does not endorse this project. Its site artwork and logos are not included.

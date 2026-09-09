@@ -1,5 +1,18 @@
 import type { Feedback, GameSettings, Vec3 } from "../core/types";
 import type { Simulation } from "../simulation/simulation";
+import { weight } from "../simulation/inventory";
+import { SOUND_GROUPS, DIALOGUE_FILES } from "./catalog";
+import {
+  acousticSpace,
+  eventCooldown,
+  feedbackLayers,
+  SPACES,
+  variantIndex,
+  type AcousticSpace,
+  type FoleyContext,
+  type SoundLayer,
+} from "./palette";
+
 export function setListenerPose(
   listener: AudioListener,
   position: Vec3,
@@ -24,298 +37,686 @@ export function setListenerPose(
     listener.setOrientation(Math.sin(yaw), 0, Math.cos(yaw), 0, 1, 0);
   }
 }
+export interface DialogueCue {
+  id: string;
+  text: string;
+  speaker?: string;
+  position?: Vec3;
+  radio?: boolean;
+  volume?: number;
+  offsetSeconds?: number;
+}
+interface Voice {
+  source: AudioBufferSourceNode;
+  gain: GainNode;
+  nodes: AudioNode[];
+  priority: number;
+}
+interface Loop {
+  source: AudioBufferSourceNode;
+  gain: GainNode;
+  filter: BiquadFilterNode;
+}
+const MAX_VOICES = 36;
+const MAX_DECODED_BYTES = 64 * 1024 * 1024;
+
 export class AudioManager {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private lowpass: BiquadFilterNode | null = null;
   private ambience: GainNode | null = null;
   private effects: GainNode | null = null;
-  private wind: GainNode | null = null;
-  private rain: GainNode | null = null;
-  private engineGain: GainNode | null = null;
-  private engineOsc: OscillatorNode | null = null;
-  private noiseBuffer: AudioBuffer | null = null;
+  private dialogue: GainNode | null = null;
+  private wet: GainNode | null = null;
+  private reverb: ConvolverNode | null = null;
+  private buffers = new Map<string, AudioBuffer>();
+  private loading = new Map<string, Promise<AudioBuffer | null>>();
+  private failed = new Set<string>();
+  private abort = new AbortController();
+  private voices = new Set<Voice>();
+  private loops = new Map<string, Loop>();
+  private variants = new Map<string, number>();
+  private cooldowns = new Map<string, number>();
+  private impulses = new Map<AcousticSpace, AudioBuffer>();
+  private space: AcousticSpace = "outdoors";
+  private foley: FoleyContext = { speed: 0, stance: "stand", load: 0 };
+  private actorKinds = new Map<string, string>();
+  private listenerPosition: Vec3 = { x: 0, y: 0, z: 0 };
   private nextAmbient = 0;
+  private nextRoof = 0;
+  private lastFlashlight: boolean | null = null;
+  private nextFoleyContext = 0;
+  private active = false;
+  private dialogueSerial = 0;
+  private dialogueVoice: Voice | null = null;
+  private dialogueSpeaking = false;
+  private dialogueCue: DialogueCue | null = null;
+  private dialoguePaused = false;
+  private dialogueOffset = 0;
+  private dialogueStartedAt = 0;
+  private usingSpeech = false;
+  private engineVehicle: string | null = null;
   private settings: GameSettings;
+
   constructor(settings: GameSettings) {
     this.settings = settings;
   }
   async unlock() {
     if (!this.ctx) {
-      this.ctx = new AudioContext();
-      this.master = this.ctx.createGain();
-      this.lowpass = this.ctx.createBiquadFilter();
+      this.abort = new AbortController();
+      const ctx = new AudioContext();
+      this.ctx = ctx;
+      this.master = ctx.createGain();
+      this.lowpass = ctx.createBiquadFilter();
       this.lowpass.type = "lowpass";
       this.lowpass.frequency.value = 20000;
+      const limiter = ctx.createDynamicsCompressor();
+      limiter.threshold.value = -9;
+      limiter.knee.value = 8;
+      limiter.ratio.value = 10;
+      limiter.attack.value = 0.003;
+      limiter.release.value = 0.18;
+      const headroom = ctx.createGain();
+      headroom.gain.value = 0.78;
       this.master.connect(this.lowpass);
-      this.lowpass.connect(this.ctx.destination);
-      this.ambience = this.ctx.createGain();
+      this.lowpass.connect(limiter);
+      limiter.connect(headroom);
+      headroom.connect(ctx.destination);
+      this.ambience = ctx.createGain();
+      this.effects = ctx.createGain();
+      this.dialogue = ctx.createGain();
       this.ambience.connect(this.master);
-      this.effects = this.ctx.createGain();
       this.effects.connect(this.master);
-      const buffer = this.ctx.createBuffer(
-          1,
-          this.ctx.sampleRate * 3,
-          this.ctx.sampleRate,
-        ),
-        data = buffer.getChannelData(0);
-      let last = 0;
-      for (let n = 0; n < data.length; n++) {
-        const white = Math.random() * 2 - 1;
-        last = (last + 0.025 * white) / 1.025;
-        data[n] = last * 6;
-      }
-      this.noiseBuffer = buffer;
-      this.wind = this.loopNoise(360, 0.04);
-      this.rain = this.loopNoise(4200, 0);
-      this.engineOsc = this.ctx.createOscillator();
-      this.engineOsc.type = "sawtooth";
-      this.engineOsc.frequency.value = 45;
-      this.engineGain = this.ctx.createGain();
-      this.engineGain.gain.value = 0;
-      const lowpass = this.ctx.createBiquadFilter();
-      lowpass.type = "lowpass";
-      lowpass.frequency.value = 180;
-      this.engineOsc.connect(lowpass);
-      lowpass.connect(this.engineGain);
-      this.engineGain.connect(this.effects);
-      this.engineOsc.start();
+      this.dialogue.connect(this.master);
+      this.reverb = ctx.createConvolver();
+      this.wet = ctx.createGain();
+      this.reverb.connect(this.wet);
+      this.wet.connect(this.effects);
+      this.setSpace("outdoors", true);
       this.apply(this.settings);
+      // Local game assets; asynchronous and bounded. Gameplay never waits on a remote service.
+      void this.preload();
     }
     if (this.ctx.state === "suspended") await this.ctx.resume();
   }
-  private loopNoise(freq: number, volume: number): GainNode {
-    const ctx = this.ctx!,
-      source = ctx.createBufferSource();
-    source.buffer = this.noiseBuffer;
-    source.loop = true;
-    const filter = ctx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.value = freq;
-    const gain = ctx.createGain();
-    gain.gain.value = volume;
-    source.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ambience!);
-    source.start();
-    return gain;
+  private async load(file: string): Promise<AudioBuffer | null> {
+    if (this.buffers.has(file)) return this.buffers.get(file)!;
+    if (this.failed.has(file) || !this.ctx) return null;
+    if (this.loading.has(file)) return this.loading.get(file)!;
+    const ctx = this.ctx;
+    const signal = this.abort.signal;
+    const task = (async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.BASE_URL}audio/${file}`,
+          { signal, cache: "force-cache" },
+        );
+        if (!response.ok) throw new Error(`Audio ${response.status}`);
+        const buffer = await ctx.decodeAudioData(await response.arrayBuffer());
+        if (this.ctx !== ctx || ctx.state === "closed") return null;
+        const bytes = buffer.length * buffer.numberOfChannels * 4;
+        let used = this.decodedBytes();
+        // Dialogue is streamed cue by cue; evict old decoded dialogue first.
+        for (const [key, old] of this.buffers) {
+          if (used + bytes <= MAX_DECODED_BYTES) break;
+          if (key.startsWith("dialogue/")) {
+            this.buffers.delete(key);
+            used -= old.length * old.numberOfChannels * 4;
+          }
+        }
+        if (used + bytes <= MAX_DECODED_BYTES) this.buffers.set(file, buffer);
+        return buffer;
+      } catch {
+        if (!signal.aborted && this.ctx === ctx) this.failed.add(file);
+        return null;
+      } finally {
+        if (this.ctx === ctx) this.loading.delete(file);
+      }
+    })();
+    this.loading.set(file, task);
+    return task;
+  }
+  private async preload() {
+    const ctx = this.ctx;
+    const queue = [...new Set(Object.values(SOUND_GROUPS).flat())];
+    await Promise.all(
+      Array.from({ length: 4 }, async () => {
+        while (queue.length && this.ctx === ctx)
+          await this.load(queue.shift()!);
+      }),
+    );
+  }
+  private decodedBytes() {
+    return [...this.buffers.values()].reduce(
+      (n, b) => n + b.length * b.numberOfChannels * 4,
+      0,
+    );
+  }
+  diagnostics() {
+    return {
+      activeVoices: this.voices.size,
+      loops: this.loops.size,
+      loaded: this.buffers.size,
+      failed: [...this.failed],
+      decodedBytes: this.decodedBytes(),
+      space: this.space,
+      dialogue: this.dialogueSpeaking,
+      dialoguePaused: this.dialoguePaused,
+      dialogueOffset:
+        this.dialogueOffset +
+        (this.dialogueVoice && this.ctx
+          ? this.ctx.currentTime - this.dialogueStartedAt
+          : 0),
+    };
   }
   apply(settings: GameSettings) {
     this.settings = settings;
     if (!this.ctx) return;
-    this.master!.gain.setTargetAtTime(
-      settings.masterVolume,
-      this.ctx.currentTime,
-      0.05,
+    const t = this.ctx.currentTime;
+    this.master?.gain.setTargetAtTime(
+      Math.max(0, Math.min(1, settings.masterVolume)),
+      t,
+      0.04,
     );
-    this.ambience!.gain.setTargetAtTime(
-      settings.ambientVolume,
-      this.ctx.currentTime,
-      0.05,
-    );
-    this.effects!.gain.setTargetAtTime(
-      settings.effectsVolume,
-      this.ctx.currentTime,
-      0.05,
+    this.effects?.gain.setTargetAtTime(settings.effectsVolume, t, 0.08);
+    this.dialogue?.gain.setTargetAtTime(settings.effectsVolume, t, 0.08);
+    this.ambience?.gain.setTargetAtTime(
+      settings.ambientVolume * (this.dialogueSpeaking ? 0.48 : 1),
+      t,
+      0.2,
     );
   }
-  private tone(
-    freq: number,
-    duration: number,
-    volume: number,
-    type: OscillatorType = "sine",
-    position?: Vec3,
-  ) {
-    if (!this.ctx || this.ctx.state !== "running") return;
+  private setSpace(space: AcousticSpace, force = false) {
+    if (
+      !this.ctx ||
+      !this.reverb ||
+      !this.wet ||
+      (!force && space === this.space)
+    )
+      return;
     const ctx = this.ctx,
-      o = ctx.createOscillator(),
-      gain = ctx.createGain();
-    o.type = type;
-    o.frequency.setValueAtTime(freq, ctx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(
-      Math.max(10, freq * 0.5),
-      ctx.currentTime + duration,
-    );
-    gain.gain.setValueAtTime(Math.max(0.001, volume), ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-    o.connect(gain);
-    this.connectSpatial(gain, position);
-    o.start();
-    o.stop(ctx.currentTime + duration);
-    o.onended = () => {
-      o.disconnect();
-      gain.disconnect();
-    };
+      profile = SPACES[space];
+    this.space = space;
+    if (!this.impulses.has(space)) {
+      const length = Math.ceil(
+        ctx.sampleRate * (profile.decay + profile.delay),
+      );
+      const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const data = impulse.getChannelData(ch);
+        let previous = 0;
+        for (
+          let i = Math.floor(profile.delay * ctx.sampleRate);
+          i < length;
+          i++
+        ) {
+          previous +=
+            (Math.random() * 2 - 1 - previous) *
+            Math.min(0.8, profile.cutoff / ctx.sampleRate);
+          data[i] = previous * Math.pow(1 - i / length, 3) * 0.65;
+        }
+      }
+      this.impulses.set(space, impulse);
+    }
+    this.reverb.buffer = this.impulses.get(space)!;
+    this.wet.gain.setTargetAtTime(profile.wet, ctx.currentTime, 0.25);
   }
-  private burst(
-    duration: number,
-    volume: number,
-    freq: number,
+  private release(voice: Voice) {
+    if (!this.voices.delete(voice)) return;
+    for (const node of voice.nodes) node.disconnect();
+    if (this.dialogueVoice === voice) {
+      this.dialogueVoice = null;
+      if (!this.dialoguePaused) this.dialogueCue = null;
+      this.duck(false);
+    }
+  }
+  private play(
+    buffer: AudioBuffer,
+    layer: SoundLayer,
     position?: Vec3,
-  ) {
-    if (!this.ctx || this.ctx.state !== "running") return;
-    const ctx = this.ctx,
-      source = ctx.createBufferSource();
-    const buffer = ctx.createBuffer(
-        1,
-        Math.ceil(ctx.sampleRate * duration),
-        ctx.sampleRate,
-      ),
-      data = buffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++)
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
+    priority = 1,
+    dialogue = false,
+    offsetSeconds = 0,
+  ): Voice | null {
+    const ctx = this.ctx;
+    if (!ctx || ctx.state !== "running") return null;
+    const offset = Math.max(0, Math.min(buffer.duration, offsetSeconds));
+    if (buffer.duration - offset < 0.008) return null;
+    if (this.voices.size >= MAX_VOICES) {
+      const victim = [...this.voices].find((v) => v.priority < priority);
+      if (!victim) return null;
+      victim.source.stop();
+      this.release(victim);
+    }
+    const source = ctx.createBufferSource(),
+      gain = ctx.createGain(),
+      filter = ctx.createBiquadFilter();
     source.buffer = buffer;
-    const filter = ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.value = freq;
-    filter.Q.value = 0.6;
-    const gain = ctx.createGain();
-    gain.gain.value = volume;
+    source.playbackRate.value = Math.max(
+      0.4,
+      Math.min(
+        2,
+        (layer.rate ?? 1) * (dialogue ? 1 : 0.97 + Math.random() * 0.06),
+      ),
+    );
+    filter.type = "lowpass";
+    filter.frequency.value = layer.cutoff ?? 15500;
+    const t = ctx.currentTime + (layer.delay ?? 0),
+      duration = (buffer.duration - offset) / source.playbackRate.value;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(
+      layer.volume * (dialogue ? 1 : 0.92 + Math.random() * 0.08),
+      t + 0.003,
+    );
+    gain.gain.setValueAtTime(
+      layer.volume,
+      t + Math.max(0.004, duration - 0.035),
+    );
+    gain.gain.linearRampToValueAtTime(0, t + duration);
     source.connect(filter);
     filter.connect(gain);
-    this.connectSpatial(gain, position);
-    source.start();
-    source.onended = () => {
-      source.disconnect();
-      filter.disconnect();
-      gain.disconnect();
-    };
+    const nodes: AudioNode[] = [source, filter, gain];
+    let output: AudioNode = gain;
+    if (position) {
+      const panner = ctx.createPanner();
+      panner.panningModel = "HRTF";
+      panner.distanceModel = "inverse";
+      panner.refDistance = 3;
+      panner.maxDistance = 150;
+      panner.rolloffFactor = 1.2;
+      if (panner.positionX) {
+        panner.positionX.value = position.x;
+        panner.positionY.value = position.y;
+        panner.positionZ.value = position.z;
+      } else panner.setPosition(position.x, position.y, position.z);
+      gain.connect(panner);
+      output = panner;
+      nodes.push(panner);
+    }
+    output.connect(dialogue ? this.dialogue! : this.effects!);
+    if (!dialogue) output.connect(this.reverb!);
+    const voice = { source, gain, nodes, priority };
+    this.voices.add(voice);
+    source.onended = () => this.release(voice);
+    source.start(t, offset);
+    return voice;
   }
-  private connectSpatial(node: AudioNode, position?: Vec3) {
-    if (!position) {
-      node.connect(this.effects!);
-      return;
+  private layer(layer: SoundLayer, position?: Vec3, priority = 1) {
+    const files = SOUND_GROUPS[layer.group];
+    if (!files?.length) return;
+    const index = variantIndex(
+      files.length,
+      this.variants.get(layer.group) ?? -1,
+    );
+    this.variants.set(layer.group, index);
+    const file = files[index]!;
+    const buffer = this.buffers.get(file);
+    if (buffer) this.play(buffer, layer, position, priority);
+    else {
+      const started = this.ctx?.currentTime ?? 0;
+      void this.load(file).then((decoded) => {
+        // Drop late one-shots; a delayed footstep/gunshot is misleading feedback.
+        if (decoded && this.ctx && this.ctx.currentTime - started < 0.18)
+          this.play(decoded, layer, position, priority);
+      });
     }
-    const ctx = this.ctx!,
-      p = ctx.createPanner();
-    p.panningModel = "HRTF";
-    p.distanceModel = "inverse";
-    p.refDistance = 3;
-    p.maxDistance = 150;
-    p.rolloffFactor = 1.15;
-    if (p.positionX) {
-      p.positionX.value = position.x;
-      p.positionY.value = position.y;
-      p.positionZ.value = position.z;
-    } else p.setPosition(position.x, position.y, position.z);
-    node.connect(p);
-    p.connect(this.effects!);
-    setTimeout(() => p.disconnect(), 2000);
   }
-  event(e: Feedback): void {
-    if (e.type === "shot") {
-      if (e.kind === "melee") {
-        this.burst(0.16, 0.2, 700);
-        return;
-      }
-      if (e.kind === "explosion") {
-        this.burst(0.9, 1.2, 180, e.position);
-        this.tone(60, 0.7, 0.65, "sine", e.position);
-        return;
-      }
-      this.burst(0.16, 0.85, 2200, e.position);
-      this.tone(90, 0.13, 0.45, "triangle", e.position);
-      this.tone(2900, 0.025, 0.1, "square");
+  event(event: Feedback): void {
+    if (!this.ctx || this.ctx.state !== "running") return;
+    const key = `${event.type}:${event.kind}:${event.actorId ?? "player"}:${event.kind === "growl" ? event.text : ""}`;
+    const now = this.ctx.currentTime;
+    if (now - (this.cooldowns.get(key) ?? -Infinity) < eventCooldown(event))
       return;
-    }
-    if (e.type === "damage") {
-      this.burst(0.18, 0.32, 420);
-      this.tone(80, 0.2, 0.22);
+    this.cooldowns.set(key, now);
+    if (this.cooldowns.size > 256)
+      for (const [id, at] of this.cooldowns)
+        if (now - at > 12) this.cooldowns.delete(id);
+    while (this.cooldowns.size > 512)
+      this.cooldowns.delete(this.cooldowns.keys().next().value!);
+    if (
+      event.position &&
+      Math.hypot(
+        event.position.x - this.listenerPosition.x,
+        event.position.z - this.listenerPosition.z,
+      ) > 155
+    )
       return;
+    const animal =
+      event.actorId &&
+      ["deer", "boar", "wolf"].includes(
+        this.actorKinds.get(event.actorId) ?? "",
+      );
+    const layers =
+      animal && event.kind === "growl"
+        ? [
+            {
+              group: "animal",
+              volume: 0.15,
+              rate: this.actorKinds.get(event.actorId!) === "wolf" ? 0.8 : 1.15,
+            },
+          ]
+        : feedbackLayers(event, this.foley);
+    for (const layer of layers)
+      this.layer(
+        layer,
+        event.position,
+        event.type === "shot"
+          ? layer.group.startsWith("tail-")
+            ? 1
+            : layer.group === "mechanical"
+              ? 2
+              : 3
+          : event.type === "damage"
+            ? 2
+            : 1,
+      );
+  }
+  private loop(
+    name: string,
+    group: string,
+    volume: number,
+    rate = 1,
+    cutoff = 14000,
+  ) {
+    if (!this.ctx || !this.ambience) return;
+    const ctx = this.ctx;
+    let loop = this.loops.get(name);
+    if (!loop) {
+      if (volume <= 0) return;
+      const file = SOUND_GROUPS[group]?.[0];
+      const buffer = file && this.buffers.get(file);
+      if (!buffer) return;
+      const source = ctx.createBufferSource(),
+        gain = ctx.createGain(),
+        filter = ctx.createBiquadFilter();
+      source.buffer = buffer;
+      source.loop = true;
+      gain.gain.value = 0;
+      filter.type = "lowpass";
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(name === "engine" ? this.effects! : this.ambience);
+      source.start(0, name === "engine" ? 0 : Math.random() * buffer.duration);
+      loop = { source, gain, filter };
+      this.loops.set(name, loop);
     }
-    if (e.type === "hit") {
-      this.burst(0.08, 0.21, e.kind === "wall" ? 2200 : 700, e.position);
-      return;
-    }
-    if (e.type !== "sound") return;
-    const kind = e.kind;
-    if (kind === "footstep") {
-      const freq =
-        e.text === "wood"
-          ? 250
-          : e.text === "concrete"
-            ? 650
-            : e.text === "water"
-              ? 1600
-              : 1100;
-      this.burst(0.12, 0.18 * (e.value ?? 1), freq);
-      this.tone(75, 0.08, 0.035);
-    } else if (kind === "reload") {
-      this.burst(0.18, 0.14, 3600);
-      this.tone(1200, 0.04, 0.04, "square");
-    } else if (kind === "empty") this.tone(900, 0.025, 0.08, "square");
-    else if (kind === "growl" || kind === "death")
-      this.tone(kind === "growl" ? 65 : 42, 0.6, 0.18, "sawtooth", e.position);
-    else if (kind === "door") this.burst(0.25, 0.14, 350);
-    else if (kind === "pickup" || kind === "craft") {
-      this.burst(0.06, 0.07, 2200);
-      this.tone(680, 0.06, 0.045, "triangle");
-    } else if (kind === "radio") {
-      this.burst(0.5, 0.09, 1900);
-      this.tone(930, 0.2, 0.04, "sine");
-    } else if (kind === "drink" || kind === "food" || kind === "medical")
-      this.burst(0.25, 0.1, kind === "drink" ? 800 : 2400);
-    else if (kind === "impact") this.burst(0.2, 0.32, 160);
+    loop.gain.gain.setTargetAtTime(
+      volume,
+      ctx.currentTime,
+      name === "engine" ? 0.18 : 0.65,
+    );
+    loop.source.playbackRate.setTargetAtTime(rate, ctx.currentTime, 0.3);
+    loop.filter.frequency.setTargetAtTime(cutoff, ctx.currentTime, 0.4);
   }
   update(sim: Simulation, time: number, active: boolean) {
-    if (!this.ctx) return;
-    const ctx = this.ctx,
-      p = sim.state.player,
-      l = ctx.listener;
-    const pos = p.position;
-    setListenerPose(l, pos, p.yaw, ctx.currentTime);
-    const submerged = sim.gen.isWater(pos.x, pos.z) && p.stance === "prone";
+    const ctx = this.ctx;
+    if (!ctx) return;
+    if (this.active && !active) this.pauseDialogue();
+    if (!this.active && active && this.dialoguePaused)
+      void this.resumeDialogue();
+    this.active = active;
+    const p = sim.state.player,
+      position = p.position;
+    this.listenerPosition = position;
+    setListenerPose(ctx.listener, position, p.yaw, ctx.currentTime);
+    const submerged =
+      sim.gen.isWater(position.x, position.z) && p.stance === "prone";
     this.lowpass?.frequency.setTargetAtTime(
       submerged ? 650 : 20000,
       ctx.currentTime,
       0.15,
     );
-    this.wind?.gain.setTargetAtTime(
-      active ? (sim.indoors ? 0.012 : 0.042) : 0.012,
-      ctx.currentTime,
-      0.3,
+    const region = sim.gen.regionAt(position.x, position.z).id;
+    this.setSpace(
+      position.y < sim.gen.height(position.x, position.z) - 3
+        ? "underground"
+        : acousticSpace(
+            position,
+            sim.gen.pois,
+            sim.indoors,
+            region,
+            sim.gen.roadDistance(position.x, position.z),
+          ),
     );
-    this.rain?.gain.setTargetAtTime(
-      active && ["rain", "storm"].includes(sim.state.weather)
-        ? sim.indoors
-          ? 0.03
-          : 0.1
-        : 0,
-      ctx.currentTime,
-      0.5,
-    );
-    const v = sim.state.vehicles.find((v) => v.id === p.vehicle);
-    this.engineGain?.gain.setTargetAtTime(
-      v && active ? 0.075 : 0,
-      ctx.currentTime,
-      0.1,
-    );
-    this.engineOsc?.frequency.setTargetAtTime(
-      40 + Math.abs(v?.speed ?? 0) * 5,
-      ctx.currentTime,
-      0.2,
-    );
-    if (active && time > this.nextAmbient) {
-      this.nextAmbient = time + 12 + Math.random() * 15;
-      const night = sim.state.time < 6 || sim.state.time > 20;
-      const at = {
-        x: pos.x + Math.random() * 45 - 22,
-        y: pos.y + 8,
-        z: pos.z + 25,
+    if (time > this.nextFoleyContext) {
+      this.nextFoleyContext = time + 0.3;
+      this.foley = {
+        speed: sim.speed,
+        stance: p.stance,
+        load: weight(p.inventory),
       };
-      if (sim.state.weather === "storm") {
-        this.burst(1.5, 0.25, 120, at);
-      } else if (night) {
-        this.tone(130, 0.9, 0.04, "triangle", at);
-        this.tone(2100, 0.12, 0.018, "sine", at);
-      } else {
-        this.tone(2100, 0.16, 0.035, "sine", at);
-        setTimeout(() => this.tone(2900, 0.14, 0.024, "sine", at), 180);
-      }
+      this.actorKinds.clear();
+      for (const actor of Object.values(sim.state.actors))
+        this.actorKinds.set(actor.id, actor.kind);
+    }
+    if (
+      this.lastFlashlight !== null &&
+      this.lastFlashlight !== p.flashlight &&
+      active
+    )
+      this.event({
+        type: "sound",
+        kind: "flashlight",
+        text: p.flashlight ? "on" : "off",
+      });
+    this.lastFlashlight = p.flashlight;
+    const lamp = p.inventory.items.find((i) => i.id === "flashlight");
+    if (p.flashlight && lamp && lamp.durability < 15 && active)
+      this.event({ type: "sound", kind: "flashlight-low", text: "low" });
+    const raining = ["rain", "storm"].includes(sim.state.weather),
+      night = sim.state.time < 6 || sim.state.time > 20;
+    this.loop(
+      "wind",
+      "wind",
+      active ? (sim.indoors ? 0.022 : 0.105) : 0,
+      0.96,
+      sim.indoors ? 720 : 6500,
+    );
+    this.loop(
+      "forest",
+      "forest",
+      active && !sim.indoors && !night && !raining
+        ? this.space === "forest"
+          ? 0.105
+          : 0.035
+        : 0,
+      1,
+      7000,
+    );
+    this.loop(
+      "rain",
+      "rain",
+      active && raining ? (sim.indoors ? 0.055 : 0.15) : 0,
+      1,
+      sim.indoors ? 1700 : 10500,
+    );
+    this.loop(
+      "roof",
+      "rain-roof",
+      active && raining && sim.indoors ? 0.06 : 0,
+      1,
+      4800,
+    );
+    const vehicle = sim.state.vehicles.find((v) => v.id === p.vehicle);
+    const throttle = Math.min(1, Math.abs(vehicle?.speed ?? 0) / 15);
+    this.loop(
+      "engine",
+      "engine",
+      vehicle && active ? 0.12 + throttle * 0.065 : 0,
+      0.85 + throttle * 1.05,
+      400 + throttle * 1800,
+    );
+    if (p.vehicle && p.vehicle !== this.engineVehicle && active)
+      this.layer({ group: "mechanical", volume: 0.17, rate: 0.6 });
+    this.engineVehicle = p.vehicle;
+    if (active && raining && sim.indoors && time > this.nextRoof) {
+      this.nextRoof = time + 1.4 + Math.random() * 2.4;
+      this.layer(
+        {
+          group: /large|underground/.test(this.space)
+            ? "hit-metal"
+            : "hit-wood",
+          volume: 0.016,
+          rate: 1.4,
+          cutoff: 2500,
+        },
+        { ...position, y: position.y + 3.5 },
+      );
+    }
+    if (active && time > this.nextAmbient) {
+      this.nextAmbient = time + 18 + Math.random() * 22;
+      const at = {
+        x: position.x + 12 + Math.random() * 20,
+        y: position.y + 6,
+        z: position.z + 10,
+      };
+      if (sim.state.weather === "storm")
+        this.layer(
+          { group: "thunder", volume: 0.23, rate: 0.86, cutoff: 1500 },
+          at,
+        );
+      else if (!sim.indoors && !night)
+        this.layer({ group: "birds", volume: 0.08 }, at);
+      else if (!sim.indoors && night)
+        this.layer({ group: "animal", volume: 0.045, rate: 0.88 }, at);
     }
   }
+  private duck(enabled: boolean) {
+    this.dialogueSpeaking = enabled;
+    this.apply(this.settings);
+  }
+  async playDialogue(cue: DialogueCue): Promise<boolean> {
+    this.stopDialogue();
+    const serial = this.dialogueSerial;
+    const ctx = this.ctx;
+    if (!ctx || ctx.state !== "running" || !cue.text.trim()) return false;
+    this.dialogueCue = { ...cue };
+    this.dialogueOffset = Math.max(0, cue.offsetSeconds ?? 0);
+    const file = DIALOGUE_FILES[cue.id];
+    if (file) {
+      const buffer = await this.load(file);
+      if (serial !== this.dialogueSerial || ctx !== this.ctx) return false;
+      if (buffer) {
+        this.duck(true);
+        this.dialogueStartedAt = ctx.currentTime;
+        this.dialogueVoice = this.play(
+          buffer,
+          {
+            group: "dialogue",
+            volume: Math.min(0.9, cue.volume ?? 0.72),
+            cutoff: cue.radio ? 3800 : 13000,
+          },
+          cue.radio ? undefined : cue.position,
+          5,
+          true,
+          this.dialogueOffset,
+        );
+        if (!this.dialogueVoice) {
+          this.dialogueCue = null;
+          this.duck(false);
+        }
+        return !!this.dialogueVoice;
+      }
+    }
+    // Accessible fallback only. No OS voice is exported or bundled with the game.
+    if (
+      typeof speechSynthesis === "undefined" ||
+      typeof SpeechSynthesisUtterance === "undefined"
+    )
+      return false;
+    const voices = speechSynthesis.getVoices();
+    const voice = voices.find((v) => /^zh/.test(v.lang) && v.localService);
+    if (!voice) return false;
+    this.usingSpeech = true;
+    const utterance = new SpeechSynthesisUtterance(cue.text);
+    utterance.voice = voice;
+    utterance.lang = "zh-CN";
+    utterance.rate = 0.94;
+    utterance.volume =
+      this.settings.masterVolume * this.settings.effectsVolume * 0.75;
+    utterance.onend = utterance.onerror = () => {
+      if (serial === this.dialogueSerial) {
+        this.usingSpeech = false;
+        this.dialogueCue = null;
+        this.duck(false);
+      }
+    };
+    this.duck(true);
+    speechSynthesis.speak(utterance);
+    return true;
+  }
+  /** Pause without advancing the narrative cursor. Pending decodes cannot start late. */
+  pauseDialogue(): boolean {
+    if (!this.dialogueCue || this.dialoguePaused) return false;
+    this.dialoguePaused = true;
+    if (this.usingSpeech && typeof speechSynthesis !== "undefined")
+      speechSynthesis.pause();
+    else {
+      this.dialogueSerial++;
+      if (this.dialogueVoice && this.ctx) {
+        this.dialogueOffset += Math.max(
+          0,
+          this.ctx.currentTime - this.dialogueStartedAt,
+        );
+        const voice = this.dialogueVoice;
+        voice.source.stop();
+        this.release(voice);
+      }
+    }
+    this.duck(false);
+    return true;
+  }
+  async resumeDialogue(): Promise<boolean> {
+    if (!this.dialoguePaused || !this.dialogueCue) return false;
+    if (this.usingSpeech && typeof speechSynthesis !== "undefined") {
+      this.dialoguePaused = false;
+      speechSynthesis.resume();
+      this.duck(true);
+      return true;
+    }
+    return this.playDialogue({
+      ...this.dialogueCue,
+      offsetSeconds: this.dialogueOffset,
+    });
+  }
+  stopDialogue() {
+    this.dialogueSerial++;
+    this.dialoguePaused = false;
+    this.dialogueCue = null;
+    this.dialogueOffset = 0;
+    if (this.dialogueVoice) {
+      this.dialogueVoice.source.stop();
+      this.release(this.dialogueVoice);
+      this.dialogueVoice = null;
+    }
+    if (this.usingSpeech && typeof speechSynthesis !== "undefined")
+      speechSynthesis.cancel();
+    this.usingSpeech = false;
+    this.duck(false);
+  }
   async dispose() {
-    await this.ctx?.close();
+    this.stopDialogue();
+    this.abort.abort();
+    for (const voice of [...this.voices]) {
+      voice.source.stop();
+      this.release(voice);
+    }
+    for (const loop of this.loops.values()) {
+      loop.source.stop();
+      loop.source.disconnect();
+      loop.gain.disconnect();
+      loop.filter.disconnect();
+    }
+    this.loops.clear();
+    this.buffers.clear();
+    this.loading.clear();
+    this.failed.clear();
+    this.impulses.clear();
+    this.cooldowns.clear();
+    this.variants.clear();
+    this.actorKinds.clear();
+    const ctx = this.ctx;
     this.ctx = null;
+    if (ctx && ctx.state !== "closed") await ctx.close();
   }
 }

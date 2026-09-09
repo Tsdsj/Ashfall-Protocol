@@ -85,6 +85,19 @@ export function drawMap(canvas: HTMLCanvasElement, sim: Simulation): void {
       ctx.strokeRect(x - 5, y - 5, 10, 10);
     }
   }
+  for (const route of sim.narrative.unlockedRoutes) {
+    ctx.strokeStyle = "#a8c3a0";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 5]);
+    ctx.beginPath();
+    route.anchors.forEach((anchor, index) => {
+      const p = sim.narrative.resolveAnchor(anchor);
+      if (index) ctx.lineTo(toMap(p.x), mz(p.z));
+      else ctx.moveTo(toMap(p.x), mz(p.z));
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
   for (const e of sim.state.events)
     if (e.expires > sim.state.elapsed && !e.resolved) {
       ctx.strokeStyle = "#d79962";

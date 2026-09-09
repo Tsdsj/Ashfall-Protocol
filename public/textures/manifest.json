@@ -160,5 +160,47 @@
     "path": "public/textures/concrete_wall_003/orm.jpg",
     "md5": "fc3621ea80ea29af1a431ad770a522d0",
     "bytes": 204702
+  },
+  {
+    "asset": "denim_fabric_06",
+    "name": "Denim Fabric 06",
+    "authors": {
+      "Greg Zaal": "Photography",
+      "Rico Cilliers": "Processing"
+    },
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/denim_fabric_06",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/denim_fabric_06/denim_fabric_06_diff_1k.jpg",
+    "path": "public/textures/denim_fabric_06/albedo.jpg",
+    "md5": "0441b69c4ebb2bcf1c0c1fb179c2c1cc",
+    "bytes": 821758
+  },
+  {
+    "asset": "denim_fabric_06",
+    "name": "Denim Fabric 06",
+    "authors": {
+      "Greg Zaal": "Photography",
+      "Rico Cilliers": "Processing"
+    },
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/denim_fabric_06",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/denim_fabric_06/denim_fabric_06_nor_gl_1k.jpg",
+    "path": "public/textures/denim_fabric_06/normal.jpg",
+    "md5": "93f7e9233d923c3b021de6367cc9c4f0",
+    "bytes": 1240070
+  },
+  {
+    "asset": "denim_fabric_06",
+    "name": "Denim Fabric 06",
+    "authors": {
+      "Greg Zaal": "Photography",
+      "Rico Cilliers": "Processing"
+    },
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/denim_fabric_06",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/denim_fabric_06/denim_fabric_06_arm_1k.jpg",
+    "path": "public/textures/denim_fabric_06/orm.jpg",
+    "md5": "f2c48eda8d83f0c9b1c3d51931c5591c",
+    "bytes": 966013
   }
 ]

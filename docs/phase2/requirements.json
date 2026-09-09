@@ -1,0 +1,2371 @@
+{
+  "source": "goal2.md",
+  "sourceSha256": "c9995982413c2b5e009f48d0ed29239aeca860cf3d35e87fb0b39f51fcb61be3",
+  "items": [
+    {
+      "id": 1,
+      "title": "总体任务",
+      "requirements": "# 1. 总体任务\n\n首先完整检查当前项目。\n\n不要立刻重构。\n\n必须先：\n\n```text\n运行游戏\n↓\n实际体验现有版本\n↓\n检查主要系统\n↓\n识别当前最明显的廉价感来源\n↓\n检查视觉、动画、操作、AI、剧情、音效、交互\n↓\n制定内部优化顺序\n↓\n直接开始修改\n↓\n持续运行测试\n↓\n继续发现问题\n↓\n继续优化\n```\n\n不要把本任务理解成：\n\n```text\n增加几十个新 Feature\n```\n\n而应该理解成：\n\n```text\n让已有 Feature 真正达到游戏级品质\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/PLAN.md",
+        "docs/phase2/REFERENCE_NOTES.md",
+        "docs/phase2/GAP_AUDIT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/baseline-motion.json",
+        "docs/phase2/evidence/baseline-survival.json",
+        "docs/phase2/ACCEPTANCE.md"
+      ],
+      "review": "先运行旧版完整链路和逐帧运动采样，再按 P0 操作、角色/AI、美术、叙事、声音顺序迭代，保留前后证据。"
+    },
+    {
+      "id": 2,
+      "title": "本阶段最高优先级",
+      "requirements": "# 2. 本阶段最高优先级\n\n按照以下优先级执行。\n\n```text\nP0 第一人称操作与镜头品质\n\nP0 玩家 / 僵尸 / NPC / 物体动画品质\n\nP0 战斗手感\n\nP1 高质量外部美术资产替换\n\nP1 世界环境品质与场景细节\n\nP1 僵尸 AI 与行为表现\n\nP1 游戏内容丰富度\n\nP1 主线剧情完整性\n\nP2 过场动画 / Scripted Sequence\n\nP2 音频与环境反馈\n\nP2 UI / UX 优化\n\nP3 更多高级视觉细节\n```\n\n不要优先开发边缘系统。\n\n例如：\n\n如果：\n\n```text\n走路镜头像摄像机飘动\n```\n\n就不要先跑去开发十种新罐头。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/PLAN.md",
+        "docs/phase2/REFERENCE_NOTES.md",
+        "docs/phase2/GAP_AUDIT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/baseline-motion.json",
+        "docs/phase2/evidence/baseline-survival.json",
+        "docs/phase2/ACCEPTANCE.md"
+      ],
+      "review": "优先处理直接鼠标响应、移动与持枪、真实骨骼、受击和门；后续内容围绕已存在的生存循环补齐。"
+    },
+    {
+      "id": 3,
+      "title": "第一人称体验必须进行重点重构",
+      "requirements": "# 3. 第一人称体验必须进行重点重构\n\n当前第一人称体验需要持续优化。\n\n这是本阶段最重要的任务之一。\n\n必须主动研究成熟第一人称游戏普遍采用的设计方法，并将合理方案应用到当前游戏。\n\n参考的不是复制某一款游戏的具体参数，而是研究成熟 FPS / 生存游戏普遍存在的：\n\n```text\nCamera Motion\nWeapon Motion\nBody Motion\nInput Response\nAcceleration\nDeceleration\nADS Transition\nSprint Transition\nRecoil\nBreathing\nLanding\nVaulting\nCrouching\nLeaning\nInteraction Feedback\n```\n\n目标：\n\n> 玩家移动时应该感觉自己正在控制一个拥有重量、惯性、身体和武器的人类，而不是一个挂着摄像头的 Capsule Collider。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/locomotion.ts",
+        "src/simulation/simulation.ts",
+        "src/rendering/first-person-motion.ts",
+        "src/core/motion.ts"
+      ],
+      "evidence": [
+        "tests/phase2-motion.test.ts",
+        "docs/phase2/evidence/motion-live.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "参考 GDC 分层第一人称动作与 Blend Space 通用方法；相机输入、身体、武器、机械部件分层，未复制参考代码或参数。"
+    },
+    {
+      "id": 4,
+      "title": "第一人称移动",
+      "requirements": "# 4. 第一人称移动\n\n重新检查：\n\n```text\nWalk\nJog\nSprint\nCrouch\nProne\nJump\nFall\nLanding\nLean\nADS Movement\nBackward Movement\nStrafe\nDiagonal Movement\n```\n\n每种状态都必须具有不同：\n\n```text\nSpeed\nAcceleration\nDeceleration\nCamera Motion\nWeapon Motion\nFootstep Rhythm\nStamina Cost\n```\n\n禁止：\n\n```text\n按 W 后瞬间达到最大速度\n松开 W 后瞬间静止\n```\n\n增加：\n\n```text\nAcceleration Curve\nDeceleration Curve\n```\n\n但不能做成严重输入延迟。\n\n目标是：\n\n```text\n有重量\n但仍然灵敏\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/locomotion.ts",
+        "src/simulation/simulation.ts",
+        "src/rendering/first-person-motion.ts",
+        "src/core/motion.ts"
+      ],
+      "evidence": [
+        "tests/phase2-motion.test.ts",
+        "docs/phase2/evidence/motion-live.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "行走、慢跑、冲刺、蹲伏、俯卧、跳落、侧移、后退、ADS 和倾身有不同速度/响应/体力/步频；矢量加减速和斜向归一化已实测。"
+    },
+    {
+      "id": 5,
+      "title": "第一人称镜头系统",
+      "requirements": "# 5. 第一人称镜头系统\n\n重新设计：\n\n```text\nFirstPersonCameraController\n```\n\n不要仅使用简单：\n\n```text\nsin(time) * headBob\n```\n\n实现所有移动状态共享的：\n\n```text\nCamera Motion State System\n```\n\n至少包括：\n\n```text\nIdle\nWalk\nRun\nSprint\nCrouch\nProne\nJump\nFall\nLand\nADS\nLean\nInjured\nLowStamina\n```\n\n不同状态：\n\n采用不同的：\n\n```text\nAmplitude\nFrequency\nRotation\nTranslation\nInterpolation\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/locomotion.ts",
+        "src/simulation/simulation.ts",
+        "src/rendering/first-person-motion.ts",
+        "src/core/motion.ts"
+      ],
+      "evidence": [
+        "tests/phase2-motion.test.ts",
+        "docs/phase2/evidence/motion-live.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "共享状态权重驱动 idle/walk/run/sprint/crouch/prone/jump/fall/land/ADS/lean/injury/lowStamina，使用阻尼过渡。"
+    },
+    {
+      "id": 6,
+      "title": "Head Bob",
+      "requirements": "# 6. Head Bob\n\nHead Bob 必须非常克制。\n\n真实第一人称游戏通常不会让玩家镜头像头顶绑了弹簧。\n\nHead Bob：\n\n更多作用于：\n\n```text\n武器\n身体\n轻微相机\n```\n\n而不是大幅摆动整个屏幕。\n\n应实现：\n\n```text\nVertical Bob\nHorizontal Bob\nSubtle Rotation\nStep Rhythm\n```\n\n并且：\n\n移动速度越快：\n\n频率变化。\n\n但：\n\n幅度不要简单线性暴涨。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/locomotion.ts",
+        "src/simulation/simulation.ts",
+        "src/rendering/first-person-motion.ts",
+        "src/core/motion.ts"
+      ],
+      "evidence": [
+        "tests/phase2-motion.test.ts",
+        "docs/phase2/evidence/motion-live.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "以实际接地位移驱动步相；主要摆动分配给身体和武器，镜头小幅平移/旋转且可降低动态效果。"
+    },
+    {
+      "id": 7,
+      "title": "Camera Inertia",
+      "requirements": "# 7. Camera Inertia\n\n增加轻微：\n\n```text\nCamera Inertia\n```\n\n例如：\n\n玩家快速转向：\n\n身体和武器可以稍微滞后。\n\n但鼠标输入：\n\n必须保持及时响应。\n\n实现原则：\n\n```text\nCamera Input = Responsive\nWeapon / Body = Slightly Delayed\n```\n\n不要：\n\n```text\nCamera Input = Delayed\n```\n\n否则操作会产生恶心的鼠标延迟感。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/locomotion.ts",
+        "src/simulation/simulation.ts",
+        "src/rendering/first-person-motion.ts",
+        "src/core/motion.ts"
+      ],
+      "evidence": [
+        "tests/phase2-motion.test.ts",
+        "docs/phase2/evidence/motion-live.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "直接应用鼠标 yaw/pitch；转向和侧移滞后施加在武器/身体，开火前更新当前帧视线，避免一帧旧准心。"
+    },
+    {
+      "id": 8,
+      "title": "Weapon Sway",
+      "requirements": "# 8. Weapon Sway\n\n武器必须拥有独立运动系统。\n\n包括：\n\n```text\nIdle Sway\nWalk Sway\nSprint Sway\nBreathing Sway\nTurn Lag\nStrafe Lag\nLanding Motion\nCrouch Motion\nADS Motion\nRecoil Motion\n```\n\n武器不能：\n\n死死焊在屏幕中央。\n\n也不能：\n\n像橡皮筋一样疯狂乱甩。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/weapon.ts",
+        "src/rendering/weapon-assets.ts",
+        "src/rendering/view-arms.ts",
+        "src/simulation/combat.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "独立武器运动覆盖呼吸、步态、侧移、转向、落地、姿态、ADS、冲刺与后坐，幅度有界。"
+    },
+    {
+      "id": 9,
+      "title": "ADS",
+      "requirements": "# 9. ADS\n\n重新优化瞄准过程。\n\nADS 不允许：\n\n```text\nInstant Snap\n```\n\n需要：\n\n```text\nPosition Interpolation\nRotation Interpolation\nFOV Interpolation\nWeapon Alignment\nCamera Alignment\n```\n\n不同武器：\n\n拥有不同：\n\n```text\nADS Speed\n```\n\n例如：\n\n手枪：\n\n快。\n\n步枪：\n\n中等。\n\n重型武器：\n\n较慢。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/weapon.ts",
+        "src/rendering/weapon-assets.ts",
+        "src/rendering/view-arms.ts",
+        "src/simulation/combat.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "不同枪械 ADS 速度、位置/旋转/FOV 平滑插值；实际四倍镜视野与透明镜内区域通过，完全瞄准时隐藏遮挡镜体。"
+    },
+    {
+      "id": 10,
+      "title": "Sprint",
+      "requirements": "# 10. Sprint\n\n冲刺必须有完整视觉状态。\n\n进入冲刺：\n\n武器逐渐放低。\n\n退出冲刺：\n\n武器逐渐恢复。\n\n禁止：\n\n```text\n按 Shift\n↓\n武器瞬移\n```\n\n需要：\n\n```text\nSprintEnter\nSprintLoop\nSprintExit\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/weapon.ts",
+        "src/rendering/weapon-assets.ts",
+        "src/rendering/view-arms.ts",
+        "src/simulation/combat.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "冲刺进入/循环/退出由平滑 sprint 权重放低并恢复武器，逐帧采样无 Shift 瞬移。"
+    },
+    {
+      "id": 11,
+      "title": "跳跃",
+      "requirements": "# 11. 跳跃\n\n跳跃需要：\n\n```text\nTakeoff\nAir\nLanding\n```\n\n三个阶段。\n\n起跳：\n\n镜头轻微反应。\n\n落地：\n\n根据下降速度决定：\n\n```text\nLanding Strength\n```\n\n小高度：\n\n轻微缓冲。\n\n高处：\n\n明显：\n\n```text\nCamera Compression\nWeapon Drop\nSound\nStamina Impact\n```\n\n严重坠落：\n\n造成：\n\n```text\nLeg Damage\nFracture\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/locomotion.ts",
+        "src/simulation/simulation.ts",
+        "src/rendering/first-person-motion.ts",
+        "src/core/motion.ts"
+      ],
+      "evidence": [
+        "tests/phase2-motion.test.ts",
+        "docs/phase2/evidence/motion-live.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "起跳、空中、按下落速度压缩落地分别反馈；高落差消耗体力并触发腿伤/骨折，非固定落地效果。"
+    },
+    {
+      "id": 12,
+      "title": "玩家身体存在感",
+      "requirements": "# 12. 玩家身体存在感\n\n第一人称玩家不应该只有：\n\n```text\nCamera\n+\nFloating Weapon\n```\n\n增加玩家身体表现。\n\n玩家低头：\n\n至少能够看到：\n\n```text\n胸部\n手臂\n腿\n脚\n```\n\n如果现有架构允许：\n\n实现：\n\n```text\nFull Body First Person\n```\n\n否则至少实现：\n\n```text\nFirst Person Body Proxy\n```\n\n玩家：\n\n```text\n走路\n奔跑\n蹲下\n跳跃\n受伤\n```\n\n身体动作应该同步。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/rig-animation.ts",
+        "src/rendering/animated-assets.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/player-body.ts",
+        "src/rendering/view-arms.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "采用外部 skinned 第一人称身体与双臂；低头可见胸腿脚，步态、蹲伏、俯卧、跳落同步，属于身体代理实现。"
+    },
+    {
+      "id": 13,
+      "title": "第一人称交互动作",
+      "requirements": "# 13. 第一人称交互动作\n\n常见操作应具有动画过程。\n\n包括：\n\n```text\nOpen Door\nClose Door\nPickup\nUse Medical\nDrink\nEat\nOpen Container\nTurn On Generator\nLight Campfire\nRepair\nCraft\nInteract With Vehicle\n```\n\n不要所有操作都是：\n\n```text\n按 E\n↓\n瞬间改变状态\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/actions.ts",
+        "src/core/game.ts",
+        "src/rendering/objects.ts",
+        "src/ui/ui.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/components.json",
+        "tests/phase2-actions.test.ts"
+      ],
+      "review": "搜索、拾取、食用、医疗、修理、设施和车辆操作有手部过程与可取消进度；箱盖/冰箱/车门跟随实体状态，制作完成再扣料。"
+    },
+    {
+      "id": 14,
+      "title": "动画系统全面升级",
+      "requirements": "# 14. 动画系统全面升级\n\n当前所有人物和物体动画都需要进行：\n\n# Animation Quality Pass\n\n检查：\n\n```text\n玩家\n僵尸\n人类 NPC\n动物\n武器\n门\n窗\n容器\n车辆\n环境机关\n```\n\n任何：\n\n```text\n瞬间切换状态\n```\n\n都应该优先检查是否需要：\n\n```text\nTransition Animation\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/rig-animation.ts",
+        "src/rendering/animated-assets.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/player-body.ts",
+        "src/rendering/view-arms.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "人形、三种动物、武器、门、箱盖、冰箱、车门与剧情机关已做动作检查；复用的窗破损用破裂反馈而非无意义缓慢变形。"
+    },
+    {
+      "id": 15,
+      "title": "Animation State Machine",
+      "requirements": "# 15. Animation State Machine\n\n所有角色使用明确动画状态机。\n\n例如：\n\n```text\nIdle\nWalk\nRun\nSprint\nCrouchIdle\nCrouchWalk\nAttack\nHit\nStagger\nFall\nDeath\nClimb\nVault\nInteract\n```\n\n状态之间：\n\n必须：\n\n```text\nBlend\n```\n\n禁止大量：\n\n```text\nAnimation.stop()\nAnimation.play()\n```\n\n直接硬切。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/rig-animation.ts",
+        "src/rendering/animated-assets.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/player-body.ts",
+        "src/rendering/view-arms.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "角色状态机将移动、攻击、受击、倒地起身、死亡、翻越与交互映射为加权动作；不是 stop/play 硬切的堆叠。"
+    },
+    {
+      "id": 16,
+      "title": "Animation Blending",
+      "requirements": "# 16. Animation Blending\n\n必须重点改善：\n\n```text\nIdle → Walk\nWalk → Run\nRun → Sprint\nSprint → Stop\nWalk → Crouch\nAim → Fire\nAttack → Hit Reaction\n```\n\n加入：\n\n```text\nBlend Time\n```\n\n以及合理：\n\n```text\nTransition Condition\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/rig-animation.ts",
+        "src/rendering/animated-assets.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/player-body.ts",
+        "src/rendering/view-arms.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "速度/状态权重和过渡时间控制 idle/walk/run/sprint/crouch/fire/hit；动作混合后再做约束，避免累积修正。"
+    },
+    {
+      "id": 17,
+      "title": "玩家动画",
+      "requirements": "# 17. 玩家动画\n\n玩家需要拥有：\n\n```text\nIdle\nWalk\nRun\nSprint\nCrouch\nProne\nJump\nFall\nLanding\nLean\nVault\nClimb\nPickup\nOpenDoor\nUseItem\nHeal\nReload\nWeaponInspect\nMelee\n```\n\n能够共享的动画：\n\n合理复用。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/rig-animation.ts",
+        "src/rendering/animated-assets.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/player-body.ts",
+        "src/rendering/view-arms.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "玩家身体、手臂与武器层共同覆盖姿态、跳落、翻越、攀登、拾取、开门、消费、治疗、换弹、检视、近战。"
+    },
+    {
+      "id": 18,
+      "title": "手部动画",
+      "requirements": "# 18. 手部动画\n\n第一人称：\n\n重点优化：\n\n```text\nHands\nArms\nWeapon\n```\n\n手不能：\n\n穿过：\n\n```text\n武器\n墙\n身体\n```\n\n尽可能减少：\n\n```text\nClipping\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/weapon.ts",
+        "src/rendering/weapon-assets.ts",
+        "src/rendering/view-arms.ts",
+        "src/simulation/combat.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "双手使用武器实际 grip/support/机械节点和两骨约束；修正手腕方向、换弹接触与贴墙收枪，已查看多枪持握；不承诺任意极端姿态零穿插。"
+    },
+    {
+      "id": 19,
+      "title": "门动画",
+      "requirements": "# 19. 门动画\n\n所有门必须拥有：\n\n```text\nClosed\nOpening\nOpen\nClosing\nLocked\nBlocked\nBroken\n```\n\n状态。\n\n开门不能：\n\n```text\n0°\n↓\n90°\n```\n\n瞬间完成。\n\n需要：\n\n```text\n0.4 - 1.2 秒\n```\n\n左右的动态过程。\n\n根据门类型决定速度。\n\n例如：\n\n```text\n轻木门\n金属门\n大型铁门\n车辆门\n```\n\n动画速度不同。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/doors.ts",
+        "src/simulation/collision.ts",
+        "src/rendering/buildings.ts",
+        "src/simulation/ai.ts"
+      ],
+      "evidence": [
+        "tests/phase2-doors.test.ts",
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/components.json"
+      ],
+      "review": "门具有 closed/opening/open/closing/locked/blocked/broken；木/金属/安全门/大门按类型约 0.4–1.2 秒变化，车辆另有铰链过程。"
+    },
+    {
+      "id": 20,
+      "title": "门物理反馈",
+      "requirements": "# 20. 门物理反馈\n\n门打开时：\n\n加入：\n\n```text\nHandle Animation\nDoor Rotation\nSound\nCollision Update\n```\n\n如果玩家快速推门：\n\n动画更快。\n\n如果门损坏：\n\n可能：\n\n```text\n晃动\n卡住\n产生摩擦声音\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/doors.ts",
+        "src/simulation/collision.ts",
+        "src/rendering/buildings.ts",
+        "src/simulation/ai.ts"
+      ],
+      "evidence": [
+        "tests/phase2-doors.test.ts",
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/components.json"
+      ],
+      "review": "门把、门叶、声音、逐帧旋转 OBB 同步；快速推门、受损晃动、门扇受阻和中途反向都有处理。"
+    },
+    {
+      "id": 21,
+      "title": "门 AI Interaction",
+      "requirements": "# 21. 门 AI Interaction\n\n僵尸不能永远被门彻底阻挡。\n\n根据类型：\n\n可以：\n\n```text\n撞门\n攻击门\n推门\n突破损坏门\n```\n\n人类 AI：\n\n可以：\n\n```text\n打开门\n关门\n穿过门\n寻找其它路径\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/doors.ts",
+        "src/simulation/collision.ts",
+        "src/rendering/buildings.ts",
+        "src/simulation/ai.ts"
+      ],
+      "evidence": [
+        "tests/phase2-doors.test.ts",
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/components.json"
+      ],
+      "review": "感染者按类型推撞/损坏门，掠夺者可开门通过后关门；被锁门/障碍约束时使用绕行，不直接穿门。"
+    },
+    {
+      "id": 22,
+      "title": "僵尸整体品质升级",
+      "requirements": "# 22. 僵尸整体品质升级\n\n当前僵尸必须进行完整：\n\n# Zombie Polish Pass\n\n重新检查：\n\n```text\nSpawn\nIdle\nWander\nDetection\nInvestigation\nChase\nAttack\nHit Reaction\nStagger\nFall\nDeath\nSearch\nNavigation\nDoor Interaction\nObstacle Interaction\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/ai.ts",
+        "src/simulation/navigation.ts",
+        "src/simulation/population.ts",
+        "src/rendering/characters.ts"
+      ],
+      "evidence": [
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "从隐藏生成、场景 idle、感知/调查到追击、攻击、受击、搜索、倒地、死亡与门窗通行形成完整状态链。"
+    },
+    {
+      "id": 23,
+      "title": "僵尸生成规则",
+      "requirements": "# 23. 僵尸生成规则\n\n禁止明显：\n\n```text\n玩家转身\n↓\n空气中突然生成一个僵尸\n```\n\n生成必须遵循：\n\n```text\n距离规则\n视线规则\n区域规则\n建筑规则\n时间规则\n噪音规则\n世界状态\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/ai.ts",
+        "src/simulation/navigation.ts",
+        "src/simulation/population.ts",
+        "src/rendering/characters.ts"
+      ],
+      "evidence": [
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "普通生成考虑距离、视锥、视线、地形、水面、区域危险、时间、噪声、恢复阶段和近场人口预算。"
+    },
+    {
+      "id": 24,
+      "title": "Spawn Visibility Check",
+      "requirements": "# 24. Spawn Visibility Check\n\n生成前进行：\n\n```text\nPlayer FOV Check\nLine Of Sight Check\nDistance Check\n```\n\n除特殊事件外：\n\n不得在：\n\n```text\n玩家直接视线内\n```\n\n凭空生成敌人。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/ai.ts",
+        "src/simulation/navigation.ts",
+        "src/simulation/population.ts",
+        "src/rendering/characters.ts"
+      ],
+      "evidence": [
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "生成前检查真实 FOV/aspect、多点 LOS 和最小距离；远于旧 190 m 也不能在可见区域刷新，找不到位置即延期。"
+    },
+    {
+      "id": 25,
+      "title": "Spawn Source",
+      "requirements": "# 25. Spawn Source\n\n优先从合理位置生成。\n\n例如：\n\n```text\n建筑内部\n树林深处\n街道拐角\n废弃车辆后方\n地下设施\n尸堆\nPOI 区域\n```\n\n让玩家产生：\n\n```text\n它原本就在这里\n```\n\n而不是：\n\n```text\n导演刷怪了\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/ai.ts",
+        "src/simulation/navigation.ts",
+        "src/simulation/population.ts",
+        "src/rendering/characters.ts"
+      ],
+      "evidence": [
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "来源选择建筑/POI 内外、遮挡物后和林地，事件也绑定实际 POI；未使用面前刷出后淡入掩盖。"
+    },
+    {
+      "id": 26,
+      "title": "Persistent Zombies",
+      "requirements": "# 26. Persistent Zombies\n\n玩家附近的重要敌人：\n\n尽可能保持世界状态。\n\n例如：\n\n玩家从建筑外看到：\n\n```text\n一个僵尸在二楼\n```\n\n进入建筑：\n\n它仍然应该在合理位置。\n\n不要由于 Chunk 或 AI 系统：\n\n频繁重置。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/ai.ts",
+        "src/simulation/navigation.ts",
+        "src/simulation/population.ts",
+        "src/rendering/characters.ts"
+      ],
+      "evidence": [
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "重要角色 ID、位置、行为、受伤与尸体进入世界存档，分块卸载只释放表现，重新接近不会重置实体。"
+    },
+    {
+      "id": 27,
+      "title": "僵尸 Idle",
+      "requirements": "# 27. 僵尸 Idle\n\nIdle 动作增加：\n\n```text\nStanding\nLooking Around\nTwitch\nBreathing\nBent Posture\nFeeding\nSitting\nLying\nWall Leaning\n```\n\n不要所有僵尸：\n\n直挺挺站在街上。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/ai.ts",
+        "src/simulation/navigation.ts",
+        "src/simulation/population.ts",
+        "src/rendering/characters.ts"
+      ],
+      "evidence": [
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "按类型/场景分配站立、呼吸、抽动、低头、巡视、进食、坐姿、躺卧和靠墙表现。"
+    },
+    {
+      "id": 28,
+      "title": "僵尸场景状态",
+      "requirements": "# 28. 僵尸场景状态\n\n在生成时随机分配合理：\n\n```text\nScene Behavior\n```\n\n例如：\n\n```text\n趴在尸体上进食\n靠墙\n坐在地上\n躺在房间中\n缓慢游荡\n撞击门\n低头站立\n```\n\n玩家靠近后：\n\n进入正常 AI 状态。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/ai.ts",
+        "src/simulation/navigation.ts",
+        "src/simulation/population.ts",
+        "src/rendering/characters.ts"
+      ],
+      "evidence": [
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "进食、靠墙、坐卧、慢行、敲门等初始场景状态进入感知后转换为正常 AI，重载保留状态。"
+    },
+    {
+      "id": 29,
+      "title": "僵尸追击",
+      "requirements": "# 29. 僵尸追击\n\n追击过程：\n\n根据：\n\n```text\n类型\n距离\n障碍\n受伤状态\n```\n\n改变。\n\n僵尸不能：\n\n```text\n永远保持完全相同速度\n```\n\n可以出现：\n\n```text\n短暂爆发\n跌跌撞撞\n冲刺\n失衡\n绕障碍\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/ai.ts",
+        "src/simulation/navigation.ts",
+        "src/simulation/population.ts",
+        "src/rendering/characters.ts"
+      ],
+      "evidence": [
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "追击按类型、距离、伤腿、爆发周期、障碍和拥挤改变速度；近身攻击范围内停止持续挤向相机。"
+    },
+    {
+      "id": 30,
+      "title": "僵尸攻击",
+      "requirements": "# 30. 僵尸攻击\n\n攻击必须：\n\n拥有明确：\n\n```text\nWindup\nAttack\nHit Frame\nRecovery\n```\n\n伤害：\n\n仅在：\n\n```text\nHit Frame\n```\n\n判定。\n\n禁止：\n\n动画刚开始：\n\n玩家已经扣血。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/ai.ts",
+        "src/simulation/navigation.ts",
+        "src/simulation/population.ts",
+        "src/rendering/characters.ts"
+      ],
+      "evidence": [
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "windup、命中帧、attack、recovery 明确；只在命中帧按距离/角度/LOS 判一次伤害，玩家可后退闪避。"
+    },
+    {
+      "id": 31,
+      "title": "攻击可读性",
+      "requirements": "# 31. 攻击可读性\n\n玩家必须能够：\n\n通过动作判断：\n\n```text\n僵尸即将攻击\n```\n\n但不要像 MMORPG：\n\n蓄力三秒。\n\n需要：\n\n真实、快速、仍然可理解。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/ai.ts",
+        "src/simulation/navigation.ts",
+        "src/simulation/population.ts",
+        "src/rendering/characters.ts"
+      ],
+      "evidence": [
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "攻击有约 0.27–0.46 秒前摇和身体/手臂准备动作，攻击后恢复，未采用长蓄力圈提示。"
+    },
+    {
+      "id": 32,
+      "title": "Hit Reaction",
+      "requirements": "# 32. Hit Reaction\n\n这是本阶段重点。\n\n僵尸受到：\n\n```text\n近战\n手枪\n霰弹枪\n步枪\n爆炸\n```\n\n攻击时：\n\n反应必须不同。\n\n至少考虑：\n\n```text\nHit Direction\nHit Body Part\nDamage\nWeapon Power\nCurrent Animation\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/hit-zones.ts",
+        "src/simulation/combat.ts",
+        "src/simulation/ai.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "tests/phase2-hit-zones.test.ts",
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "近战、手枪、步枪、霰弹和爆炸按方向、区域、伤害与冲击力产生不同骨骼反应及失衡结果。"
+    },
+    {
+      "id": 33,
+      "title": "Directional Hit Reaction",
+      "requirements": "# 33. Directional Hit Reaction\n\n如果击中：\n\n```text\nLeft\nRight\nFront\nBack\nHead\nLeg\nArm\n```\n\n使用不同：\n\n```text\nHit Reaction\n```\n\n或：\n\n```text\nProcedural Reaction\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/hit-zones.ts",
+        "src/simulation/combat.ts",
+        "src/simulation/ai.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "tests/phase2-hit-zones.test.ts",
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "真实骨骼头/胸/臂/腿胶囊参与命中；前后左右方向施加不同躯干/头/肢体反应，修复驼背模型与静态头高不符。"
+    },
+    {
+      "id": 34,
+      "title": "Stagger",
+      "requirements": "# 34. Stagger\n\n较强攻击：\n\n可能：\n\n```text\nStagger\n```\n\n例如：\n\n```text\n霰弹枪近距离\n重型近战武器\n爆炸冲击\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/hit-zones.ts",
+        "src/simulation/combat.ts",
+        "src/simulation/ai.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "tests/phase2-hit-zones.test.ts",
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "高冲击产生 stagger 与恢复时间，影响攻击和移动，不仅播放无业务效果的抖动。"
+    },
+    {
+      "id": 35,
+      "title": "Knockdown",
+      "requirements": "# 35. Knockdown\n\n高冲击力：\n\n可能：\n\n```text\nKnockdown\n```\n\n倒地后：\n\n僵尸可能：\n\n```text\n重新爬起来\n```\n\n增加：\n\n```text\nGetUp Animation\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/hit-zones.ts",
+        "src/simulation/combat.ts",
+        "src/simulation/ai.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "tests/phase2-hit-zones.test.ts",
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "更高冲击触发 knockdown，倒地保持后经 getup 恢复，实机捕获倒地和起身阶段。"
+    },
+    {
+      "id": 36,
+      "title": "Limb Damage",
+      "requirements": "# 36. Limb Damage\n\n如果现有架构允许：\n\n加入：\n\n```text\nLimb Damage\n```\n\n例如：\n\n腿部严重损伤：\n\n```text\n移动速度下降\n拖腿\n跌倒\n```\n\n手臂损伤：\n\n攻击能力降低。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/hit-zones.ts",
+        "src/simulation/combat.ts",
+        "src/simulation/ai.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "tests/phase2-hit-zones.test.ts",
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "腿伤影响移动和拖腿/跌倒，手臂伤影响攻击；区域损伤与伤势一起持久化。"
+    },
+    {
+      "id": 37,
+      "title": "僵尸死亡",
+      "requirements": "# 37. 僵尸死亡\n\n避免：\n\n所有敌人使用同一个死亡动画。\n\n至少根据：\n\n```text\nHit Direction\nDamage Type\nBody State\n```\n\n选择：\n\n多个死亡变化。\n\n可以结合：\n\n```text\nAnimation\n+\nLimited Ragdoll\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/hit-zones.ts",
+        "src/simulation/combat.ts",
+        "src/simulation/ai.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "tests/phase2-hit-zones.test.ts",
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "根据命中方向、冲击及当前身体状态选择多种死亡，最终冻结不同骨骼姿态并保留尸体搜刮。"
+    },
+    {
+      "id": 38,
+      "title": "Ragdoll",
+      "requirements": "# 38. Ragdoll\n\n如果技术实现稳定：\n\n死亡后：\n\n允许短时间：\n\n```text\nRagdoll\n```\n\n然后：\n\n冻结姿态。\n\n不要永久模拟大量尸体。\n\n---",
+      "status": "satisfied_by_alternative",
+      "implementation": [
+        "src/simulation/hit-zones.ts",
+        "src/simulation/combat.ts",
+        "src/simulation/ai.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "tests/phase2-hit-zones.test.ts",
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "第 38 节为技术稳定时的条件项。采用骨骼倒地、受击方向与有限程序化死亡后冻结；未引入物理 Ragdoll，也不将其宣称为已实现。"
+    },
+    {
+      "id": 39,
+      "title": "AI Navigation",
+      "requirements": "# 39. AI Navigation\n\n重点测试：\n\n```text\n门\n楼梯\n小房间\n森林\n车辆\n障碍\n狭窄走廊\n```\n\n修复：\n\n```text\n原地打转\n卡墙\n互相挤压\n穿门\n悬空\n疯狂抖动\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/ai.ts",
+        "src/simulation/navigation.ts",
+        "src/simulation/population.ts",
+        "src/rendering/characters.ts"
+      ],
+      "evidence": [
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "碰撞共用门叶/楼梯/室内/树/车辆几何，局部 A* 和通行检测配合分步运动；补了地下弹道、坡道及玩家/敌人实体分离。"
+    },
+    {
+      "id": 40,
+      "title": "Crowd Avoidance",
+      "requirements": "# 40. Crowd Avoidance\n\n多个僵尸追逐玩家时：\n\n不要全部：\n\n完全重合。\n\n增加：\n\n```text\nLocal Avoidance\nSeparation\nSteering\n```\n\n形成：\n\n自然包围。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/ai.ts",
+        "src/simulation/navigation.ts",
+        "src/simulation/population.ts",
+        "src/rendering/characters.ts"
+      ],
+      "evidence": [
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "局部 separation/steering 避免角色重合；攻击距离内停止持续逼近，玩家不能正常 W 穿过活体且可后退脱离。"
+    },
+    {
+      "id": 41,
+      "title": "攀爬 / 翻越",
+      "requirements": "# 41. 攀爬 / 翻越\n\n适当类型的敌人：\n\n可以：\n\n```text\n翻越低矮围栏\n爬过窗户\n跨过障碍\n```\n\n不需要所有僵尸具备完整跑酷系统。\n\n但：\n\n明显可以通过的低矮障碍：\n\n不应该成为绝对安全墙。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/ai.ts",
+        "src/simulation/navigation.ts",
+        "src/simulation/population.ts",
+        "src/rendering/characters.ts"
+      ],
+      "evidence": [
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "适合的类型有低障碍/窗户 traversal 和持续翻越过程；受伤/高障碍继续约束，不提供无限跑酷。"
+    },
+    {
+      "id": 42,
+      "title": "高品质公共免费美术资产",
+      "requirements": "# 42. 高品质公共免费美术资产\n\n当前项目不再坚持：\n\n```text\n所有素材必须自己程序生成\n```\n\n程序化资源仍然可以使用。\n\n但新的优先级改为：\n\n```text\n高品质且授权明确的免费资产\n+\n自有程序化资产\n+\n必要时自制资产\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "THIRD_PARTY_ASSETS.md",
+        "docs/phase2/ASSET_AUDIT.md",
+        "scripts/prepare-characters.mjs",
+        "scripts/prepare-animals.mjs",
+        "scripts/prepare-environment.mjs",
+        "scripts/prepare-weapons.mjs"
+      ],
+      "evidence": [
+        "docs/phase2/ASSET_AUDIT.md",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/production.json"
+      ],
+      "review": "采用明确授权的 Quaternius 人形/动画/动物/武器、Poly Haven 环境和材质、Kenney 声音，保留合适的自制补件。"
+    },
+    {
+      "id": 43,
+      "title": "外部美术资源原则",
+      "requirements": "# 43. 外部美术资源原则\n\n如果存在明显比程序化生成效果更好的：\n\n```text\n免费\nCC0\nPublic Domain\n允许商业使用\n授权清晰\n```\n\n资源：\n\n优先使用高品质外部资源。\n\n特别是：\n\n```text\n角色\n动画\n植被\n石头\n家具\n垃圾\n工具\n车辆\n建筑 Props\n声音\n环境材质\n```\n\n这些资源如果完全由程序员 Primitive 硬搓：\n\n很容易产生廉价感。\n\n没有必要为了“纯程序生成”给自己增加毫无意义的限制。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "THIRD_PARTY_ASSETS.md",
+        "docs/phase2/ASSET_AUDIT.md",
+        "scripts/prepare-characters.mjs",
+        "scripts/prepare-animals.mjs",
+        "scripts/prepare-environment.mjs",
+        "scripts/prepare-weapons.mjs"
+      ],
+      "evidence": [
+        "docs/phase2/ASSET_AUDIT.md",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/production.json"
+      ],
+      "review": "外部骨骼人物、动物、枪械、植被/环境 props 和有机 Foley 已实际替换主要廉价来源，其他结构沿用程序化几何。"
+    },
+    {
+      "id": 44,
+      "title": "资源获取原则",
+      "requirements": "# 44. 资源获取原则\n\n可以主动寻找：\n\n```text\nCC0\nPublic Domain\nRoyalty-Free with commercial use\n明确允许项目使用的免费素材\n```\n\n优先选择：\n\n```text\n统一视觉风格\n高品质\n适合实时游戏\n适合 Web\n合理 Polygon Count\n合理 Texture Size\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "THIRD_PARTY_ASSETS.md",
+        "docs/phase2/ASSET_AUDIT.md",
+        "scripts/prepare-characters.mjs",
+        "scripts/prepare-animals.mjs",
+        "scripts/prepare-environment.mjs",
+        "scripts/prepare-weapons.mjs"
+      ],
+      "evidence": [
+        "docs/phase2/ASSET_AUDIT.md",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/production.json"
+      ],
+      "review": "选择作者原始公开来源、明确允许商用的 CC0/许可模型；按实时 Web 预算挑选并在统一场景光照下检查。"
+    },
+    {
+      "id": 45,
+      "title": "推荐资产类型",
+      "requirements": "# 45. 推荐资产类型\n\n优先外部寻找：\n\n```text\nPBR Ground Materials\nConcrete\nWood\nMetal\nBrick\nAsphalt\nMud\nRock\n\nTrees\nGrass\nBushes\n\nFurniture\nIndustrial Props\nHousehold Props\n\nCharacter Animations\n\nZombie Animations\n\nAmbient Sounds\nFootsteps\nDoors\nWeapons\nEnvironment\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "THIRD_PARTY_ASSETS.md",
+        "docs/phase2/ASSET_AUDIT.md",
+        "scripts/prepare-characters.mjs",
+        "scripts/prepare-animals.mjs",
+        "scripts/prepare-environment.mjs",
+        "scripts/prepare-weapons.mjs"
+      ],
+      "evidence": [
+        "docs/phase2/ASSET_AUDIT.md",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/production.json"
+      ],
+      "review": "已有 PBR 地面/木/金属/混凝土与新布料、树木和家具工业道具、绑定角色/动物、环境与动作声音一起使用。"
+    },
+    {
+      "id": 46,
+      "title": "License",
+      "requirements": "# 46. License\n\n所有外部资源：\n\n必须确认：\n\n```text\nLicense\n```\n\n不得：\n\n```text\n看到免费下载按钮就直接塞进项目\n```\n\n互联网在人类手里已经够混乱了，不需要项目再多一份授权炸弹。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "THIRD_PARTY_ASSETS.md",
+        "docs/phase2/ASSET_AUDIT.md",
+        "scripts/prepare-characters.mjs",
+        "scripts/prepare-animals.mjs",
+        "scripts/prepare-environment.mjs",
+        "scripts/prepare-weapons.mjs"
+      ],
+      "evidence": [
+        "docs/phase2/ASSET_AUDIT.md",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/production.json"
+      ],
+      "review": "资源许可原文/索引、作者来源、转换和校验记录齐备；审计当前 195 个新增二进制及 15 个已有纹理，未发现缺失/未知许可。"
+    },
+    {
+      "id": 47,
+      "title": "THIRD_PARTY_ASSETS.md",
+      "requirements": "# 47. THIRD_PARTY_ASSETS.md\n\n持续维护：\n\n```text\nTHIRD_PARTY_ASSETS.md\n```\n\n记录：\n\n```text\nAsset Name\nAsset Type\nAuthor\nSource\nLicense\nModification\nUsage\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "THIRD_PARTY_ASSETS.md",
+        "docs/phase2/ASSET_AUDIT.md",
+        "scripts/prepare-characters.mjs",
+        "scripts/prepare-animals.mjs",
+        "scripts/prepare-environment.mjs",
+        "scripts/prepare-weapons.mjs"
+      ],
+      "evidence": [
+        "docs/phase2/ASSET_AUDIT.md",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/production.json"
+      ],
+      "review": "THIRD_PARTY_ASSETS.md 记录 Asset/Type/Author/Source/License/Modification/Usage，并链接原包许可、清单与当前审计。"
+    },
+    {
+      "id": 48,
+      "title": "资源优化",
+      "requirements": "# 48. 资源优化\n\n下载的资源：\n\n不能直接无脑使用。\n\n必须根据 Web 游戏需要：\n\n进行：\n\n```text\nMesh Simplification\nTexture Resize\nTexture Compression\nLOD\nMaterial Consolidation\nInstance Optimization\n```\n\n例如：\n\n```text\n8K Texture\n```\n\n如果肉眼没有必要：\n\n降到：\n\n```text\n2K\n1K\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "THIRD_PARTY_ASSETS.md",
+        "docs/phase2/ASSET_AUDIT.md",
+        "scripts/prepare-characters.mjs",
+        "scripts/prepare-animals.mjs",
+        "scripts/prepare-environment.mjs",
+        "scripts/prepare-weapons.mjs",
+        "src/rendering/environment-assets.ts"
+      ],
+      "evidence": [
+        "docs/phase2/ASSET_AUDIT.md",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/production.json",
+        "tests/phase2-environment.test.ts",
+        "docs/phase2/PERFORMANCE.md",
+        "docs/phase2/evidence/transmission-retention-probe.json"
+      ],
+      "review": "按需做网格简化、纹理降采样/WebP/ORM、动画重采样、材质共享和分层实例/LOD；没有直接把全套原包加入首屏。"
+    },
+    {
+      "id": 49,
+      "title": "Asset Style Consistency",
+      "requirements": "# 49. Asset Style Consistency\n\n不要最后变成：\n\n```text\n一棵写实树\n+\n一个 Low Poly 椅子\n+\n一个卡通僵尸\n+\n一个扫描级垃圾桶\n```\n\n所有资产：\n\n必须经过：\n\n```text\nMaterial\nLighting\nColor\nScale\nRoughness\nTexture\n```\n\n统一处理。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "THIRD_PARTY_ASSETS.md",
+        "docs/phase2/ASSET_AUDIT.md",
+        "scripts/prepare-characters.mjs",
+        "scripts/prepare-animals.mjs",
+        "scripts/prepare-environment.mjs",
+        "scripts/prepare-weapons.mjs"
+      ],
+      "evidence": [
+        "docs/phase2/ASSET_AUDIT.md",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/production.json"
+      ],
+      "review": "统一低饱和 PBR、粗糙度、尺寸和环境光；保留风格化低多边形特征，不能将其描述为全写实扫描资产。"
+    },
+    {
+      "id": 50,
+      "title": "场景重新美术化",
+      "requirements": "# 50. 场景重新美术化\n\n对当前：\n\n```text\n森林\n住宅\n城市\n工业区\n军事基地\n道路\n室内\n```\n\n进行：\n\n# Environment Art Pass\n\n重点检查：\n\n```text\n资产重复\n空旷\n材质重复\n比例错误\n缺少生活痕迹\n缺少破败痕迹\n光照平淡\n缺少垂直层次\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/environment-props.ts",
+        "src/rendering/environment-assets.ts",
+        "src/rendering/world-renderer.ts",
+        "src/rendering/vegetation.ts",
+        "src/rendering/buildings.ts"
+      ],
+      "evidence": [
+        "tests/phase2-environment.test.ts",
+        "docs/phase2/ENVIRONMENT.md",
+        "docs/phase2/screenshots/rain-night.png",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "七区域与道路/室内按主轮廓、家具、生活与破败细节重新布置，植物和工业物件分区使用。"
+    },
+    {
+      "id": 51,
+      "title": "Environment Composition",
+      "requirements": "# 51. Environment Composition\n\n每个区域：\n\n必须有：\n\n```text\nPrimary Shape\nSecondary Shape\nDetail Layer\nStory Layer\n```\n\n例如：\n\n废弃卧室：\n\n```text\n床 + 衣柜\n↓\n桌椅 + 箱子\n↓\n书籍 + 衣服 + 瓶子\n↓\n血迹 + 打翻家具 + 照片 + 文件\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/environment-props.ts",
+        "src/rendering/environment-assets.ts",
+        "src/rendering/world-renderer.ts",
+        "src/rendering/vegetation.ts",
+        "src/rendering/buildings.ts"
+      ],
+      "evidence": [
+        "tests/phase2-environment.test.ts",
+        "docs/phase2/ENVIRONMENT.md",
+        "docs/phase2/screenshots/rain-night.png",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "房间按主要家具、次级物件、散落细节与叙事层组合；保持门口/楼梯通行，外部道具与碰撞用共享描述。"
+    },
+    {
+      "id": 52,
+      "title": "Environmental Storytelling",
+      "requirements": "# 52. Environmental Storytelling\n\n继续强化：\n\n```text\n无需文字即可理解的故事\n```\n\n例如：\n\n一个房子里：\n\n```text\n堵住的大门\n桌上的食物\n地上的血迹\n二楼锁住的卧室\n卧室里的尸体\n旁边空药瓶\n```\n\n玩家：\n\n自然产生：\n\n```text\n这里发生了什么？\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/environment-props.ts",
+        "src/rendering/environment-assets.ts",
+        "src/rendering/world-renderer.ts",
+        "src/rendering/vegetation.ts",
+        "src/rendering/buildings.ts"
+      ],
+      "evidence": [
+        "tests/phase2-environment.test.ts",
+        "docs/phase2/ENVIRONMENT.md",
+        "docs/phase2/screenshots/rain-night.png",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "撤离餐桌、医院隔离、倒架、封条、失踪者遗留物、承包商工业痕迹和地下实验空间承接主支线信息。"
+    },
+    {
+      "id": 53,
+      "title": "游戏玩法继续丰富",
+      "requirements": "# 53. 游戏玩法继续丰富\n\n当前玩法已经存在的系统：\n\n不要仅停留在：\n\n```text\n存在\n```\n\n而要继续提高：\n\n```text\n深度\n关联\n选择\n风险\n奖励\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/data/items.ts",
+        "src/data/loot.ts",
+        "src/simulation/building.ts",
+        "src/simulation/simulation.ts",
+        "src/simulation/world-events.ts"
+      ],
+      "evidence": [
+        "tests/phase2-survival-depth.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "加深现有搜刮、营地、烹饪、狩猎交易、车辆、天气与资源循环；修复收获吞种子和天气切换作物倒退。"
+    },
+    {
+      "id": 54,
+      "title": "Gameplay Interaction",
+      "requirements": "# 54. Gameplay Interaction\n\n系统之间增加联系。\n\n例如：\n\n```text\n雨\n↓\n衣服湿\n↓\n体温下降\n↓\n需要篝火\n↓\n篝火产生光\n↓\n光可能被敌人发现\n↓\n火产生烟\n↓\n远处可能看到\n```\n\n再例如：\n\n```text\n枪战\n↓\n巨大噪音\n↓\n附近感染者被吸引\n↓\n玩家弹药消耗\n↓\n不得不撤离\n```\n\n游戏深度来自：\n\n```text\n系统交互\n```\n\n而不是：\n\n```text\n菜单数量\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/data/items.ts",
+        "src/data/loot.ts",
+        "src/simulation/building.ts",
+        "src/simulation/simulation.ts",
+        "src/simulation/world-events.ts"
+      ],
+      "evidence": [
+        "tests/phase2-survival-depth.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "雨/遮蔽/湿度/体温/火源、火光与噪声感知、枪声与调查、手电电量/供电、狩猎交易燃料相互关联。"
+    },
+    {
+      "id": 55,
+      "title": "搜刮体验",
+      "requirements": "# 55. 搜刮体验\n\nLoot 不要：\n\n```text\n打开箱子\n看到随机列表\n关闭\n```\n\n增加搜刮过程中的：\n\n```text\n视觉反馈\n声音反馈\n搜索时间\n危险感\n物品布局\n稀有物提示\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/actions.ts",
+        "src/core/game.ts",
+        "src/rendering/objects.ts",
+        "src/ui/ui.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/components.json",
+        "tests/phase2-actions.test.ts"
+      ],
+      "review": "初次搜索与重开时间不同，期间世界继续；手部/箱盖/声音/进度、稀有提示与网格布局给出反馈，可取消且不重复领取。"
+    },
+    {
+      "id": 56,
+      "title": "搜刮逻辑",
+      "requirements": "# 56. 搜刮逻辑\n\n不同区域：\n\nLoot 差异必须明显。\n\n玩家应该逐渐学习：\n\n```text\n想找药\n→ 去诊所\n\n想找工具\n→ 去车库\n\n想找武器\n→ 去警察局 / 军事区域\n\n想找食物\n→ 超市 / 民宅\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/data/items.ts",
+        "src/data/loot.ts",
+        "src/simulation/building.ts",
+        "src/simulation/simulation.ts",
+        "src/simulation/world-events.ts"
+      ],
+      "evidence": [
+        "tests/phase2-survival-depth.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "区域和 POI 类型决定医疗/食物/工具/工业/军事掉落，沿用可学习的定点类别，不用所有地点统一随机表。"
+    },
+    {
+      "id": 57,
+      "title": "探索奖励",
+      "requirements": "# 57. 探索奖励\n\n探索应该获得：\n\n```text\n装备\n资源\n故事\n新地点\n隐藏路线\n环境秘密\n安全屋\n特殊制作配方\n```\n\n不要：\n\n每个地点最终都是：\n\n```text\n三个罐头 + 两块布\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/data/items.ts",
+        "src/data/loot.ts",
+        "src/simulation/building.ts",
+        "src/simulation/simulation.ts",
+        "src/simulation/world-events.ts"
+      ],
+      "evidence": [
+        "tests/phase2-survival-depth.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "探索获得装备与故事、真实 POI 发现、四条支线路线、避难所与三张配方，并用于结局资格。"
+    },
+    {
+      "id": 58,
+      "title": "Unique Loot",
+      "requirements": "# 58. Unique Loot\n\n增加少量：\n\n```text\nUnique Items\n```\n\n例如：\n\n```text\n特殊武器\n实验设备\n故事道具\n高级工具\n特殊背包\n特殊护甲\n```\n\n获得方式：\n\n与特定 POI 联系。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/data/items.ts",
+        "src/data/loot.ts",
+        "src/simulation/building.ts",
+        "src/simulation/simulation.ts",
+        "src/simulation/world-events.ts"
+      ],
+      "evidence": [
+        "tests/phase2-survival-depth.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "指定 POI 放置渡鸦侦察员护甲、R-07 净化注射器、老矿工的隔寒外套；另有故事档案/罕见残骸奖励，唯一物迁移不重复刷新已搜箱。"
+    },
+    {
+      "id": 59,
+      "title": "战斗体验",
+      "requirements": "# 59. 战斗体验\n\n重新测试：\n\n```text\nMelee\nPistol\nShotgun\nRifle\n```\n\n每种：\n\n必须有不同手感。\n\n优化：\n\n```text\nSound\nAnimation\nRecoil\nImpact\nHit Reaction\nCamera\nParticles\nReload\nWeapon Motion\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/weapon.ts",
+        "src/rendering/weapon-assets.ts",
+        "src/rendering/view-arms.ts",
+        "src/simulation/combat.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "实际用枪与近战完成生存链路；各枪音色/后坐/ADS/部件不同，内置弹仓逐发装填，霰弹有泵动而非假换弹匣。"
+    },
+    {
+      "id": 60,
+      "title": "枪械声音",
+      "requirements": "# 60. 枪械声音\n\n枪械声音不能只有单层：\n\n```text\nBang.wav\n```\n\n应组合：\n\n```text\nMechanical\nMuzzle\nTail\nEnvironment Reflection\nIndoor / Outdoor Difference\n```\n\n如果资源允许：\n\n室内射击：\n\n必须明显更震撼。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/audio/audio.ts",
+        "src/audio/catalog.ts",
+        "src/audio/palette.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "docs/phase2/AUDIO.md",
+        "tests/phase2-audio.test.ts",
+        "docs/phase2/evidence/opening.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "枪声由机械、枪口、尾音和空间反射层组合；室内外混响/滤波不同，持枪动作同步机械声音。"
+    },
+    {
+      "id": 61,
+      "title": "Bullet Impact",
+      "requirements": "# 61. Bullet Impact\n\n不同材质：\n\n```text\nWood\nMetal\nConcrete\nDirt\nGlass\nFlesh\n```\n\n需要不同：\n\n```text\nSound\nParticle\nDecal\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/hit-zones.ts",
+        "src/simulation/combat.ts",
+        "src/simulation/ai.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "tests/phase2-hit-zones.test.ts",
+        "tests/phase2-ai.test.ts",
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "木/金属/混凝土/泥地/玻璃/肉体分别选择声音、粒子与贴花；采用实际射线法线，地下弹道与爆炸按当前楼层。"
+    },
+    {
+      "id": 62,
+      "title": "Melee Impact",
+      "requirements": "# 62. Melee Impact\n\n近战命中：\n\n加入：\n\n```text\nWeapon Motion\nHit Stop 极轻微\nCamera Reaction\nSound\nBlood / Impact\nEnemy Reaction\n```\n\n让玩家明确感受到：\n\n```text\n击中了\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/weapon.ts",
+        "src/rendering/weapon-assets.ts",
+        "src/rendering/view-arms.ts",
+        "src/simulation/combat.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "确认近战接触后才触发极短武器停顿/回弹、轻微镜头、声音与伤害/血迹；不冻结鼠标或全世界。"
+    },
+    {
+      "id": 63,
+      "title": "故事线完整重构",
+      "requirements": "# 63. 故事线完整重构\n\n当前游戏世界观：\n\n```text\nAshfall Protocol\nGreyvale\nBiological Incident\nContainment\nSecret Research\n```\n\n必须发展成：\n\n# 完整主线剧情\n\n不是：\n\n```text\n散落几张文件\n↓\n最后打开实验室\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/narrative-system.ts",
+        "src/narrative/content.ts",
+        "src/narrative/quests.ts",
+        "src/ui/narrative-view.ts",
+        "src/rendering/narrative-world.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative.test.ts",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/sidequests.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "Ashfall 主线重写为可行动的四幕调查和终局选择，现场 NPC/终端、证据、物资与世界变化共同推进。"
+    },
+    {
+      "id": 64,
+      "title": "主线剧情结构",
+      "requirements": "# 64. 主线剧情结构\n\n至少设计：\n\n```text\nAct 1\nAct 2\nAct 3\nAct 4\nFinale\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/narrative-system.ts",
+        "src/narrative/content.ts",
+        "src/narrative/quests.ts",
+        "src/ui/narrative-view.ts",
+        "src/rendering/narrative-world.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative.test.ts",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/sidequests.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "Act 1 未撤离的人、Act 2 名字与编号、Act 3 归零、Act 4 地下八米、Finale 均有目标和前置条件。"
+    },
+    {
+      "id": 65,
+      "title": "Act 1",
+      "requirements": "# 65. Act 1\n\n主题：\n\n```text\n生存\n```\n\n玩家刚进入 Greyvale。\n\n目标：\n\n```text\n寻找食物\n建立安全点\n理解环境\n寻找广播信号\n```\n\n剧情：\n\n发现：\n\n政府所谓的：\n\n```text\n完全撤离\n```\n\n明显是谎言。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/narrative-system.ts",
+        "src/narrative/content.ts",
+        "src/narrative/quests.ts",
+        "src/ui/narrative-view.ts",
+        "src/rendering/narrative-world.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative.test.ts",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/sidequests.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "获取食物、消除林务站附近威胁、建立安全点、接通接收机；循环撤离通告与仍在场的幸存者形成矛盾。"
+    },
+    {
+      "id": 66,
+      "title": "Act 2",
+      "requirements": "# 66. Act 2\n\n主题：\n\n```text\n调查\n```\n\n玩家找到：\n\n```text\n军方记录\n医疗文件\n失踪人员\n研究资料\n```\n\n发现：\n\n事件并非普通疾病。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/narrative-system.ts",
+        "src/narrative/content.ts",
+        "src/narrative/quests.ts",
+        "src/ui/narrative-view.ts",
+        "src/rendering/narrative-world.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative.test.ts",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/sidequests.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "核验诊所、军方、动力车间、市立医院材料，将医疗批次、提前采购、撤防与失踪转运关联。"
+    },
+    {
+      "id": 67,
+      "title": "Act 3",
+      "requirements": "# 67. Act 3\n\n主题：\n\n```text\nAshfall\n```\n\n玩家了解到：\n\n```text\nASHFALL PROTOCOL\n```\n\n并不是：\n\n救援计划。\n\n而是：\n\n```text\nContainment Cleanup Protocol\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/narrative-system.ts",
+        "src/narrative/content.ts",
+        "src/narrative/quests.ts",
+        "src/ui/narrative-view.ts",
+        "src/rendering/narrative-world.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative.test.ts",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/sidequests.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "雷达控制室解码后用广播、警报光和引擎镜头揭示 Ashfall 是归零清理协议。"
+    },
+    {
+      "id": 68,
+      "title": "Act 4",
+      "requirements": "# 68. Act 4\n\n主题：\n\n```text\n真相\n```\n\n进入：\n\n```text\n地下研究设施\n```\n\n了解到：\n\n灾难源于：\n\n```text\n失败的人体适应性实验\n```\n\n但加入更复杂：\n\n```text\n军方\n研究机构\n当地政府\n私人承包商\n```\n\n之间的关系。\n\n不要：\n\n把剧情写成简单：\n\n```text\n邪恶博士造病毒\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/narrative-system.ts",
+        "src/narrative/content.ts",
+        "src/narrative/quests.ts",
+        "src/ui/narrative-view.ts",
+        "src/rendering/narrative-world.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative.test.ts",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/sidequests.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "真实地下八米设施可进入和战斗；分别调查军方/研究/政府/承包商四终端，再复制完整档案，地面旧文档不能提前获得真相。"
+    },
+    {
+      "id": 69,
+      "title": "Finale",
+      "requirements": "# 69. Finale\n\n最终：\n\n玩家面对：\n\n至少一个重大选择。\n\n例如：\n\n```text\n公开研究资料\n\n销毁所有资料\n\n启动 Ashfall 最终程序\n\n关闭系统并留在 Greyvale\n```\n\n选择影响：\n\n```text\nEnding\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/narrative-system.ts",
+        "src/narrative/content.ts",
+        "src/narrative/quests.ts",
+        "src/ui/narrative-view.ts",
+        "src/rendering/narrative-world.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative.test.ts",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/sidequests.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "控制台明确显示选择后果与缺失条件；隔离清理回路后可公开、销毁或关闭系统，成功选择写入持久状态。"
+    },
+    {
+      "id": 70,
+      "title": "多结局",
+      "requirements": "# 70. 多结局\n\n至少设计：\n\n```text\n3 个结局\n```\n\n例如：\n\n```text\nTruth Ending\nAsh Ending\nSurvivor Ending\n```\n\n根据：\n\n```text\n探索程度\n关键任务\n最终选择\n```\n\n触发。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/narrative-system.ts",
+        "src/narrative/content.ts",
+        "src/narrative/quests.ts",
+        "src/ui/narrative-view.ts",
+        "src/rendering/narrative-world.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative.test.ts",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/sidequests.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "三个结局分别检查证词/中继/探索、实际燃料、猎人退路/避难所供水；真实按钮完整走到三个结束页并可继续生存。"
+    },
+    {
+      "id": 71,
+      "title": "Side Story",
+      "requirements": "# 71. Side Story\n\n增加：\n\n```text\n5-10 条\n```\n\n小型故事线。\n\n例如：\n\n```text\n失踪的医生\n猎人一家\n被遗弃的检查站\n掠夺者首领\n广播电台幸存者\n地下避难所\n军官日志\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/narrative-system.ts",
+        "src/narrative/content.ts",
+        "src/narrative/quests.ts",
+        "src/ui/narrative-view.ts",
+        "src/rendering/narrative-world.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative.test.ts",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/sidequests.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "七支线各有委托、异地行动、返回交付与奖励：医生、猎人、检查站、掠夺者、广播、避难所、军官；新世界 21 步实机完成。"
+    },
+    {
+      "id": 72,
+      "title": "Narrative Delivery",
+      "requirements": "# 72. Narrative Delivery\n\n剧情呈现方式组合：\n\n```text\nEnvironmental Storytelling\nNotes\nComputers\nRadio\nAudio Logs\nNPC\nScripted Events\nCinematics\n```\n\n不要完全依赖：\n\n文字文件。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/narrative-system.ts",
+        "src/narrative/content.ts",
+        "src/narrative/quests.ts",
+        "src/ui/narrative-view.ts",
+        "src/rendering/narrative-world.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative.test.ts",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/sidequests.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "现场故事、旧文件与新增终端、广播、可回放完整录音、NPC、现场事件及引擎过场组合；中文文本与 45 条合成配音一致。"
+    },
+    {
+      "id": 73,
+      "title": "过场动画",
+      "requirements": "# 73. 过场动画\n\n允许新增：\n\n```text\nCinematic System\n```\n\n但过场动画：\n\n不应该频繁打断玩家。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/sequence-controller.ts",
+        "src/narrative/sequences.ts",
+        "src/rendering/narrative-world.ts",
+        "src/core/game.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative-sequence.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/opening.json",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "阻塞序列用于关键叙事节点，普通现场事件不抢控制；暂停/跳过/重载/继续生存有实际行为与回归测试。"
+    },
+    {
+      "id": 74,
+      "title": "Cinematic 类型",
+      "requirements": "# 74. Cinematic 类型\n\n优先：\n\n```text\nIn-Engine Cinematic\n```\n\n不要制作预渲染视频。\n\n使用游戏实际：\n\n```text\nCamera\nCharacter\nLighting\nAnimation\nAudio\n```\n\n完成。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/sequence-controller.ts",
+        "src/narrative/sequences.ts",
+        "src/rendering/narrative-world.ts",
+        "src/core/game.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative-sequence.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/opening.json",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "使用实时相机、实际角色/场景灯、动作、声音和粒子，没有预渲染视频。"
+    },
+    {
+      "id": 75,
+      "title": "过场动画场景",
+      "requirements": "# 75. 过场动画场景\n\n建议至少：\n\n```text\nOpening\nFirst Major Discovery\nAshfall Reveal\nResearch Facility Reveal\nFinale\nEnding\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/sequence-controller.ts",
+        "src/narrative/sequences.ts",
+        "src/rendering/narrative-world.ts",
+        "src/core/game.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative-sequence.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/opening.json",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "十个序列覆盖开场、关键发现、Ashfall、研究设施、Finale、三结局和两种现场事件。"
+    },
+    {
+      "id": 76,
+      "title": "Opening",
+      "requirements": "# 76. Opening\n\n新游戏开始：\n\n可以增加短过场。\n\n例如：\n\n```text\n黑屏\n↓\n事故声音\n↓\n闪烁灯光\n↓\n玩家缓慢恢复意识\n↓\n运输车辆残骸\n↓\n远处烟柱\n↓\n控制权交给玩家\n```\n\n时间控制：\n\n```text\n30-90 秒\n```\n\n不要十分钟电影开局。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/sequence-controller.ts",
+        "src/narrative/sequences.ts",
+        "src/rendering/narrative-world.ts",
+        "src/core/game.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative-sequence.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/opening.json",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "新游戏约 42 秒事故与运输残骸开场，可立即跳过；恢复控制、已看标记和停止旧配音均实机验证。"
+    },
+    {
+      "id": 77,
+      "title": "In-Game Scripted Events",
+      "requirements": "# 77. In-Game Scripted Events\n\n比传统 Cutscene 更重要。\n\n例如：\n\n玩家进入超市：\n\n```text\n远处货架倒下\n↓\n声音吸引感染者\n```\n\n进入军事基地：\n\n```text\n警报突然启动\n↓\n应急灯开启\n↓\n大量感染者被吸引\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/sequence-controller.ts",
+        "src/narrative/sequences.ts",
+        "src/rendering/narrative-world.ts",
+        "src/core/game.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative-sequence.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/opening.json",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "超市货架实际倒下并更新碰撞/噪声，要塞警报驱动灯光和 AI 调查；不只是字幕提示。"
+    },
+    {
+      "id": 78,
+      "title": "Scripted Sequence System",
+      "requirements": "# 78. Scripted Sequence System\n\n建立：\n\n```text\nSequenceController\n```\n\n支持：\n\n```text\nCamera\nAudio\nDialogue\nAnimation\nLighting\nAI Trigger\nDoor\nExplosion\nParticle\nObjective\n```\n\n便于：\n\n后续制作剧情。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/sequence-controller.ts",
+        "src/narrative/sequences.ts",
+        "src/rendering/narrative-world.ts",
+        "src/core/game.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative-sequence.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/opening.json",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "SequenceController 支持 camera/audio/dialogue/animation/lighting/AI/trigger/door/explosion/particle/objective；持久 cue 通过幂等确认落到真实世界。"
+    },
+    {
+      "id": 79,
+      "title": "Cutscene Skip",
+      "requirements": "# 79. Cutscene Skip\n\n所有过场：\n\n必须支持：\n\n```text\nSkip\n```\n\n已经观看的过场：\n\n可立即跳过。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/narrative/sequence-controller.ts",
+        "src/narrative/sequences.ts",
+        "src/rendering/narrative-world.ts",
+        "src/core/game.ts"
+      ],
+      "evidence": [
+        "tests/phase2-narrative-sequence.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/opening.json",
+        "docs/phase2/evidence/narrative-live.json",
+        "docs/phase2/evidence/endings.json"
+      ],
+      "review": "所有阻塞过场提供 Skip；跳过应用必要最终场景状态、停止声音、写已看，重载可恢复未完时间轴且不重发奖励。"
+    },
+    {
+      "id": 80,
+      "title": "音频品质升级",
+      "requirements": "# 80. 音频品质升级\n\n完整检查：\n\n```text\nFootsteps\nWeapons\nDoors\nZombie\nEnvironment\nWeather\nUI\nVehicles\nIndoor\nOutdoor\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/audio/audio.ts",
+        "src/audio/catalog.ts",
+        "src/audio/palette.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "docs/phase2/AUDIO.md",
+        "tests/phase2-audio.test.ts",
+        "docs/phase2/evidence/opening.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "完整声音层覆盖脚步、枪械、门、感染者、环境、天气、UI、车辆与空间混响；听取输出并检查解码/声部预算。"
+    },
+    {
+      "id": 81,
+      "title": "Footstep",
+      "requirements": "# 81. Footstep\n\n脚步：\n\n必须根据：\n\n```text\nSurface\nSpeed\nPlayer Weight\nStance\n```\n\n变化。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/audio/audio.ts",
+        "src/audio/catalog.ts",
+        "src/audio/palette.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "docs/phase2/AUDIO.md",
+        "tests/phase2-audio.test.ts",
+        "docs/phase2/evidence/opening.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "按表面、实际步距、速度、姿态与负重改变脚步节奏、音高/音量，不使用单固定间隔。"
+    },
+    {
+      "id": 82,
+      "title": "Zombie Audio",
+      "requirements": "# 82. Zombie Audio\n\n僵尸声音：\n\n根据状态：\n\n```text\nIdle\nAlert\nSearch\nChase\nAttack\nHit\nDeath\n```\n\n不同。\n\n不要：\n\n每三秒重复同一个：\n\n```text\nZombieGroan01\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/audio/audio.ts",
+        "src/audio/catalog.ts",
+        "src/audio/palette.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "docs/phase2/AUDIO.md",
+        "tests/phase2-audio.test.ts",
+        "docs/phase2/evidence/opening.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "感染者 idle/alert/search/chase/attack/hit/death 使用状态化声音，变化与冷却避免固定三秒循环同一音。"
+    },
+    {
+      "id": 83,
+      "title": "Audio Variation",
+      "requirements": "# 83. Audio Variation\n\n同类型声音：\n\n准备多个 Variation。\n\n同时加入：\n\n```text\nPitch Randomization\nVolume Randomization\nCooldown\n```\n\n避免重复感。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/audio/audio.ts",
+        "src/audio/catalog.ts",
+        "src/audio/palette.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "docs/phase2/AUDIO.md",
+        "tests/phase2-audio.test.ts",
+        "docs/phase2/evidence/opening.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "多个文件变化、非连续重复选择、音高/音量微变化、冷却与声部上限共同控制重复和资源。"
+    },
+    {
+      "id": 84,
+      "title": "环境混响",
+      "requirements": "# 84. 环境混响\n\n重点区域：\n\n```text\nSmall Room\nLarge Room\nHallway\nTunnel\nOutdoor\nForest\n```\n\n使用不同：\n\n```text\nReverb / Audio Processing\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/audio/audio.ts",
+        "src/audio/catalog.ts",
+        "src/audio/palette.ts",
+        "src/rendering/effects.ts"
+      ],
+      "evidence": [
+        "docs/phase2/AUDIO.md",
+        "tests/phase2-audio.test.ts",
+        "docs/phase2/evidence/opening.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "小房间、大空间、走廊、地下通道、户外和森林采用不同 reverb/filter；地下按真实 y/地表差识别，NPC 现场音与录音回放分开。"
+    },
+    {
+      "id": 85,
+      "title": "UI UX Polish",
+      "requirements": "# 85. UI UX Polish\n\n重新检查：\n\n```text\nHUD\nInventory\nInteraction\nCrafting\nMap\nSettings\nDamage Feedback\nStatus Feedback\n```\n\n原则：\n\n```text\n信息清楚\n动画自然\n响应快速\n视觉统一\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/ui/ui.ts",
+        "src/ui/inventory-view.ts",
+        "src/ui/styles.css",
+        "src/ui/panels.css",
+        "src/simulation/inventory.ts"
+      ],
+      "evidence": [
+        "tests/phase2-inventory-placement.test.ts",
+        "docs/phase2/evidence/quality-ui.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "保留原有设计系统，优化 HUD/动作条/日志/制作/地图/设置；受伤与状态有多通道反馈，920/1280/1600 宽实测无横向溢出。"
+    },
+    {
+      "id": 86,
+      "title": "UI Animation",
+      "requirements": "# 86. UI Animation\n\n菜单：\n\n不要：\n\n```text\ndisplay:none\n↓\ndisplay:block\n```\n\n所有核心 UI：\n\n加入适度：\n\n```text\nFade\nSlide\nScale\n```\n\n动画。\n\n持续时间：\n\n短。\n\n不要拖慢操作。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/ui/ui.ts",
+        "src/ui/inventory-view.ts",
+        "src/ui/styles.css",
+        "src/ui/panels.css",
+        "src/simulation/inventory.ts"
+      ],
+      "evidence": [
+        "tests/phase2-inventory-placement.test.ts",
+        "docs/phase2/evidence/quality-ui.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "核心面板短进退动画，仅切换页面播放；内部库存更新不重播，关闭即时恢复操作，游戏及 OS reduced-motion 均尊重。"
+    },
+    {
+      "id": 87,
+      "title": "Inventory Feedback",
+      "requirements": "# 87. Inventory Feedback\n\n移动物品：\n\n需要：\n\n```text\nHover\nDrag\nDrop\nInvalid\nStack\nSplit\nEquip\n```\n\n视觉反馈。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/ui/ui.ts",
+        "src/ui/inventory-view.ts",
+        "src/ui/styles.css",
+        "src/ui/panels.css",
+        "src/simulation/inventory.ts"
+      ],
+      "evidence": [
+        "tests/phase2-inventory-placement.test.ts",
+        "docs/phase2/evidence/quality-ui.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "Hover、拖拽足迹、红绿落点、旋转、堆叠/拆分/装备和无效反馈完整；跨容器真实 HTML drag/drop 保留指定落点。"
+    },
+    {
+      "id": 88,
+      "title": "Damage Feedback",
+      "requirements": "# 88. Damage Feedback\n\n受到攻击：\n\n不仅减少 HUD 数字。\n\n加入：\n\n```text\nSound\nCamera Reaction\nCharacter Reaction\nStatus Icon\nBlood Effect\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/ui/ui.ts",
+        "src/ui/inventory-view.ts",
+        "src/ui/styles.css",
+        "src/ui/panels.css",
+        "src/simulation/inventory.ts"
+      ],
+      "evidence": [
+        "tests/phase2-inventory-placement.test.ts",
+        "docs/phase2/evidence/quality-ui.json",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "受伤事件同步音效、轻微镜头/身体反应、方向/血迹和状态图标；实际流血、包扎与恢复通过。"
+    },
+    {
+      "id": 89,
+      "title": "世界细节",
+      "requirements": "# 89. 世界细节\n\n继续主动增加：\n\n```text\n树叶掉落\n风吹垃圾\n路牌晃动\n灯泡闪烁\n电线晃动\n远处鸟群\n乌鸦\n烟柱\n灰尘\n雾气\n飞虫\n水滴\n漏水\n蒸汽\n```\n\n但：\n\n必须通过：\n\n```text\nDistance Culling\nLOD\nPooling\n```\n\n控制性能。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/environment-props.ts",
+        "src/rendering/environment-assets.ts",
+        "src/rendering/world-renderer.ts",
+        "src/rendering/vegetation.ts",
+        "src/rendering/buildings.ts"
+      ],
+      "evidence": [
+        "tests/phase2-environment.test.ts",
+        "docs/phase2/ENVIRONMENT.md",
+        "docs/phase2/screenshots/rain-night.png",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "按区域配置风动植被/散物、晃牌、电线、鸟群、烟、尘、雾、飞虫、滴水与蒸汽，距离剔除、池化及画质密度限制开销。"
+    },
+    {
+      "id": 90,
+      "title": "Weather Detail",
+      "requirements": "# 90. Weather Detail\n\n雨天：\n\n进一步增加：\n\n```text\nRoof Rain Sound\nMetal Rain Sound\nWindow Rain\nWater Drip\nPuddle\nWet Material\nVehicle Wetness\nWeapon Wetness\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/environment.ts",
+        "src/rendering/environment-props.ts",
+        "src/rendering/weapon.ts",
+        "src/simulation/simulation.ts",
+        "src/audio/audio.ts"
+      ],
+      "evidence": [
+        "tests/phase2-survival-depth.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/quality-ui.json",
+        "docs/phase2/screenshots/rain-night.png"
+      ],
+      "review": "屋顶/金属雨声、窗雨、滴水、积水湿化、车身/武器湿润与头顶遮蔽关联；自建屋顶也实际挡雨，关掉/拆除恢复暴露。"
+    },
+    {
+      "id": 91,
+      "title": "夜晚品质",
+      "requirements": "# 91. 夜晚品质\n\n重点优化：\n\n```text\nFlashlight\nMoon\nFog\nEnemy Silhouette\nInterior Darkness\nLight Contrast\n```\n\n夜晚：\n\n应该危险。\n\n但：\n\n不能黑到完全无法游戏。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/environment.ts",
+        "src/rendering/environment-props.ts",
+        "src/rendering/weapon.ts",
+        "src/simulation/simulation.ts",
+        "src/audio/audio.ts"
+      ],
+      "evidence": [
+        "tests/phase2-survival-depth.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/quality-ui.json",
+        "docs/phase2/screenshots/rain-night.png"
+      ],
+      "review": "月光、雾、轮廓和室内暗部有层次，手电与暴露区形成对比；真实雨夜生存画面可辨路和目标。"
+    },
+    {
+      "id": 92,
+      "title": "Flashlight",
+      "requirements": "# 92. Flashlight\n\n手电：\n\n优化：\n\n```text\nBeam\nFalloff\nShadow\nFog Interaction\nBattery\nAnimation\nSound\n```\n\n可以增加：\n\n```text\nLight Flicker\n```\n\n用于：\n\n低电量。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/environment.ts",
+        "src/rendering/environment-props.ts",
+        "src/rendering/weapon.ts",
+        "src/simulation/simulation.ts",
+        "src/audio/audio.ts"
+      ],
+      "evidence": [
+        "tests/phase2-survival-depth.test.ts",
+        "tests/phase2-integration-boundaries.test.ts",
+        "docs/phase2/evidence/components.json",
+        "docs/phase2/evidence/quality-ui.json",
+        "docs/phase2/screenshots/rain-night.png"
+      ],
+      "review": "手电有光束衰减、按画质阴影、雾反馈、开关声音、电量/低电闪烁与充电动作，发电机充电和持久化通过。"
+    },
+    {
+      "id": 93,
+      "title": "安全感与危险感",
+      "requirements": "# 93. 安全感与危险感\n\n世界应该存在明显节奏：\n\n```text\nSafe\n↓\nTension\n↓\nDanger\n↓\nCombat\n↓\nRecovery\n```\n\n不要：\n\n每平方米都塞三只僵尸。\n\n持续战斗：\n\n反而失去恐怖感。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/population.ts",
+        "src/simulation/world-events.ts",
+        "src/rendering/world-event-renderer.ts"
+      ],
+      "evidence": [
+        "tests/phase2-director.test.ts",
+        "tests/phase2-director-events.test.ts",
+        "docs/phase2/DIRECTOR.md",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "calm/rising/peak/recovery 由实际战斗与资源压力决定；恢复限制新增压力而不删除已有敌人，避免安全感全靠清空世界。"
+    },
+    {
+      "id": 94,
+      "title": "World Director 优化",
+      "requirements": "# 94. World Director 优化\n\n调整：\n\n```text\nGame Director\n```\n\n参考：\n\n```text\n玩家最近战斗频率\n资源情况\n健康\n位置\n时间\n噪音\n最近事件\n```\n\n控制：\n\n```text\nEnemy Activity\nAmbient Event\nSpecial Encounter\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/population.ts",
+        "src/simulation/world-events.ts",
+        "src/rendering/world-event-renderer.ts"
+      ],
+      "evidence": [
+        "tests/phase2-director.test.ts",
+        "tests/phase2-director-events.test.ts",
+        "docs/phase2/DIRECTOR.md",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "Director 读取近期射击/受伤/追击、食水弹药健康、POI 危险/天气/夜晚和事件历史，生成预算与冷却跨存档。"
+    },
+    {
+      "id": 95,
+      "title": "随机事件丰富",
+      "requirements": "# 95. 随机事件丰富\n\n继续增加：\n\n```text\n远处枪声\n幸存者遇袭\n感染者群迁徙\n车辆警报\n野兽追逐\n军事无人机残骸\n火灾\n雷击\n广播信号\n求救信号\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/population.ts",
+        "src/simulation/world-events.ts",
+        "src/rendering/world-event-renderer.ts"
+      ],
+      "evidence": [
+        "tests/phase2-director.test.ts",
+        "tests/phase2-director-events.test.ts",
+        "docs/phase2/DIRECTOR.md",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "营救含真实幸存者护送，车队含两辆真实车/警报/修复，残骸有电弧/断电/解码；其他迁徙、火灾、雷暴/广播等保留有效事件。"
+    },
+    {
+      "id": 96,
+      "title": "Rare Events",
+      "requirements": "# 96. Rare Events\n\n少量低概率事件：\n\n增加：\n\n```text\n不可预测感\n```\n\n例如：\n\n```text\n远处坠机\n大型感染者袭击安全区\n特殊广播\n罕见天气\n隐藏军方行动\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/population.ts",
+        "src/simulation/world-events.ts",
+        "src/rendering/world-event-renderer.ts"
+      ],
+      "evidence": [
+        "tests/phase2-director.test.ts",
+        "tests/phase2-director-events.test.ts",
+        "docs/phase2/DIRECTOR.md",
+        "docs/phase2/evidence/events-live.json"
+      ],
+      "review": "残骸需 900 秒生存和 10 个真实 POI、低权重且全世界一次；来源位置视线外；资格由测试验证，现场流程以夹具触发验证。"
+    },
+    {
+      "id": 97,
+      "title": "Quality Audit",
+      "requirements": "# 97. Quality Audit\n\n完成以上工作后：\n\n不要立即结束。\n\n再次完整体验游戏。\n\n至少覆盖：\n\n```text\nNew Game\n\n白天森林\n\n小镇\n\n室内\n\n枪战\n\n近战\n\n雨天\n\n夜晚\n\n建筑\n\n狩猎\n\n驾驶\n\n主线任务\n\n地下设施\n\n结局\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/ACCEPTANCE.md",
+        "docs/phase2/PERFORMANCE.md",
+        "README.md",
+        "DEVELOPMENT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/unit-tests.txt",
+        "docs/phase2/evidence/lint.txt",
+        "docs/phase2/evidence/build.txt",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/firefox-survival.json",
+        "docs/phase2/evidence/production.json",
+        "docs/phase2/evidence/soak-final.json"
+      ],
+      "review": "新游戏、昼林/小镇/室内、枪战/近战、雨夜、营地/狩猎/驾驶、主线/地下/三结局已实际进入；最终修复后 1800.02 秒、65 次场景切换完整长测完成。"
+    },
+    {
+      "id": 98,
+      "title": "主动发现廉价感",
+      "requirements": "# 98. 主动发现廉价感\n\n在体验过程中：\n\n专门寻找：\n\n```text\n瞬移\n硬切动画\n重复素材\n糟糕比例\n穿模\n无反馈\n静态场景\nAI 卡死\n音效重复\n动作僵硬\nUI 突兀\n镜头怪异\n光照平淡\n过于空旷\n剧情断裂\n```\n\n发现之后：\n\n直接修复。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/PLAN.md",
+        "docs/phase2/REFERENCE_NOTES.md",
+        "docs/phase2/GAP_AUDIT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/baseline-motion.json",
+        "docs/phase2/evidence/baseline-survival.json",
+        "docs/phase2/ACCEPTANCE.md"
+      ],
+      "review": "审查发现并修复手握漂移、门/箱盖静止、动物比例、AI 贴脸、地下弹道、旧文档越权、假事件、充电/供电和缓存等真实缺口，保留失败证据与关闭记录。"
+    },
+    {
+      "id": 99,
+      "title": "不接受的结果",
+      "requirements": "# 99. 不接受的结果\n\n本阶段完成后：\n\n不能再存在大量：\n\n```text\n僵尸像木偶\n门瞬间打开\n武器焊死在镜头\n走路镜头机械摇摆\n敌人空气生成\n中枪毫无反应\n人物状态瞬间切换\n房间只有几个程序化方块\n所有敌人同一种死亡动画\n所有枪械几乎相同\n故事只有几张文档\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/ACCEPTANCE.md",
+        "docs/phase2/PERFORMANCE.md",
+        "README.md",
+        "DEVELOPMENT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/unit-tests.txt",
+        "docs/phase2/evidence/lint.txt",
+        "docs/phase2/evidence/build.txt",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/firefox-survival.json",
+        "docs/phase2/evidence/production.json",
+        "docs/phase2/evidence/soak-final.json"
+      ],
+      "review": "已有主要廉价感来源均有替换/动作与反馈闭环，最终视觉仍是统一的风格化 Web 独立游戏，主观品质不等同专业玩家盲测。"
+    },
+    {
+      "id": 100,
+      "title": "性能原则",
+      "requirements": "# 100. 性能原则\n\n升级视觉品质：\n\n不得无视性能。\n\n持续测试：\n\n```text\nFPS\nFrame Time\nDraw Calls\nGPU Time\nMemory\nActive Animation\nAI Count\nPhysics\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/renderer.ts",
+        "src/rendering/rig-animation.ts",
+        "src/rendering/world-renderer.ts",
+        "src/offline.ts",
+        "public/sw.js",
+        "src/rendering/environment-assets.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/quality-ui.json",
+        "docs/phase2/evidence/production.json",
+        "docs/phase2/evidence/candidate.json",
+        "docs/phase2/evidence/soak-final.json",
+        "docs/phase2/PERFORMANCE.md",
+        "tests/phase2-environment.test.ts",
+        "docs/phase2/evidence/transmission-retention-probe.json"
+      ],
+      "review": "完成同分辨率修复前后长测，记录 FPS、滚动帧 P95/P99、draw calls、主渲染 GPU、scene/animation/模拟、碰撞查询与资源；修复 135992 个已销毁网格被折射列表保留的退化。最终平均 62.42 FPS，列表滞留 0，错误/警告 0；完整范围和测量边界见 PERFORMANCE.md。"
+    },
+    {
+      "id": 101,
+      "title": "Desktop Quality Target",
+      "requirements": "# 101. Desktop Quality Target\n\n目标平台仍然：\n\n```text\n现代桌面浏览器\n```\n\n不要为了支持：\n\n```text\n十年前的办公笔记本\n```\n\n牺牲整个项目的视觉目标。\n\n继续提供：\n\n```text\nLow\nMedium\nHigh\nUltra\n```\n\n不同画质。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/renderer.ts",
+        "src/rendering/rig-animation.ts",
+        "src/rendering/world-renderer.ts",
+        "src/offline.ts",
+        "public/sw.js"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/quality-ui.json",
+        "docs/phase2/evidence/production.json",
+        "docs/phase2/evidence/candidate.json",
+        "docs/phase2/evidence/soak-final.json",
+        "docs/phase2/PERFORMANCE.md"
+      ],
+      "review": "Low/Medium/High/Ultra 实际 UI 切换触发渲染重建，现代桌面 Chrome WebGPU 与 Firefox WebGL2 均验证。"
+    },
+    {
+      "id": 102,
+      "title": "High / Ultra",
+      "requirements": "# 102. High / Ultra\n\n高端设备：\n\n优先允许：\n\n```text\n更高 Shadow Distance\n更高 Vegetation Density\n更高 Resolution\n更高 SSAO\n更多 Dynamic Light\n更高 LOD Distance\n更高 Particle Count\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/renderer.ts",
+        "src/rendering/rig-animation.ts",
+        "src/rendering/world-renderer.ts",
+        "src/offline.ts",
+        "public/sw.js"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/quality-ui.json",
+        "docs/phase2/evidence/production.json",
+        "docs/phase2/evidence/candidate.json",
+        "docs/phase2/evidence/soak-final.json",
+        "docs/phase2/PERFORMANCE.md"
+      ],
+      "review": "高档增加实际阴影分辨率/距离、植被/粒子、分辨率、SSAO/LOD 与灯预算；恢复默认重建资源而非只更改设置文本。"
+    },
+    {
+      "id": 103,
+      "title": "动画性能",
+      "requirements": "# 103. 动画性能\n\n远距离角色：\n\n减少：\n\n```text\nAnimation Update Rate\n```\n\n例如：\n\n```text\n0-30m\nFull\n\n30-80m\nReduced\n\n80m+\nVery Low / Simulation\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/rig-animation.ts",
+        "src/rendering/animated-assets.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/player-body.ts",
+        "src/rendering/view-arms.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "近距离全速，约 30–80 m 降频，远距进一步降低并采用 LOD/可见数量预算；卸载释放 rig/阴影引用。"
+    },
+    {
+      "id": 104,
+      "title": "资产加载",
+      "requirements": "# 104. 资产加载\n\n外部资源增加后：\n\n必须避免：\n\n首次加载巨大。\n\n通过：\n\n```text\nLazy Loading\nAsset Bundle\nChunk Asset Loading\nCompression\n```\n\n优化。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/renderer.ts",
+        "src/rendering/rig-animation.ts",
+        "src/rendering/world-renderer.ts",
+        "src/offline.ts",
+        "public/sw.js",
+        "src/rendering/environment-assets.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/quality-ui.json",
+        "docs/phase2/evidence/production.json",
+        "docs/phase2/evidence/candidate.json",
+        "docs/phase2/evidence/soak-final.json",
+        "docs/phase2/PERFORMANCE.md",
+        "tests/phase2-environment.test.ts",
+        "docs/phase2/evidence/transmission-retention-probe.json"
+      ],
+      "review": "角色 mesh/动作拆包，远距/女性等按需，纹理压缩与共享缓存；生产后台限并发预缓存全包，失败可重试且不错误宣称离线就绪。"
+    },
+    {
+      "id": 105,
+      "title": "不要重写稳定系统",
+      "requirements": "# 105. 不要重写稳定系统\n\n如果现有：\n\n```text\nInventory\nSave\nWorld Streaming\nCrafting\n```\n\n已经稳定：\n\n不要为了“更优雅”整体重写。\n\n本阶段重点：\n\n```text\n玩家能实际感受到的提升\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/PLAN.md",
+        "docs/phase2/REFERENCE_NOTES.md",
+        "docs/phase2/GAP_AUDIT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/baseline-motion.json",
+        "docs/phase2/evidence/baseline-survival.json",
+        "docs/phase2/ACCEPTANCE.md"
+      ],
+      "review": "背包事务、IndexedDB、世界分块与制作保留原架构，只为落点/持久字段/原子奖励和真实交互做增量修改。"
+    },
+    {
+      "id": 106,
+      "title": "工作原则",
+      "requirements": "# 106. 工作原则\n\n每次修改都问自己：\n\n```text\n玩家能不能明显感觉更好？\n```\n\n如果答案：\n\n```text\n不能\n```\n\n优先级降低。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/PLAN.md",
+        "docs/phase2/REFERENCE_NOTES.md",
+        "docs/phase2/GAP_AUDIT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/baseline-motion.json",
+        "docs/phase2/evidence/baseline-survival.json",
+        "docs/phase2/ACCEPTANCE.md"
+      ],
+      "review": "实施取舍针对步态、抓握、声音、场景实体、可读受击和剧情可达性；未为清洁架构替换稳定模块。"
+    },
+    {
+      "id": 107,
+      "title": "优化优先原则",
+      "requirements": "# 107. 优化优先原则\n\n优先：\n\n```text\nMoment-to-Moment Experience\n```\n\n也就是玩家每一分钟都能感受到的：\n\n```text\n移动\n镜头\n动画\n声音\n战斗\n光线\nAI\n交互\n```\n\n这些系统：\n\n比：\n\n```text\n很深但玩家很少看到的后台架构\n```\n\n重要得多。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/PLAN.md",
+        "docs/phase2/REFERENCE_NOTES.md",
+        "docs/phase2/GAP_AUDIT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/baseline-motion.json",
+        "docs/phase2/evidence/baseline-survival.json",
+        "docs/phase2/ACCEPTANCE.md"
+      ],
+      "review": "多数改动直接出现在每分钟的移动、瞄准、听觉、门/箱、敌人反应与天气中；叙事奖励也接回现有探索循环。"
+    },
+    {
+      "id": 108,
+      "title": "使用外部参考",
+      "requirements": "# 108. 使用外部参考\n\n允许研究成熟游戏：\n\n```text\n第一人称镜头设计\nFPS Weapon Animation\nZombie Animation\nHit Reaction\nDoor Interaction\nEnvironmental Storytelling\nSurvival Gameplay Loop\n```\n\n但：\n\n只学习通用设计方法。\n\n禁止：\n\n```text\n直接复制代码\n复制资源\n复制独特 UI\n复制剧情\n复制地图\n复制特定作品标志性内容\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/PLAN.md",
+        "docs/phase2/REFERENCE_NOTES.md",
+        "docs/phase2/GAP_AUDIT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/baseline-motion.json",
+        "docs/phase2/evidence/baseline-survival.json",
+        "docs/phase2/ACCEPTANCE.md"
+      ],
+      "review": "研究作者公开 GDC 与官方动作混合文档，只学习通用分层方法；外部资产按许可合法使用，剧情/地图与交互文案原创。"
+    },
+    {
+      "id": 109,
+      "title": "动画资产优先级",
+      "requirements": "# 109. 动画资产优先级\n\n如果项目当前动画明显不足：\n\n优先寻找：\n\n```text\n授权明确\n允许商业使用\n质量较高\n```\n\n的人形动画资产。\n\n包括：\n\n```text\nWalk\nRun\nSprint\nCrouch\nAttack\nHit\nDeath\nVault\nClimb\nInteract\n```\n\n之后：\n\n通过：\n\n```text\nRetargeting\nAnimation Blend\nProcedural Adjustment\n```\n\n适配角色。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "THIRD_PARTY_ASSETS.md",
+        "docs/phase2/ASSET_AUDIT.md",
+        "scripts/prepare-characters.mjs",
+        "scripts/prepare-animals.mjs",
+        "scripts/prepare-environment.mjs",
+        "scripts/prepare-weapons.mjs"
+      ],
+      "evidence": [
+        "docs/phase2/ASSET_AUDIT.md",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/grips-external.json",
+        "docs/phase2/evidence/production.json"
+      ],
+      "review": "引入 CC0 人形标准动画库并重定向到基础角色，46 个实际片段与程序化姿态/IK 组合；按使用骨骼裁剪第一人称体/臂。"
+    },
+    {
+      "id": 110,
+      "title": "Procedural Animation",
+      "requirements": "# 110. Procedural Animation\n\n现成动画无法解决的部分：\n\n使用程序化调整。\n\n例如：\n\n```text\nIK\nHead Look\nFoot Placement\nWeapon Aim\nHand Placement\nHit Reaction\nRecoil\nBreathing\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/rig-animation.ts",
+        "src/rendering/animated-assets.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/player-body.ts",
+        "src/rendering/view-arms.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "IK、头部注视、脚部贴地、武器准星/握持、方向受击、呼吸与后坐在采样后叠加，每帧恢复基姿态避免漂移。"
+    },
+    {
+      "id": 111,
+      "title": "IK",
+      "requirements": "# 111. IK\n\n如果当前实现条件允许：\n\n增加：\n\n```text\nFoot IK\nHand IK\nLook IK\nWeapon IK\n```\n\n改善：\n\n```text\n脚悬空\n手穿武器\n角色看向奇怪方向\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/rendering/rig-animation.ts",
+        "src/rendering/animated-assets.ts",
+        "src/rendering/characters.ts",
+        "src/rendering/player-body.ts",
+        "src/rendering/view-arms.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/actor-visual-latest.json",
+        "docs/phase2/evidence/animals-live.json",
+        "docs/phase2/evidence/survival-current.json",
+        "tests/phase2-motion.test.ts"
+      ],
+      "review": "实现两骨脚/手约束、注视与武器锚点对齐；修正 glTF 反射坐标下的局部旋转求解，不宣称完整全身物理 IK。"
+    },
+    {
+      "id": 112,
+      "title": "动作不能阻塞操作",
+      "requirements": "# 112. 动作不能阻塞操作\n\n动画优先真实。\n\n但不要：\n\n为了真实性：\n\n让所有操作都慢得痛苦。\n\n例如：\n\n玩家打开普通门：\n\n无需：\n\n```text\n3 秒完整电影动画\n```\n\n目标：\n\n```text\nFluid\nResponsive\nPhysical\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/actions.ts",
+        "src/core/game.ts",
+        "src/rendering/objects.ts",
+        "src/ui/ui.ts"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/components.json",
+        "tests/phase2-actions.test.ts"
+      ],
+      "review": "普通门约亚秒级、搜索与消费按动作长度可取消；动效不锁鼠标，开火/受伤/离距可中断，制作取消入口明确。"
+    },
+    {
+      "id": 113,
+      "title": "Player Control Preservation",
+      "requirements": "# 113. Player Control Preservation\n\n任何镜头、动画优化：\n\n不能损害：\n\n```text\nInput Precision\nMouse Response\nCombat Accuracy\nPlayer Agency\n```\n\n这是硬规则。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "src/simulation/locomotion.ts",
+        "src/simulation/simulation.ts",
+        "src/rendering/first-person-motion.ts",
+        "src/core/motion.ts"
+      ],
+      "evidence": [
+        "tests/phase2-motion.test.ts",
+        "docs/phase2/evidence/motion-live.json",
+        "docs/phase2/evidence/survival-current.json"
+      ],
+      "review": "鼠标直接响应，开火使用当前帧视线；贴脸身体碰撞、可取消交互、非阻塞事件、Skip 和暂停恢复保留玩家控制。"
+    },
+    {
+      "id": 114,
+      "title": "最终目标视觉",
+      "requirements": "# 114. 最终目标视觉\n\n最终打开游戏：\n\n玩家首先应该看到：\n\n```text\n成熟的光影\n丰富的环境\n自然的动画\n真实的移动\n有重量的武器\n合理的 AI\n```\n\n而不是：\n\n```text\n这是 Babylon.js 做的 Demo\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/ACCEPTANCE.md",
+        "docs/phase2/PERFORMANCE.md",
+        "README.md",
+        "DEVELOPMENT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/unit-tests.txt",
+        "docs/phase2/evidence/lint.txt",
+        "docs/phase2/evidence/build.txt",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/firefox-survival.json",
+        "docs/phase2/evidence/production.json",
+        "docs/phase2/evidence/soak-final.json"
+      ],
+      "review": "实际起始森林、住宅、雨夜、武器和角色截图已审查；PBR 光照与明确轮廓/细节提高整体可信度，仍保留风格化资产边界。"
+    },
+    {
+      "id": 115,
+      "title": "最终目标体验",
+      "requirements": "# 115. 最终目标体验\n\n目标不是：\n\n```text\n功能非常多\n```\n\n而是：\n\n```text\n世界可信\n动作自然\n战斗有反馈\n探索有动力\n生存有压力\n剧情有吸引力\n环境有故事\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/ACCEPTANCE.md",
+        "docs/phase2/PERFORMANCE.md",
+        "README.md",
+        "DEVELOPMENT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/unit-tests.txt",
+        "docs/phase2/evidence/lint.txt",
+        "docs/phase2/evidence/build.txt",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/firefox-survival.json",
+        "docs/phase2/evidence/production.json",
+        "docs/phase2/evidence/soak-final.json"
+      ],
+      "review": "搜刮/营地/天气/敌人压力、可完成事件/支线/四幕和结局形成连贯循环；正常生存链路和剧情夹具验证分开记录。"
+    },
+    {
+      "id": 116,
+      "title": "Final Quality Pass",
+      "requirements": "# 116. Final Quality Pass\n\n所有优化完成后：\n\n执行最后一次：\n\n# Final Quality Pass\n\n按照以下顺序逐项检查：\n\n```text\n1. First Person Camera\n2. Player Movement\n3. Weapon Feel\n4. Player Animation\n5. Zombie Animation\n6. Hit Reaction\n7. Zombie AI\n8. Door / Object Animation\n9. Environment Assets\n10. Lighting\n11. Audio\n12. Gameplay Depth\n13. Story\n14. Cinematics\n15. UI\n16. Performance\n17. Bugs\n```\n\n每一个项目：\n\n必须实际进入游戏验证。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/ACCEPTANCE.md",
+        "docs/phase2/PERFORMANCE.md",
+        "README.md",
+        "DEVELOPMENT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/unit-tests.txt",
+        "docs/phase2/evidence/lint.txt",
+        "docs/phase2/evidence/build.txt",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/firefox-survival.json",
+        "docs/phase2/evidence/production.json",
+        "docs/phase2/evidence/soak-final.json"
+      ],
+      "review": "17 个品质领域均有实际浏览器或应用层行为证据；最终 30 分钟结束并检查完整性能曲线，修复前后数据与 180 项回归测试保留。"
+    },
+    {
+      "id": 117,
+      "title": "最终验收问题",
+      "requirements": "# 117. 最终验收问题\n\n完成前逐项回答：\n\n```text\n走路是否自然？\n\n跑步是否具有重量？\n\n镜头是否舒服？\n\n武器是否有重量？\n\nADS 是否自然？\n\n开枪是否有冲击力？\n\n僵尸是否像一个存在于世界中的实体？\n\n僵尸攻击是否具有动作过程？\n\n僵尸中枪是否具有明显受击反馈？\n\n不同方向命中是否存在差异？\n\n门是否真正有打开和关闭过程？\n\n角色动画之间是否平滑？\n\n环境是否仍明显存在程序员美术感？\n\n是否已经合理采用高质量免费资产？\n\n场景是否具有足够细节？\n\n探索是否具有足够奖励？\n\n游戏中期是否还有事情可做？\n\n主线是否完整？\n\n玩家是否能够理解 Ashfall Protocol 的真相？\n\n剧情是否具有高潮？\n\n是否存在至少一个令人印象深刻的 Scripted Sequence？\n\n是否存在完整 Ending？\n\n30 分钟游戏后性能是否稳定？\n\n是否存在明显穿模？\n\n是否存在敌人凭空刷脸？\n\n是否存在严重 Animation Snap？\n```\n\n存在明显问题：\n\n继续优化。\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/ACCEPTANCE.md",
+        "docs/phase2/PERFORMANCE.md",
+        "README.md",
+        "DEVELOPMENT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/unit-tests.txt",
+        "docs/phase2/evidence/lint.txt",
+        "docs/phase2/evidence/build.txt",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/firefox-survival.json",
+        "docs/phase2/evidence/production.json",
+        "docs/phase2/evidence/soak-final.json"
+      ],
+      "review": "26 个验收问题均在 ACCEPTANCE.md 作答。长测预热后五分钟 FPS 中位 49.92–54.30，未重现长期退化；复杂场景样本可降至约 30 FPS，Firefox 使用已验证的 WebGL2 兼容入口；实现与主观品质边界明确。"
+    },
+    {
+      "id": 118,
+      "title": "Goal Mode 最终执行指令",
+      "requirements": "# 118. Goal Mode 最终执行指令\n\n```text\n当前项目已经完成第一阶段开发。\n\n现在进入第二阶段品质升级。\n\n不要重新从零搭建项目。\n\n首先运行并完整检查当前游戏。\n\n将自己视为：\n\nLead Gameplay Programmer\nLead Technical Artist\nAnimation Programmer\nAI Programmer\nEnvironment Artist\nNarrative Designer\nCinematic Designer\nAudio Designer\nQA\n\n本阶段目标不是增加 Feature 数量，而是提高整个游戏的商业作品完成度。\n\n第一优先级优化第一人称玩家体验，包括 Camera、Movement、Weapon Motion、ADS、Sprint、Landing、Crouch、Lean、Interaction 和 Full Body Presence。\n\n重点研究成熟第一人称游戏中通用的镜头与操作设计方式，并结合当前游戏实现合理方案。\n\n玩家相机保持快速响应，惯性主要体现在武器、身体和辅助镜头运动，不允许制造明显 Mouse Input Lag。\n\n全面优化 Animation。\n\n所有角色、僵尸、NPC、武器、门、容器和可交互对象都应该尽可能拥有自然的动作过程。\n\n禁止大量瞬间状态切换。\n\n使用 Animation State Machine、Animation Blending、IK、Procedural Animation 等方式提高品质。\n\n重点重构 Zombie AI、Spawn、Attack、Hit Reaction、Stagger、Knockdown、Death 和 Navigation。\n\n僵尸禁止直接在玩家视野中凭空生成。\n\n敌人攻击必须存在 Windup、Hit Frame 和 Recovery。\n\n受击反应必须尽可能考虑命中方向、身体区域、伤害和武器冲击力。\n\n合理增加 Stagger、Knockdown、GetUp 和不同死亡变化。\n\n当前项目允许主动寻找并使用高品质公开免费资产。\n\n优先寻找 CC0、Public Domain 或其它明确允许当前项目使用的免费资产。\n\n不要为了坚持纯程序化资产而保留明显廉价的模型、纹理、动画或声音。\n\n下载资源后必须检查 License，并维护 THIRD_PARTY_ASSETS.md。\n\n所有资源需要根据 Web 实时游戏进行 Texture、Mesh、LOD 和 Loading 优化。\n\n继续进行 Environment Art Pass，替换明显粗糙资产，并增加家具、垃圾、植被、破坏细节、Decal、生活痕迹和 Environmental Storytelling。\n\n继续丰富 Gameplay，但重点增加系统之间的关联，而不是单纯堆功能。\n\n继续完善搜刮、生存、战斗、建造、狩猎、天气、动态事件等玩法，使玩家在游戏中期和后期仍然拥有明确目标。\n\n重新整理并完整实现 Ashfall Protocol 主线剧情。\n\n剧情至少包含 Act 1、Act 2、Act 3、Act 4 和 Finale。\n\n增加 Side Story、Environmental Storytelling、Radio、Audio Log、NPC、Scripted Event 和必要的 In-Engine Cinematic。\n\n允许加入过场动画，但优先使用实时游戏引擎内 Cinematic，不使用预渲染视频。\n\n过场动画必须可跳过。\n\n至少实现 Opening、Major Discovery、Ashfall Reveal、Research Facility Reveal、Finale 和 Ending 中合理的一部分。\n\n最终形成完整主线和至少三个不同结局。\n\n持续优化声音、枪械反馈、脚步、门、环境声、室内外混响、天气和 Zombie Audio。\n\n每完成一个明显阶段都必须重新运行游戏测试。\n\n不要因为代码已经可以运行就认为任务完成。\n\n主动寻找：\n\n程序员美术感\n机械镜头\n僵硬动画\nAnimation Snap\n穿模\nAI 卡墙\n敌人刷脸\n重复音频\n空旷环境\n廉价战斗反馈\n剧情断裂\nUI 突兀\n\n发现后直接解决。\n\n稳定的底层系统不要为了架构洁癖整体重写。\n\n优先进行玩家能够真实感受到的品质升级。\n\n所有修改必须保持 Build、Test 和运行稳定。\n\n持续开发、运行、检查、修复和优化。\n\n只有当整个游戏从“功能完整的 Web 生存游戏”明显提升到“具有较高独立商业游戏完成度的 Web 第一人称生存游戏”时，本阶段才能结束。\n```\n\n---",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/ACCEPTANCE.md",
+        "docs/phase2/PERFORMANCE.md",
+        "README.md",
+        "DEVELOPMENT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/unit-tests.txt",
+        "docs/phase2/evidence/lint.txt",
+        "docs/phase2/evidence/build.txt",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/firefox-survival.json",
+        "docs/phase2/evidence/production.json",
+        "docs/phase2/evidence/soak-final.json"
+      ],
+      "review": "依照全部 119 节持续实施、运行、审查与修复；完成 180 项测试、最终生产与离线验证、Firefox 兼容生存流程、修复后的完整长测和文档收口。"
+    },
+    {
+      "id": 119,
+      "title": "本阶段 DONE 标准",
+      "requirements": "# 119. 本阶段 DONE 标准\n\n只有同时达到以下条件才允许结束：\n\n```text\n第一人称移动明显自然\n\n镜头不再具有机械 Head Bob\n\n玩家操作仍然灵敏\n\n武器具有惯性和重量\n\nADS / Sprint / Reload 具有自然 Transition\n\n人物状态切换具有动画过程\n\n门具有完整开关过程\n\n僵尸生成合理\n\n僵尸追击自然\n\n僵尸攻击拥有完整动作过程\n\n僵尸受击具有方向与冲击反馈\n\n僵尸拥有多个死亡表现\n\n多人形动画过渡自然\n\n免费高质量资产已经合理应用\n\n环境明显减少程序化廉价感\n\n场景细节和环境故事得到增强\n\n战斗反馈明显提升\n\n游戏内容更加丰富\n\n玩法系统之间存在更多联系\n\n主线剧情完整\n\n剧情拥有明确发展、高潮和结局\n\n拥有合理 Scripted Events\n\n拥有必要的 In-Engine Cinematics\n\n声音体验明显提升\n\n连续游玩性能稳定\n\n核心玩法不存在严重 Bug\n```\n\n最终目标：\n\n# 不再满足于“这居然能在网页里跑”。\n\n而应该进一步做到：\n\n# “这居然是一款网页游戏。”",
+      "status": "passed",
+      "implementation": [
+        "docs/phase2/ACCEPTANCE.md",
+        "docs/phase2/PERFORMANCE.md",
+        "README.md",
+        "DEVELOPMENT.md"
+      ],
+      "evidence": [
+        "docs/phase2/evidence/unit-tests.txt",
+        "docs/phase2/evidence/lint.txt",
+        "docs/phase2/evidence/build.txt",
+        "docs/phase2/evidence/survival-current.json",
+        "docs/phase2/evidence/firefox-survival.json",
+        "docs/phase2/evidence/production.json",
+        "docs/phase2/evidence/soak-final.json"
+      ],
+      "review": "操作、动画、AI、资产/环境、战斗/生存、完整主线支线结局、引擎序列、声音、界面及持续运行均已闭环；最终运行 112974 帧、65 次场景切换、0 错误/警告/渲染目标滞留。第 38 节采用明确允许的稳定替代，性能和浏览器边界在验收报告中保留。"
+    }
+  ],
+  "reviewedAt": "2026-09-09",
+  "candidate": "docs/phase2/evidence/candidate.json",
+  "statusLegend": {
+    "passed": "实现及对应验证已完成；主观品质与夹具边界见 review/验收报告",
+    "satisfied_by_alternative": "原文为条件项，采用明确说明的稳定替代",
+    "pending": "最终持续运行和收口验证尚未结束"
+  },
+  "completion": {
+    "status": "complete",
+    "passed": 118,
+    "satisfiedByAlternative": 1,
+    "pending": 0,
+    "report": "docs/phase2/ACCEPTANCE.md",
+    "performance": "docs/phase2/PERFORMANCE.md"
+  }
+}

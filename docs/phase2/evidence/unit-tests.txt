@@ -1,0 +1,55 @@
+
+> ashfall-protocol@1.0.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/tt/projects/Ashfall-Protocol
+
+ ✓ tests/phase2-inventory-placement.test.ts (4 tests) 3ms
+ ✓ tests/phase2-offline.test.ts (3 tests) 66ms
+stdout | tests/phase2-hit-zones.test.ts > 反射 glTF 坐标下的骨骼 IK > 负缩放父级中仍对准世界目标，保持骨长与末端原朝向
+BJS - [07:55:54]: Babylon.js v8.56.2 - Null engine
+
+ ✓ tests/phase2-hit-zones.test.ts (3 tests) 6ms
+ ✓ tests/phase2-narrative.test.ts (22 tests) 26ms
+ ✓ tests/audio.test.ts (2 tests) 3ms
+ ✓ tests/phase2-narrative-sequence.test.ts (5 tests) 3ms
+ ✓ tests/phase2-audio.test.ts (10 tests) 118ms
+stdout | tests/phase2-environment.test.ts > 环境资产与场景布置契约 > 所有优化 GLB 可由真实 Babylon importer 读取
+BJS - [07:55:54]: Babylon.js v8.56.2 - Null engine
+
+stdout | tests/phase2-animal-assets.test.ts > 动物骨骼资产与AI命中时序 > 按需导入可创建独立骨架，四条腿有实际运动且+Z朝前
+BJS - [07:55:54]: Babylon.js v8.56.2 - Null engine
+
+ ✓ tests/phase2-survival-depth.test.ts (4 tests) 145ms
+ ✓ tests/phase2-doors.test.ts (6 tests) 176ms
+stdout | tests/phase2-environment.test.ts > 环境资产与场景布置契约 > 发电机玻璃不启用全场景折射，反复创建和卸载不会留下已销毁网格列表
+BJS - [07:55:55]: Babylon.js v8.56.2 - Null engine
+
+ ✓ tests/phase2-actions.test.ts (8 tests) 196ms
+ ✓ tests/core.test.ts (26 tests) 238ms
+ ✓ tests/phase2-environment.test.ts (8 tests) 181ms
+stdout | tests/phase2-animal-assets.test.ts > 动物骨骼资产与AI命中时序 > 死亡姿态连续倒下且鹿角、躯体不穿入平地
+BJS - [07:55:55]: Babylon.js v8.56.2 - Null engine
+
+ ✓ tests/phase2-director-events.test.ts (10 tests) 287ms
+ ✓ tests/phase2-animal-assets.test.ts (4 tests) 389ms
+ ✓ tests/phase2-director.test.ts (11 tests) 372ms
+ ✓ tests/phase2-motion.test.ts (13 tests) 428ms
+   ✓ 第二阶段：输入、速度与步态 > 翻越低矮障碍需要连续位移，不在触发帧传送到障碍顶  334ms
+ ✓ tests/persistence.test.ts (12 tests) 539ms
+   ✓ 持久化与世界状态 > 世界时长配置会改变时间推进速度  337ms
+ ✓ tests/phase2-ai.test.ts (16 tests) 882ms
+stdout | tests/phase2-integration-boundaries.test.ts > NarrativeWorld的实体结果 > 暂停过场时字幕时钟与NarrativeWorld灯光过渡同步冻结
+BJS - [07:55:55]: Babylon.js v8.56.2 - Null engine
+
+stdout | tests/phase2-integration-boundaries.test.ts > NarrativeWorld的实体结果 > 跳过倒架后原站立货架碰撞不应继续阻挡玩家
+BJS - [07:55:55]: Babylon.js v8.56.2 - Null engine
+
+ ✓ tests/phase2-integration-boundaries.test.ts (13 tests) 447ms
+
+ Test Files  19 passed (19)
+      Tests  180 passed (180)
+   Start at  07:55:54
+   Duration  1.50s (transform 1.18s, setup 0ms, collect 4.75s, tests 4.50s, environment 2ms, prepare 1.04s)
+

@@ -1,0 +1,414 @@
+{
+  "candidate": {
+    "at": "2026-09-08T23:56:40.604099+00:00",
+    "sourceSha256": "3350fb782e8e6c78f219d076459b5d5f68bba015c0c9ab7c84479864c15b8a37",
+    "files": 329,
+    "buildVersion": "586f284659e78bb8"
+  },
+  "before": {
+    "samples": 91,
+    "warmSamples": 76,
+    "metrics": {
+      "fps": {
+        "min": 9.891,
+        "median": 29.061,
+        "max": 106.496
+      },
+      "frameP95": {
+        "min": 11.1,
+        "median": 57.95,
+        "max": 102
+      },
+      "frameP99": {
+        "min": 11.7,
+        "median": 70.35,
+        "max": 112.7
+      },
+      "drawCalls": {
+        "min": 336,
+        "median": 1337.0,
+        "max": 2678
+      },
+      "gpuMs": {
+        "min": 0.393,
+        "median": 3.506,
+        "max": 6.357
+      },
+      "sceneMs": {
+        "min": 6.1,
+        "median": 24.9,
+        "max": 90.7
+      },
+      "animationMs": {
+        "min": 0,
+        "median": 0.5,
+        "max": 0.8
+      },
+      "simulationMs": {
+        "min": 0.7,
+        "median": 2.5,
+        "max": 5.5
+      },
+      "physicsQueries": {
+        "min": 58,
+        "median": 181.0,
+        "max": 284
+      },
+      "meshes": {
+        "min": 901,
+        "median": 1162.0,
+        "max": 1259
+      },
+      "materials": {
+        "min": 374,
+        "median": 376.0,
+        "max": 380
+      },
+      "textures": {
+        "min": 482,
+        "median": 502.0,
+        "max": 513
+      },
+      "geometries": {
+        "min": 942,
+        "median": 1039.0,
+        "max": 1265
+      },
+      "actorRigs": {
+        "min": 8,
+        "median": 28.0,
+        "max": 38
+      },
+      "animationGroups": {
+        "min": 392,
+        "median": 1210.5,
+        "max": 1607
+      },
+      "heapMB": {
+        "min": 720,
+        "median": 1500.5,
+        "max": 2934
+      }
+    },
+    "windows": [
+      {
+        "from": 0,
+        "to": 300,
+        "samples": 15,
+        "fpsMedian": 55.96,
+        "heapMinMB": 344,
+        "heapMaxMB": 1159
+      },
+      {
+        "from": 300,
+        "to": 600,
+        "samples": 15,
+        "fpsMedian": 33.16,
+        "heapMinMB": 720,
+        "heapMaxMB": 2170
+      },
+      {
+        "from": 600,
+        "to": 900,
+        "samples": 15,
+        "fpsMedian": 32.39,
+        "heapMinMB": 885,
+        "heapMaxMB": 1462
+      },
+      {
+        "from": 900,
+        "to": 1200,
+        "samples": 15,
+        "fpsMedian": 15.45,
+        "heapMinMB": 1185,
+        "heapMaxMB": 1698
+      },
+      {
+        "from": 1200,
+        "to": 1500,
+        "samples": 15,
+        "fpsMedian": 40.16,
+        "heapMinMB": 1485,
+        "heapMaxMB": 1889
+      },
+      {
+        "from": 1500,
+        "to": 1800,
+        "samples": 15,
+        "fpsMedian": 49.29,
+        "heapMinMB": 1741,
+        "heapMaxMB": 2934
+      }
+    ],
+    "fpsByRegion": {
+      "city-0": {
+        "samples": 9,
+        "median": 47.03,
+        "min": 9.89,
+        "max": 52.13
+      },
+      "fort-0": {
+        "samples": 8,
+        "median": 19.64,
+        "min": 10.75,
+        "max": 49.64
+      },
+      "industry-0": {
+        "samples": 9,
+        "median": 23.19,
+        "min": 10.79,
+        "max": 54.93
+      },
+      "lake-0": {
+        "samples": 8,
+        "median": 91.33,
+        "min": 14.12,
+        "max": 106.5
+      },
+      "mine-0": {
+        "samples": 8,
+        "median": 21.32,
+        "min": 10.45,
+        "max": 49.24
+      },
+      "lab-0": {
+        "samples": 9,
+        "median": 17.85,
+        "min": 11.55,
+        "max": 52.07
+      },
+      "broadcast": {
+        "samples": 8,
+        "median": 79.54,
+        "min": 32.39,
+        "max": 84.15
+      },
+      "underground": {
+        "samples": 9,
+        "median": 17.66,
+        "min": 10.83,
+        "max": 60.31
+      },
+      "pine-0": {
+        "samples": 8,
+        "median": 65.81,
+        "min": 17.03,
+        "max": 71.14
+      }
+    },
+    "meanRenderedFPS": 43.68,
+    "maxDisposedInRenderTargets": 0,
+    "transmissionTargets": [],
+    "maxOneShotVoices": 16,
+    "maxLoops": 4,
+    "audioFailures": []
+  },
+  "after": {
+    "samples": 91,
+    "warmSamples": 76,
+    "metrics": {
+      "fps": {
+        "min": 29.827,
+        "median": 51.256,
+        "max": 107.488
+      },
+      "frameP95": {
+        "min": 10.3,
+        "median": 20.75,
+        "max": 25.2
+      },
+      "frameP99": {
+        "min": 10.8,
+        "median": 22.45,
+        "max": 38.9
+      },
+      "drawCalls": {
+        "min": 345,
+        "median": 1248.5,
+        "max": 1878
+      },
+      "gpuMs": {
+        "min": 0.393,
+        "median": 3.801,
+        "max": 5.374
+      },
+      "sceneMs": {
+        "min": 6,
+        "median": 12.25,
+        "max": 22.2
+      },
+      "animationMs": {
+        "min": 0,
+        "median": 0.3,
+        "max": 0.7
+      },
+      "simulationMs": {
+        "min": 0.8,
+        "median": 2.4,
+        "max": 5.7
+      },
+      "physicsQueries": {
+        "min": 65,
+        "median": 179.0,
+        "max": 261
+      },
+      "meshes": {
+        "min": 924,
+        "median": 1154.0,
+        "max": 1267
+      },
+      "materials": {
+        "min": 375,
+        "median": 376.0,
+        "max": 380
+      },
+      "textures": {
+        "min": 476,
+        "median": 496.0,
+        "max": 504
+      },
+      "geometries": {
+        "min": 947,
+        "median": 1036.5,
+        "max": 1265
+      },
+      "actorRigs": {
+        "min": 8,
+        "median": 29.0,
+        "max": 35
+      },
+      "animationGroups": {
+        "min": 375,
+        "median": 1230.5,
+        "max": 1469
+      },
+      "transformNodes": {
+        "min": 743,
+        "median": 2109.0,
+        "max": 2580
+      },
+      "skeletons": {
+        "min": 11,
+        "median": 31.0,
+        "max": 39
+      },
+      "heapMB": {
+        "min": 399,
+        "median": 868.5,
+        "max": 1868
+      }
+    },
+    "windows": [
+      {
+        "from": 0,
+        "to": 300,
+        "samples": 15,
+        "fpsMedian": 75.17,
+        "heapMinMB": 387,
+        "heapMaxMB": 1427
+      },
+      {
+        "from": 300,
+        "to": 600,
+        "samples": 15,
+        "fpsMedian": 52.33,
+        "heapMinMB": 399,
+        "heapMaxMB": 1376
+      },
+      {
+        "from": 600,
+        "to": 900,
+        "samples": 15,
+        "fpsMedian": 54.3,
+        "heapMinMB": 483,
+        "heapMaxMB": 1402
+      },
+      {
+        "from": 900,
+        "to": 1200,
+        "samples": 15,
+        "fpsMedian": 49.92,
+        "heapMinMB": 418,
+        "heapMaxMB": 1349
+      },
+      {
+        "from": 1200,
+        "to": 1500,
+        "samples": 15,
+        "fpsMedian": 51.23,
+        "heapMinMB": 484,
+        "heapMaxMB": 1583
+      },
+      {
+        "from": 1500,
+        "to": 1800,
+        "samples": 15,
+        "fpsMedian": 51.22,
+        "heapMinMB": 534,
+        "heapMaxMB": 1542
+      }
+    ],
+    "fpsByRegion": {
+      "city-0": {
+        "samples": 9,
+        "median": 47.34,
+        "min": 35.65,
+        "max": 53.13
+      },
+      "fort-0": {
+        "samples": 8,
+        "median": 48.4,
+        "min": 31.84,
+        "max": 54.45
+      },
+      "industry-0": {
+        "samples": 9,
+        "median": 48.86,
+        "min": 33.74,
+        "max": 54.9
+      },
+      "lake-0": {
+        "samples": 8,
+        "median": 91.05,
+        "min": 37.96,
+        "max": 107.49
+      },
+      "mine-0": {
+        "samples": 8,
+        "median": 49.88,
+        "min": 42.03,
+        "max": 52.33
+      },
+      "lab-0": {
+        "samples": 9,
+        "median": 50.23,
+        "min": 29.83,
+        "max": 52.55
+      },
+      "broadcast": {
+        "samples": 8,
+        "median": 84.73,
+        "min": 34.56,
+        "max": 98.46
+      },
+      "underground": {
+        "samples": 9,
+        "median": 57.52,
+        "min": 38.56,
+        "max": 64.78
+      },
+      "pine-0": {
+        "samples": 8,
+        "median": 65.97,
+        "min": 34.2,
+        "max": 74.57
+      }
+    },
+    "meanRenderedFPS": 62.42,
+    "maxDisposedInRenderTargets": 0,
+    "transmissionTargets": [],
+    "maxOneShotVoices": 19,
+    "maxLoops": 4,
+    "audioFailures": []
+  }
+}

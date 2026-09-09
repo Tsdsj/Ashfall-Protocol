@@ -10,10 +10,104 @@ import {
   removeUid,
   transfer,
 } from "./inventory";
-import { clamp, distance, type Interaction, type Stack } from "../core/types";
+import {
+  clamp,
+  distance,
+  type Interaction,
+  type Stack,
+  type Vec3,
+} from "../core/types";
 import type { SimContext } from "./context";
 export class Actions {
+  pending: {
+    kind: string;
+    label: string;
+    total: number;
+    remaining: number;
+    uid?: string;
+    target?: Vec3;
+    range: number;
+  } | null = null;
+  revision = 0;
+  private complete: (() => boolean) | null = null;
   constructor(private ctx: SimContext) {}
+  begin(
+    kind: string,
+    label: string,
+    seconds: number,
+    complete: () => boolean,
+    options: { uid?: string; target?: Vec3; range?: number } = {},
+  ): boolean {
+    if (this.ctx.state.player.stats.health <= 0) return false;
+    if (this.ctx.busy) {
+      this.ctx.notify("先完成制作，或取消当前制作。", "warning");
+      return false;
+    }
+    if (this.pending) {
+      this.ctx.notify("先完成当前操作，或按 Esc 取消。", "warning");
+      return false;
+    }
+    this.pending = {
+      kind,
+      label,
+      total: seconds,
+      remaining: seconds,
+      uid: options.uid,
+      target: options.target ? { ...options.target } : undefined,
+      range: options.range ?? 3.8,
+    };
+    this.complete = complete;
+    this.ctx.bus.emit({ type: "motion", text: kind, value: seconds });
+    this.ctx.bus.emit({ type: "sound", text: kind, kind: "action-start" });
+    return true;
+  }
+  cancel(message = "操作已取消，尚未消耗物品。") {
+    if (!this.pending) return;
+    this.pending = null;
+    this.complete = null;
+    this.revision++;
+    this.ctx.bus.emit({ type: "motion", text: "cancel", value: 0.12 });
+    if (message) this.ctx.notify(message);
+  }
+  update(dt: number) {
+    const action = this.pending;
+    if (!action) return;
+    const p = this.ctx.state.player;
+    if (p.stats.health <= 0) {
+      this.cancel("");
+      return;
+    }
+    if (action.uid && !p.inventory.items.some((i) => i.uid === action.uid)) {
+      this.cancel("物品已移出背包，操作取消。");
+      return;
+    }
+    if (action.target && distance(p.position, action.target) > action.range) {
+      this.cancel("已离开操作位置。");
+      return;
+    }
+    const before = Math.floor(action.remaining * 2);
+    action.remaining = Math.max(0, action.remaining - dt);
+    if (before !== Math.floor(action.remaining * 2)) {
+      this.ctx.noise(
+        action.target ?? p.position,
+        action.kind === "search" ? 6 : action.kind === "repair" ? 10 : 3,
+        action.kind,
+      );
+      this.ctx.bus.emit({
+        type: "sound",
+        text: action.kind,
+        kind: "action-loop",
+        position: action.target,
+      });
+    }
+    if (action.remaining > 0) return;
+    const complete = this.complete;
+    this.pending = null;
+    this.complete = null;
+    complete?.();
+    this.cleanup();
+    this.revision++;
+  }
   cleanup(): void {
     const p = this.ctx.state.player;
     p.quickSlots = p.quickSlots.map((uid) =>
@@ -24,6 +118,28 @@ export class Actions {
         delete p.equipment[slot as keyof typeof p.equipment];
   }
   use(uid: string): boolean {
+    const item = this.ctx.state.player.inventory.items.find(
+      (i) => i.uid === uid,
+    );
+    if (!item) return false;
+    const definition = ITEMS[item.id]!;
+    if (["food", "drink", "medical"].includes(definition.category)) {
+      const medical = definition.category === "medical";
+      return this.begin(
+        medical ? "heal" : definition.category === "drink" ? "drink" : "eat",
+        medical
+          ? "正在使用 " + definition.name
+          : (definition.category === "drink" ? "正在饮用 " : "正在食用 ") +
+              definition.name,
+        medical ? 1.6 : definition.category === "drink" ? 1.05 : 1.25,
+        () => this.applyUse(uid),
+        { uid },
+      );
+    }
+    if (this.pending) this.cancel("切换装备，当前操作已取消。");
+    return this.applyUse(uid);
+  }
+  private applyUse(uid: string): boolean {
     const p = this.ctx.state.player,
       i = p.inventory.items.find((i) => i.uid === uid);
     if (!i) return false;
@@ -58,7 +174,10 @@ export class Actions {
         s.temperature = Math.min(37.2, s.temperature + 0.2);
       removeUid(p.inventory, uid);
       this.cleanup();
-      this.ctx.notify("已食用 " + d.name, "success");
+      this.ctx.notify(
+        (d.category === "drink" ? "已饮用 " : "已食用 ") + d.name,
+        "success",
+      );
       this.ctx.bus.emit({ type: "sound", text: "consume", kind: d.category });
       return true;
     }
@@ -146,6 +265,15 @@ export class Actions {
     this.ctx.notify(`已放入快捷栏 ${slot + 1}`);
   }
   repairItem(uid: string): boolean {
+    return this.begin(
+      "repair",
+      "正在维护装备",
+      1.8,
+      () => this.repairItemNow(uid),
+      { uid },
+    );
+  }
+  private repairItemNow(uid: string): boolean {
     const inv = this.ctx.state.player.inventory,
       i = inv.items.find((i) => i.uid === uid);
     if (!i || (i.durability >= 100 && i.dirt === 0)) return false;
@@ -268,15 +396,7 @@ export class Actions {
     return true;
   }
   door(id: string): boolean {
-    const s = this.ctx.state;
-    if (id === "lab-0" && !countItem(s.player.inventory, "keycard")) {
-      this.ctx.notify("需要渡鸦访问卡。线索指向要塞军械库。", "warning");
-      return false;
-    }
-    s.doors[id] = !s.doors[id];
-    this.ctx.noise(s.player.position, 12, "door");
-    this.ctx.bus.emit({ type: "sound", text: "door", kind: "door" });
-    return true;
+    return this.ctx.doors.request(id);
   }
   read(id: string): boolean {
     const story = STORY[id];
@@ -287,10 +407,6 @@ export class Actions {
       return false;
     }
     if (!s.journal.includes(id)) {
-      if (id === "lab" && !addItem(s.player.inventory, "protocol")) {
-        this.ctx.notify("需要在背包中留出 1 格空间。", "warning");
-        return false;
-      }
       s.journal.push(id);
       this.ctx.notify("新记录：" + story.title, "success");
     }
@@ -432,6 +548,21 @@ export class Actions {
         );
         if (b.fuel === 0) b.active = false;
       }
+    }
+    for (const b of s.structures) {
+      if (b.kind === "planter" && b.plantedAt > 0 && b.health > 0)
+        b.growth = clamp(
+          b.growth +
+            (seconds / 900) *
+              100 *
+              (s.weather === "rain" || s.weather === "storm" ? 1.3 : 1),
+        );
+      if (
+        b.kind === "raincollector" &&
+        b.health > 0 &&
+        (s.weather === "rain" || s.weather === "storm")
+      )
+        b.fuel = clamp(b.fuel + seconds * 0.2);
     }
     for (const v of s.vehicles) age(v.inventory);
     s.time += hours;

@@ -1,0 +1,21 @@
+Animal assets used by Ashfall Protocol — CC0-1.0
+
+Deer (Stag) and Wolf:
+Author: Quaternius
+https://quaternius.com/packs/ultimateanimatedanimals.html
+Author's CC0 / commercial use statement:
+https://www.patreon.com/quaternius/posts/ultimate-animals-53427821
+Original files acquired from the public Drive folder linked by the author.
+
+Boar:
+Author: Teh_Bucket
+https://opengameart.org/content/boar
+The author lists the model, texture, skeleton and walk/attack animation under CC0.
+
+CC0 deed: https://creativecommons.org/publicdomain/zero/1.0/
+
+See manifest.json for original download URLs, source and output SHA-256 hashes,
+actual triangle counts, animation provenance and runtime dimensions.
+Ashfall modifications include mesh preparation, restrained material adjustments,
+subtle authored fur grain, animation naming and timing, boar supplementary poses,
+and baked hoof / death grounding. Neither author endorses this project.

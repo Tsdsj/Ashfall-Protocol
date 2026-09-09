@@ -196,6 +196,8 @@ describe("制作与使用", () => {
       (i) => i.id === "bandage",
     )!.uid;
     sim.actions.use(id);
+    expect(countItem(sim.state.player.inventory, "bandage")).toBe(1);
+    sim.actions.update(1.7);
     expect(sim.state.player.stats.bleeding).toBe(0);
     expect(sim.state.player.stats.health).toBeGreaterThan(80);
     expect(countItem(sim.state.player.inventory, "bandage")).toBe(0);
@@ -338,6 +340,8 @@ describe("战斗与存档闭环", () => {
     const p = sim.gen.pois.find((p) => p.id === "pine-0")!;
     expect(sim.collision.blocked(p.x, 0, p.z - p.depth / 2)).toBe(true);
     sim.actions.door(p.id);
+    expect(sim.collision.blocked(p.x, 0, p.z - p.depth / 2)).toBe(true);
+    sim.doors.update(0.7);
     expect(sim.collision.blocked(p.x, 0, p.z - p.depth / 2)).toBe(false);
   });
   it("死亡掉落背包并从营地恢复，灰烬难度阻止重生", () => {

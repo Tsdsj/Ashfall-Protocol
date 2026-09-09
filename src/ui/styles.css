@@ -173,6 +173,43 @@ svg {
 .mono {
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
 }
+.action-progress {
+  position: fixed;
+  z-index: 45;
+  bottom: 118px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(320px, calc(100vw - 32px));
+  padding: 12px 16px 8px;
+  background: oklch(0.16 0.008 155 / 0.95);
+  border: 1px solid var(--line);
+  pointer-events: auto;
+}
+.action-progress > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.action-progress progress {
+  width: 100%;
+  height: 3px;
+  margin-top: 10px;
+  display: block;
+  accent-color: var(--ink);
+}
+.action-progress progress::-webkit-progress-bar {
+  background: var(--surface2);
+}
+.action-progress progress::-webkit-progress-value {
+  background: var(--ink);
+}
+.action-progress .quiet {
+  display: block;
+  margin: 4px auto 0;
+  min-height: 26px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
 .muted {
   color: var(--muted);
 }
@@ -1103,4 +1140,292 @@ svg {
   font:
     11px ui-monospace,
     monospace;
+}
+
+/* Narrative presentation retains the field-journal visual language. */
+.cinematic-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.sequence-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 18;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 28px 32px 38px;
+}
+.sequence-overlay.cinematic {
+  background: linear-gradient(
+    #080d0b80,
+    transparent 17%,
+    transparent 65%,
+    #080d0bc9
+  );
+}
+.sequence-title {
+  position: absolute;
+  top: 7%;
+  left: 6%;
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  color: #c3cbbd;
+}
+.sequence-subtitle {
+  max-width: 780px;
+  width: fit-content;
+  padding: 14px 24px;
+  color: #edf0e5;
+  background: #0c1512d9;
+  border-left: 2px solid #a8b793;
+  margin-bottom: 32px;
+  text-align: left;
+}
+.sequence-subtitle:has(p:empty) {
+  visibility: hidden;
+}
+.sequence-subtitle strong {
+  color: #b9c9a5;
+  font-size: 13px;
+}
+.sequence-subtitle p {
+  white-space: pre-line;
+  line-height: 1.75;
+  margin: 6px 0 0;
+  font-size: clamp(14px, 1.3vw, 18px);
+}
+.sequence-overlay button {
+  position: absolute;
+  right: 32px;
+  bottom: 24px;
+  pointer-events: auto;
+  color: #d5dccb;
+  background: #15231cd9;
+}
+.current-objectives {
+  padding-left: 20px;
+  line-height: 1.9;
+}
+.quest-list {
+  display: grid;
+}
+.quest-entry {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.quest-entry h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+.quest-entry h4 small {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 10px;
+}
+.quest-entry p {
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 7px 0;
+}
+.quest-entry small {
+  color: var(--muted);
+  line-height: 1.6;
+}
+.quest-entry button {
+  flex: 0 0 auto;
+}
+.record-transcript {
+  white-space: pre-line;
+}
+.conversation {
+  max-width: 1050px;
+  margin: 28px auto;
+}
+.conversation > p {
+  line-height: 1.8;
+  color: var(--muted);
+}
+.conversation-topics {
+  display: grid;
+  gap: 12px;
+  margin: 25px 0;
+  max-width: 720px;
+}
+.conversation-topics button {
+  padding: 22px;
+  text-align: left;
+  display: grid;
+  gap: 10px;
+}
+.conversation-topics span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.finale-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  margin-top: 32px;
+}
+.finale-choices article {
+  border-top: 2px solid var(--line);
+  padding-top: 18px;
+  display: flex;
+  flex-direction: column;
+}
+.finale-choices p,
+.finale-choices li {
+  font-size: 13px;
+  line-height: 1.8;
+}
+.finale-choices ul {
+  padding-left: 16px;
+  color: var(--muted);
+  flex: 1;
+}
+.finale-choices button {
+  margin-top: auto;
+  white-space: normal;
+}
+@media (max-width: 850px) {
+  .finale-choices {
+    grid-template-columns: 1fr;
+  }
+  .sequence-overlay {
+    padding: 20px 16px 70px;
+  }
+  .sequence-subtitle {
+    padding: 12px 16px;
+  }
+  .quest-entry {
+    align-items: flex-start;
+  }
+  .conversation {
+    margin-top: 10px;
+  }
+}
+.in-cinematic .toasts,
+.in-cinematic #region-layer {
+  visibility: hidden;
+}
+.in-panel #region-layer {
+  visibility: hidden;
+}
+.flashlight-charge {
+  display: grid;
+  gap: 10px;
+}
+.flashlight-charge strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.flashlight-charge progress {
+  width: 100%;
+  height: 4px;
+  accent-color: var(--accent);
+}
+.flashlight-charge small {
+  font-size: 11px;
+  line-height: 1.7;
+}
+@keyframes panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes panel-exit {
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.panel-entering {
+  animation: panel-enter 130ms ease-out both;
+}
+.panel-closing {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+  animation: panel-exit 80ms ease-out both;
+}
+.offline-indicator {
+  display: none;
+  position: fixed;
+  right: 30px;
+  bottom: 57px;
+  gap: 12px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 11px;
+  z-index: 20;
+}
+.offline-indicator button {
+  font-size: 11px;
+  padding: 5px 8px;
+  min-height: 24px;
+}
+#app[data-screen="menu"] .offline-indicator,
+#app[data-screen="pause"] .offline-indicator {
+  display: flex;
+}
+.scope-mask {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 0;
+}
+.scope-aperture {
+  width: min(78vw, 78vh);
+  height: min(78vw, 78vh);
+  border-radius: 50%;
+  border: 3px solid #354038;
+  outline: 1px solid #0a0e0b;
+  box-shadow:
+    0 0 0 100vmax #050806f2,
+    inset 0 0 24px #000c;
+  position: relative;
+  overflow: hidden;
+}
+.scope-aperture i {
+  display: block;
+  position: absolute;
+  background: #10140ef0;
+}
+.reticle-h {
+  height: 1px;
+  width: 100%;
+  top: 50%;
+  left: 0;
+}
+.reticle-v {
+  width: 1px;
+  height: 100%;
+  left: 50%;
+  top: 0;
+}
+.scope-aperture b {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  top: calc(50% - 1px);
+  left: calc(50% - 1px);
+  border-radius: 50%;
+  background: #a43326;
 }

@@ -1,0 +1,38 @@
+async(page)=>{
+ await page.getByRole('button',{name:/进入灰谷/}).waitFor({timeout:60000});await page.bringToFront();await page.getByRole('button',{name:/进入灰谷/}).click();await page.getByLabel('生存记录名称').fill('QA 第二阶段最终30分钟');await page.getByLabel('世界种子',{exact:true}).fill('PHASE2-SOAK-2037');await page.getByRole('button',{name:'生成世界并开始'}).click();await page.locator('[data-action="resume"]').waitFor({timeout:60000});await page.locator('[data-action="resume"]').click();await page.waitForFunction(()=>window.__game.sim.narrative.frame().id==='opening');await page.keyboard.press('KeyX');
+ return page.evaluate(async()=>{
+  const api=window.__game,g=api.game,sim=api.sim,{ITEMS}=await import('/src/data/items.ts');
+  const weapons=['pistol','military','shotgun','rifle','smg','knife'];for(const id of weapons.filter(id=>id!=='knife'))api.command('give '+id);
+  for(const ammo of new Set(weapons.map(id=>ITEMS[id].weapon?.ammo).filter(Boolean)))api.command('give '+ammo+' 60');sim.god=true;
+  g.input.unlock();g.input.fallback=true;api.ui.show('play');api.ui.setLocked(true);
+  const places=sim.gen.pois.filter(p=>['pine-0','city-0','fort-0','industry-0','lake-0','mine-0','lab-0','broadcast'].includes(p.id)).map(p=>({id:p.id,x:p.x,y:sim.gen.poiHeight(p),z:p.z-p.depth/2-10}));
+  const lab=sim.gen.pois.find(p=>p.id==='lab-0');places.push({id:'underground',x:lab.x,y:sim.gen.poiHeight(lab)-8,z:lab.z-3});
+  const result=window.__soak={running:true,startedAt:new Date().toISOString(),durationSeconds:1800,activeSeconds:0,frames:0,transitions:0,samples:[],errors:[],warnings:[],setup:'Current development build; developer autopilot, supplied ammunition and invulnerability isolate sustained renderer/physics/AI/streaming/audio/save stability. No forced enemy spawning. Separate UI survival test uses normal damage and found supplies. Esc stops this soak.'};
+  const oldError=console.error,oldWarn=console.warn;
+  console.error=(...args)=>{if(result.running&&result.errors.length<40)result.errors.push(args.map(String).join(' ').slice(0,500));oldError(...args);};console.warn=(...args)=>{if(result.running&&result.warnings.length<40)result.warnings.push(args.map(String).join(' ').slice(0,500));oldWarn(...args);};
+  const onError=e=>{if(result.running&&result.errors.length<40)result.errors.push(e.message||String(e.reason));};window.addEventListener('error',onError);window.addEventListener('unhandledrejection',onError);
+  const start=performance.now();let last=start,lastSample=-20,lastMove=-28,lastShot=-1,lastSave=0,lastEquip=-23,weapon=-1;
+  const sample=()=>{const s=api.inspect(),r=api.renderer;result.samples.push({seconds:Math.round(result.activeSeconds),wallSeconds:Math.round((performance.now()-start)/1000),frames:result.frames,simulationSeconds:sim.state.elapsed,...s.renderer,...s.performance,renderTargets:r.scene.objectRenderers.map(t=>({name:t.name,meshes:t.renderList?.length??0,disposed:(t.renderList??[]).filter(m=>m.isDisposed()).length})),transformNodes:r.scene.transformNodes.length,skeletons:r.scene.skeletons.length,materials:r.scene.materials.length,textures:r.scene.textures.length,geometries:r.scene.geometries.length,actors:Object.keys(sim.state.actors).length,activeEnemies:Object.values(sim.state.actors).filter(a=>a.health>0).length,heapMB:performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576):null,audio:g.audio.diagnostics(),position:{...sim.state.player.position},worldError:s.error});};
+  let observer=null,afterObserver=null,pendingSample=false;
+  const stop=(reason)=>{if(!result.running)return;sample();result.running=false;result.finishedAt=new Date().toISOString();result.elapsedSeconds=(performance.now()-start)/1000;result.stopReason=reason;api.renderer.scene.onBeforeRenderObservable.remove(observer);api.renderer.scene.onAfterRenderObservable.remove(afterObserver);g.input.clear();g.input.unlock();api.ui.show('pause');console.error=oldError;console.warn=oldWarn;window.removeEventListener('error',onError);window.removeEventListener('unhandledrejection',onError);window.removeEventListener('keydown',escape);};
+  const escape=e=>{if(e.code==='Escape')stop('user-interrupted');};window.addEventListener('keydown',escape);
+  result.stop=()=>stop('manual-stop');
+  observer=api.renderer.scene.onBeforeRenderObservable.add(()=>{
+   const now=performance.now(),delta=Math.min(.1,(now-last)/1000);last=now;
+   if(api.ui.screen!=='play'||document.hidden)return;
+   result.activeSeconds+=delta;result.frames++;
+   if(result.activeSeconds>=1800)return;
+   const elapsed=result.activeSeconds;
+   if(elapsed-lastMove>=28){lastMove=elapsed;const p=places[result.transitions%places.length];api.command('teleport '+p.x+' '+p.z);if(p.id==='underground'){sim.state.player.position={x:p.x,y:p.y,z:p.z};sim.verticalVelocity=0;sim.locomotion.reset();}api.command('time '+[8,12,17,22][result.transitions%4]);api.command('weather '+['clear','cloudy','rain','fog','storm'][result.transitions%5]);sim.state.player.flashlight=result.transitions%4===3;result.transitions++;}
+   g.input.held.clear();if(elapsed-lastMove<5 && places[(result.transitions-1)%places.length].id!=='underground')g.input.held.add(g.settings.keys.forward);if(Math.floor(elapsed/9)%2===0)g.input.held.add(g.settings.keys.sprint);
+   sim.state.player.yaw+=delta*.15;sim.state.player.pitch=Math.sin(elapsed*.14)*.1;g.input.aiming=Math.floor(elapsed/7)%3===0;
+   if(elapsed-lastEquip>=23){lastEquip=elapsed;weapon=(weapon+1)%weapons.length;const item=sim.state.player.inventory.items.find(i=>i.id===weapons[weapon]);if(item){sim.actions.use(item.uid);if(ITEMS[item.id].weapon?.ammo){item.ammo=0;api.command('give '+ITEMS[item.id].weapon.ammo+' 20');sim.combat.reload();}}}
+   if(elapsed-lastShot>=.7){lastShot=elapsed;const item=sim.combat.equipped();if(item){if(ITEMS[item.id].weapon?.ammo&&!item.ammo&&!sim.combat.reloadRemaining)sim.combat.reload();else sim.combat.fire(api.renderer.camera.position,api.renderer.camera.getForwardRay().direction,g.input.aiming);}}
+   if(elapsed-lastSave>=120){lastSave=elapsed;void api.save();}
+   if(elapsed-lastSample>=20){lastSample=elapsed;pendingSample=true;}
+   if(g.lastError)stop('runtime-error');
+  });
+  afterObserver=api.renderer.scene.onAfterRenderObservable.add(()=>{if(!result.running)return;if(pendingSample){pendingSample=false;sample();}if(result.activeSeconds>=1800)stop('completed');});
+  return {startedAt:result.startedAt,activeSeconds:result.durationSeconds,places:places.map(p=>p.id),backend:api.ui.backend,quality:g.settings.quality};
+ });
+}
