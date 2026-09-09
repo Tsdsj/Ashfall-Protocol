@@ -108,7 +108,8 @@ export function createWorld(
 export const DEFAULT_SETTINGS: GameSettings = {
   quality: "high",
   resolution: 1,
-  fov: 80,
+  fov: 60,
+  cameraProfile: 1,
   sensitivity: 1,
   invertY: false,
   dragLook: false,

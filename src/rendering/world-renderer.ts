@@ -1,7 +1,8 @@
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { scatterTrees } from "../world/scatter";
 import { type Scene } from "@babylonjs/core/scene";
 import { noise, random } from "../core/random";
 import type { Interaction, Vec3, POI } from "../core/types";
@@ -48,6 +49,14 @@ export class WorldRenderer {
   private timer = 0;
   private birds: Mesh[] = [];
   private elapsed = 0;
+  private destroyedCount = -1;
+  private fallingTrees: {
+    root: TransformNode;
+    meshes: Mesh[];
+    age: number;
+    axis: Vector3;
+    rotation: Quaternion;
+  }[] = [];
   constructor(
     private scene: Scene,
     private mats: MaterialFactory,
@@ -222,6 +231,7 @@ export class WorldRenderer {
       cx,
       cz,
       this.density,
+      new Set(this.sim.state.destroyed),
     );
     for (const m of vegetation) {
       m.parent = root;
@@ -692,6 +702,26 @@ export class WorldRenderer {
     }
   }
   update(dt: number) {
+    if (this.destroyedCount !== this.sim.state.destroyed.length) {
+      this.destroyedCount = this.sim.state.destroyed.length;
+      this.environmentAssets.hideInstances(new Set(this.sim.state.destroyed));
+    }
+    for (let index = this.fallingTrees.length - 1; index >= 0; index--) {
+      const tree = this.fallingTrees[index]!;
+      tree.age += dt;
+      const progress = Math.min(1, tree.age / 1.15);
+      tree.root.rotationQuaternion = Quaternion.RotationAxis(
+        tree.axis,
+        Math.pow(progress, 1.8) * 1.48,
+      ).multiply(tree.rotation);
+      for (const mesh of tree.meshes)
+        mesh.visibility = Math.max(0, Math.min(1, (1.6 - tree.age) / 0.35));
+      if (tree.age >= 1.6) {
+        tree.meshes.forEach((mesh) => this.lighting.removeCaster(mesh));
+        tree.root.dispose(false);
+        this.fallingTrees.splice(index, 1);
+      }
+    }
     this.elapsed += dt;
     const pos = this.focus ?? this.sim.state.player.position;
     this.atmosphere.update(
@@ -784,8 +814,40 @@ export class WorldRenderer {
       environment: this.environmentAssets.stats,
     };
   }
+  fellTree(id: string, position: Vec3) {
+    this.environmentAssets.hideInstances(new Set(this.sim.state.destroyed));
+    this.destroyedCount = this.sim.state.destroyed.length;
+    const tree = scatterTrees(
+      this.sim.gen,
+      Math.floor(position.x / 256),
+      Math.floor(position.z / 256),
+    ).find((t) => t.id === id);
+    if (!tree) return;
+    const model = this.vegetation.fallingTree(tree);
+    const player = this.sim.state.player;
+    const direction = new Vector3(
+      position.x - player.position.x,
+      0,
+      position.z - player.position.z,
+    );
+    if (direction.lengthSquared() < 0.01)
+      direction.set(Math.sin(player.yaw), 0, Math.cos(player.yaw));
+    direction.normalize();
+    model.meshes.forEach((mesh) => this.lighting.addCaster(mesh));
+    this.fallingTrees.push({
+      ...model,
+      age: 0,
+      axis: new Vector3(direction.z, 0, -direction.x),
+      rotation: Quaternion.RotationYawPitchRoll(tree.yaw, 0, 0),
+    });
+  }
   dispose() {
     this.disposed = true;
+    for (const tree of this.fallingTrees) {
+      tree.meshes.forEach((mesh) => this.lighting.removeCaster(mesh));
+      tree.root.dispose(false);
+    }
+    this.fallingTrees.length = 0;
     this.worker?.terminate();
     for (const r of this.requests.values()) r.reject();
     this.requests.clear();

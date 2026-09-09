@@ -153,7 +153,12 @@ export class EffectsRenderer {
     const blood = e.type === "hit" && e.kind !== "wall";
     const material = e.material ?? "concrete";
     const metal = material === "metal" || e.kind === "explosion";
-    if (e.type === "hit" && e.kind === "wall" && material !== "glass") {
+    if (
+      e.type === "hit" &&
+      e.kind === "wall" &&
+      material !== "glass" &&
+      !(material === "wood" && e.weapon === "hatchet")
+    ) {
       if (this.decals.length >= 36) this.decals.shift()!.mesh.dispose();
       const mark = MeshBuilder.CreateDisc(
         "impact-mark",
@@ -189,6 +194,17 @@ export class EffectsRenderer {
       if (!s) break;
       s.mesh.position.set(e.position.x, e.position.y, e.position.z);
       s.mesh.setEnabled(true);
+      if (material === "wood" && !blood) {
+        s.mesh.scaling.set(0.45, 0.2, 1.4);
+        s.mesh.rotation.set(
+          Math.random() * 3,
+          Math.random() * 3,
+          Math.random() * 3,
+        );
+      } else {
+        s.mesh.scaling.setAll(1);
+        s.mesh.rotation.setAll(0);
+      }
       s.mesh.material = this.mats.simple(
         blood ? "blood" : "debris-" + material,
         blood

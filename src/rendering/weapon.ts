@@ -218,7 +218,7 @@ export class WeaponRenderer {
           [Math.PI / 2, 0, 0],
         );
     } else if (id === "hatchet") {
-      b.cylinder("handle", 0.7, 0.055, [0, 0.12, 0.26], wood, [-0.45, 0, 0]);
+      b.cylinder("handle", 0.7, 0.055, [0, 0.12, 0.26], wood, [0.45, 0, 0]);
       b.beveledBox(
         "axe-head",
         [0.24, 0.19, 0.065],

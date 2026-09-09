@@ -4,6 +4,7 @@ import { GameRenderer } from "../rendering/renderer";
 import { GameUI, type Screen } from "../ui/ui";
 import { AudioManager } from "../audio/audio";
 import { DIALOGUE_DURATIONS } from "../audio/dialogue-durations";
+import { cameraPreferences } from "./camera-settings";
 import { SaveSystem, deserialize, serialize } from "../save/storage";
 import {
   createWorld,
@@ -80,6 +81,7 @@ export class Game {
       return {
         ...structuredClone(DEFAULT_SETTINGS),
         ...data,
+        ...cameraPreferences(data),
         keys: { ...DEFAULT_SETTINGS.keys, ...data?.keys },
       };
     } catch {
@@ -704,6 +706,15 @@ export class Game {
         this.sim.actions.door(target.id);
         break;
       case "resource":
+        if (target.id.startsWith("tree:")) {
+          this.sim.actions.cancel("");
+          this.sim.cancelCraft();
+          this.sim.combat.fire(
+            this.renderer.camera.position,
+            this.renderer.camera.getForwardRay().direction,
+          );
+          break;
+        }
         this.sim.actions.begin(
           target.resource === "wood" ? "chop" : "pickup",
           "正在采集 " + target.name,

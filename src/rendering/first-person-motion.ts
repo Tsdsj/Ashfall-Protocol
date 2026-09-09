@@ -1,3 +1,4 @@
+import { DEFAULT_VERTICAL_FOV, zoomFov } from "../core/camera-settings";
 import { MotionSpring, damp, smoothstep } from "../core/motion";
 import {
   clamp,
@@ -75,7 +76,7 @@ export class FirstPersonMotionController {
     height: 1.68,
     offset: { x: 0, y: 0, z: 0 },
     roll: 0,
-    fov: 80,
+    fov: DEFAULT_VERTICAL_FOV,
     ads: 0,
     sprint: 0,
     crouch: 0,
@@ -248,7 +249,7 @@ export class FirstPersonMotionController {
       -lean * 0.055 +
       (settings.reducedMotion ? 0 : Math.sin(phase) * bobScale * 0.1);
     const scope = equipped?.attachments.includes("scope");
-    const adsFov = scope ? 28 : settings.fov * 0.72;
+    const adsFov = scope ? zoomFov(settings.fov, 4) : settings.fov * 0.72;
     result.fov =
       settings.fov +
       (adsFov - settings.fov) * result.ads +

@@ -834,7 +834,9 @@ export class GameUI {
           : target.type === "door"
             ? "开关"
             : target.type === "resource"
-              ? "采集"
+              ? target.id.startsWith("tree:")
+                ? "砍伐"
+                : "采集"
               : target.type === "corpse"
                 ? "搜索 / 处理"
                 : target.type === "story"
@@ -842,7 +844,7 @@ export class GameUI {
                   : target.type === "water"
                     ? "取水 / 垂钓"
                     : "交互";
-      pr.innerHTML = `<div class="prompt-main"><kbd>E</kbd><span>${escapeHtml(target.name)}</span></div><small>${label}${target.detail ? " · " + escapeHtml(target.detail) : ""}</small>`;
+      pr.innerHTML = `<div class="prompt-main"><kbd>${target.id.startsWith("tree:") ? "左键" : "E"}</kbd><span>${escapeHtml(target.name)}</span></div><small>${label}${target.detail ? " · " + escapeHtml(target.detail) : ""}</small>`;
     }
     if (this.debugVisible) {
       const debug = $("debug-panel")!;

@@ -2,6 +2,7 @@ import "@babylonjs/loaders/glTF";
 import "@babylonjs/core/Animations/animatable";
 import { LoadAssetContainerAsync } from "@babylonjs/core/Loading/sceneLoader";
 import { AnimationGroup } from "@babylonjs/core/Animations/animationGroup";
+import { prepareSkinnedGeometry } from "./skinning-layout";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
@@ -80,6 +81,7 @@ export class AnimalAssetLibrary {
           container.dispose();
           return;
         }
+        prepareSkinnedGeometry(container.meshes);
         this.containers.set(key, container);
       })
       .catch((error) => {

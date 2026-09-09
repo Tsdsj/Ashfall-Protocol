@@ -12,6 +12,7 @@ import type { Material } from "@babylonjs/core/Materials/material";
 import { RigAnimator } from "./rig-animation";
 import { InfectedSkinMaterial } from "./skin-material";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
+import { prepareSkinnedGeometry } from "./skinning-layout";
 
 export interface AnimatedRig {
   root: TransformNode;
@@ -43,6 +44,7 @@ export class CharacterAssetLibrary {
           container.dispose();
           return;
         }
+        prepareSkinnedGeometry(container.meshes);
         this.containers.set(key, container);
       })
       .catch((error) => {

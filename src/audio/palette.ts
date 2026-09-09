@@ -165,6 +165,11 @@ export function feedbackLayers(
     ];
   if (event.type !== "sound") return [];
   switch (event.kind) {
+    case "tree-felled":
+      return [
+        { group: "hit-wood", volume: 0.4, rate: 0.65 },
+        { group: "hit-wood", volume: 0.3, rate: 0.48, delay: 0.65 },
+      ];
     case "footstep":
       return footstepLayers(event.text, foley, event.value ?? 1);
     case "growl": {

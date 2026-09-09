@@ -408,6 +408,7 @@ export interface GameSettings {
   quality: Quality;
   resolution: number;
   fov: number;
+  cameraProfile?: number;
   sensitivity: number;
   invertY: boolean;
   dragLook: boolean;

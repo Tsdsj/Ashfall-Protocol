@@ -55,6 +55,8 @@ export class CollisionWorld {
   dynamicDoors: (x: number, z: number, radius: number) => Collider[] = () => [];
   private staticColliders: Collider[];
   private trees = new Map<string, Collider[]>();
+  private destroyedTreeCount = -1;
+  private destroyedTrees = new Set<string>();
   constructor(
     private gen: WorldGenerator,
     private state: WorldState,
@@ -66,6 +68,12 @@ export class CollisionWorld {
     ];
   }
   private treeColliders(x: number, z: number, radius: number): Collider[] {
+    if (this.destroyedTreeCount !== this.state.destroyed.length) {
+      this.destroyedTreeCount = this.state.destroyed.length;
+      this.destroyedTrees = new Set(
+        this.state.destroyed.filter((id) => id.startsWith("tree:")),
+      );
+    }
     const result: Collider[] = [];
     for (
       let cz = Math.floor((z - radius) / 256);
@@ -92,7 +100,11 @@ export class CollisionWorld {
           }));
           this.trees.set(key, colliders);
         }
-        result.push(...colliders);
+        result.push(
+          ...colliders.filter(
+            (collider) => !this.destroyedTrees.has(collider.id),
+          ),
+        );
       }
     if (this.trees.size > 40) {
       const p = this.state.player.position;

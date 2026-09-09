@@ -21,6 +21,7 @@ interface DistanceBatch {
   min: number;
   max: number;
   selection: string;
+  ids?: readonly string[];
 }
 
 /** Fixed-size ambient pool: weather never creates unbounded scene objects. */
@@ -223,6 +224,7 @@ export async function loadEnvironmentAsset(
 }
 
 export class EnvironmentAssetLibrary {
+  private hiddenInstances: ReadonlySet<string> = new Set();
   private jobs = new Map<string, Promise<void>>();
   private templates = new Map<string, Mesh[]>();
   private containers: AssetContainer[] = [];
@@ -342,12 +344,13 @@ export class EnvironmentAssetLibrary {
     name: string,
     min: number,
     max: number,
+    ids?: readonly string[],
   ): Mesh[] {
     if (!matrices.length) return [];
     const meshes = sources.map((source, i) =>
       applyThinInstances(source, [matrices[0]!], name + ":" + i),
     );
-    const batch = { meshes, matrices, min, max, selection: "initial" };
+    const batch = { meshes, matrices, min, max, ids, selection: "initial" };
     this.batches.add(batch);
     this.select(batch);
     return meshes;
@@ -357,6 +360,7 @@ export class EnvironmentAssetLibrary {
     const min2 = batch.min * batch.min,
       max2 = batch.max * batch.max;
     for (let i = 0; i < batch.matrices.length; i++) {
+      if (batch.ids && this.hiddenInstances.has(batch.ids[i]!)) continue;
       const m = batch.matrices[i]!.m;
       const distance =
         (m[12]! - this.focus.x) ** 2 + (m[14]! - this.focus.z) ** 2;
@@ -383,6 +387,14 @@ export class EnvironmentAssetLibrary {
       if (batch.meshes.every((mesh) => mesh.isDisposed()))
         this.batches.delete(batch);
       else this.select(batch);
+    }
+  }
+  hideInstances(ids: ReadonlySet<string>) {
+    this.hiddenInstances = ids;
+    for (const batch of this.batches) {
+      if (!batch.ids || batch.meshes.every((mesh) => mesh.isDisposed()))
+        continue;
+      this.select(batch);
     }
   }
   buildPOIs(pois: POI[], height: (p: POI) => number, name: string): Mesh[] {

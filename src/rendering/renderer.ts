@@ -240,6 +240,8 @@ export class GameRenderer {
     }
   }
   private feedback(e: Feedback) {
+    if (e.kind === "tree-felled" && e.position)
+      this.world.fellTree(e.text, e.position);
     this.effects.event(e);
     this.motion.feedback(e);
     if (e.type === "shot" && e.kind !== "enemy" && e.kind !== "explosion") {
@@ -628,6 +630,26 @@ export class GameRenderer {
     if (narrativeTarget) return narrativeTarget;
     const eventTarget = this.eventWorld.target(ray.origin, ray.direction);
     if (eventTarget) return eventTarget;
+    const tree = this.sim.collision.ray(ray.origin, ray.direction, 2.6);
+    let treeTarget: Interaction | null = null;
+    if (tree?.collider.id.startsWith("tree:")) {
+      const c = tree.collider;
+      treeTarget = {
+        id: c.id,
+        type: "resource",
+        name: "松树",
+        resource: "wood",
+        position: {
+          x: (c.minX + c.maxX) / 2,
+          y: c.minY,
+          z: (c.minZ + c.maxZ) / 2,
+        },
+        detail:
+          this.sim.combat.equipped()?.id === "hatchet"
+            ? `砍伐进度 ${this.sim.combat.treeProgress(c.id)}/4`
+            : "需要装备手斧",
+      };
+    }
     const pick = this.scene.pickWithRay(
       ray,
       (m) =>
@@ -636,7 +658,12 @@ export class GameRenderer {
         m.isVisible &&
         !m.name.includes("first-person"),
     );
-    if (pick?.hit && pick.pickedMesh) {
+    const treeOccluded = !!(
+      treeTarget &&
+      pick?.hit &&
+      pick.distance < tree!.distance
+    );
+    if (pick?.hit && pick.pickedMesh && (!treeTarget || treeOccluded)) {
       const meta = pick.pickedMesh.metadata as {
         interaction?: Interaction;
         actorId?: string;
@@ -684,7 +711,7 @@ export class GameRenderer {
     }
     // Small handles and documents are selectable within a narrow cone, without needing pixel-perfect aiming.
     let best: Interaction | null = null,
-      bestD = 3.4;
+      bestD = treeTarget && !treeOccluded ? Math.min(3.4, tree!.distance) : 3.4;
     for (const chunk of this.world.chunks.values())
       for (const entry of chunk.interactions) {
         const it = entry.interaction;
@@ -714,7 +741,7 @@ export class GameRenderer {
           along = Vector3.Dot(delta, ray.direction);
         if (
           along > 0 &&
-          along < 3.5 &&
+          along < Math.min(3.5, bestD) &&
           delta.subtract(ray.direction.scale(along)).length() < 0.85 &&
           this.sim.collision.visible(ray.origin, point)
         )
@@ -726,7 +753,7 @@ export class GameRenderer {
           };
       }
     }
-    return best;
+    return best ?? (treeOccluded ? null : treeTarget);
   }
   applySettings() {
     this.lighting.settings(this.settings);

@@ -1,4 +1,6 @@
 import { scatterTrees } from "../world/scatter";
+import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
+import type { TreeInstance } from "../world/scatter";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Vector3, type Matrix } from "@babylonjs/core/Maths/math.vector";
@@ -109,9 +111,11 @@ export class VegetationLibrary {
     cx: number,
     cz: number,
     density: number,
+    destroyed: ReadonlySet<string> = new Set(),
   ): Mesh[] {
     const rng = random(gen.seed + ":scatter:" + cx + "," + cz),
       trees: Matrix[][] = [[], [], []],
+      treeIds: string[][] = [[], [], []],
       wood: Matrix[][] = [[], [], []],
       grasses: Matrix[] = [],
       ferns: Matrix[] = [],
@@ -128,6 +132,8 @@ export class VegetationLibrary {
     const cover = (x: number, z: number) =>
       groundCoverAllowed(gen, x, z, pois, paths);
     for (const t of scatterTrees(gen, cx, cz)) {
+      if (destroyed.has(t.id)) continue;
+      treeIds[t.variant]!.push(t.id);
       trees[t.variant]!.push(
         transform(
           t.position.x,
@@ -276,6 +282,7 @@ export class VegetationLibrary {
           prefix + ":scanned-trunk-high:" + v,
           0,
           64,
+          treeIds[v]!,
         ),
       );
       output.push(
@@ -285,6 +292,7 @@ export class VegetationLibrary {
           prefix + ":scanned-trunk-low:" + v,
           64,
           390,
+          treeIds[v]!,
         ),
       );
       for (const [lod, min, max] of [
@@ -299,6 +307,7 @@ export class VegetationLibrary {
             prefix + ":scanned-foliage:" + v + ":" + lod,
             min,
             max,
+            treeIds[v]!,
           ),
         );
     }
@@ -374,6 +383,31 @@ export class VegetationLibrary {
       meshes.push(mesh);
     }
     return meshes;
+  }
+  fallingTree(tree: TreeInstance): { root: TransformNode; meshes: Mesh[] } {
+    const root = new TransformNode("falling:" + tree.id, this.scene);
+    root.position.set(tree.position.x, tree.position.y, tree.position.z);
+    root.scaling.set(tree.scale.x, tree.scale.y, tree.scale.z);
+    root.rotation.y = tree.yaw;
+    const meshes: Mesh[] = [];
+    for (const source of this.assets.sources("pine-wood", "high")) {
+      const mesh = source.clone("falling-trunk:" + tree.id, root, true)!;
+      mesh.scaling.set(1.85, 15.8 + tree.variant * 1.2, 2.12);
+      meshes.push(mesh);
+    }
+    const crown = this.crowns[tree.variant]![1]!.clone(
+      "falling-crown:" + tree.id,
+      root,
+      true,
+    )!;
+    meshes.push(crown);
+    for (const mesh of meshes) {
+      mesh.setEnabled(true);
+      mesh.unfreezeWorldMatrix();
+      mesh.isPickable = false;
+      mesh.receiveShadows = true;
+    }
+    return { root, meshes };
   }
   dispose() {
     this.grass.dispose();

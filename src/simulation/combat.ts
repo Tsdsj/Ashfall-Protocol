@@ -1,6 +1,6 @@
 import { ITEMS } from "../data/items";
 import { distance, type Stack, type Vec3, type BodyPart } from "../core/types";
-import { countItem, removeItem } from "./inventory";
+import { addItem, countItem, removeItem } from "./inventory";
 import type { SimContext } from "./context";
 import type { AISystem } from "./ai";
 import { rayActorZones, type HitZone } from "./hit-zones";
@@ -17,6 +17,10 @@ interface Projectile {
   impact: number;
 }
 export class CombatSystem {
+  private treeChops = new Map<string, number>();
+  treeProgress(id: string): number {
+    return this.treeChops.get(id) ?? 0;
+  }
   readonly hitZones = new Map<string, HitZone[]>();
   cooldown = 0;
   reloadRemaining = 0;
@@ -239,6 +243,41 @@ export class CombatSystem {
     else {
       const hit = this.ctx.collision.ray(origin, direction, w.range);
       if (hit) {
+        if (hit.collider.id.startsWith("tree:")) {
+          const treeId = hit.collider.id;
+          if (id !== "hatchet")
+            this.ctx.notify("砍伐树木需要装备手斧。", "warning");
+          else if (!this.ctx.state.destroyed.includes(treeId)) {
+            const chops = Math.min(4, this.treeProgress(treeId) + 1);
+            if (chops < 4) {
+              this.treeChops.set(treeId, chops);
+              this.ctx.notify(`正在砍伐松树 · ${chops}/4`);
+            } else if (addItem(this.ctx.state.player.inventory, "wood", 7)) {
+              this.treeChops.delete(treeId);
+              this.ctx.state.destroyed.push(treeId);
+              const position = {
+                x: (hit.collider.minX + hit.collider.maxX) / 2,
+                y: hit.collider.minY,
+                z: (hit.collider.minZ + hit.collider.maxZ) / 2,
+              };
+              this.ctx.noise(position, 45, "tree-fall");
+              this.ctx.notify("松树已砍倒 · 获得木材 ×7", "success");
+              this.ctx.bus.emit({
+                type: "sound",
+                kind: "tree-felled",
+                text: treeId,
+                position,
+                direction,
+              });
+            } else {
+              this.treeChops.set(treeId, 3);
+              this.ctx.notify(
+                "背包空间不足，请腾出位置后再完成砍伐。",
+                "warning",
+              );
+            }
+          }
+        }
         if (
           hit.collider.door &&
           ["hatchet", "crowbar", "machete"].includes(id)
