@@ -40,6 +40,30 @@ function login(password: string, origin = "https://game.example") {
 }
 
 describe("Sites password access", () => {
+  it("keeps ordinary full-object responses cacheable when R2 reports a full range", async () => {
+    const env = environment();
+    const response = await gate.fetch(login(env.SITE_PASSWORD), env);
+    const cookie = response.headers.get("Set-Cookie")!.split(";")[0]!;
+    env.GAME_ASSETS.get.mockImplementationOnce(async () => {
+      const asset = {
+        body: new Response("game asset").body!,
+        size: 10,
+        httpEtag: '"full"',
+        range: { offset: 0, length: 10 },
+        writeHttpMetadata(headers: Headers) {
+          headers.set("Content-Type", "text/javascript");
+        },
+      };
+      return asset;
+    });
+    const asset = await gate.fetch(
+      request("/assets/game.js", { Cookie: cookie }),
+      env,
+    );
+    expect(asset.status).toBe(200);
+    expect(asset.headers.has("Content-Range")).toBe(false);
+    expect(asset.headers.get("Content-Length")).toBe("10");
+  });
   it("requires the deployment secret and a matching checksum before storing assets", async () => {
     const env = environment(),
       bytes = new TextEncoder().encode("game asset");

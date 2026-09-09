@@ -285,18 +285,21 @@ export default {
       });
     const headers = new Headers();
     asset.writeHttpMetadata(headers);
+    // R2 can report a full-object range even for an ordinary GET.
+    // Only an actual Range request may produce 206 (Cache API rejects 206).
+    const range = request.headers.has("Range") ? asset.range : undefined;
     headers.set("Cache-Control", "private, no-cache");
     headers.set("X-Ashfall-Access", "verified");
     headers.set("ETag", asset.httpEtag);
     headers.set("Accept-Ranges", "bytes");
-    headers.set("Content-Length", String(asset.range?.length ?? asset.size));
-    if (asset.range)
+    headers.set("Content-Length", String(range?.length ?? asset.size));
+    if (range)
       headers.set(
         "Content-Range",
-        `bytes ${asset.range.offset}-${asset.range.offset + asset.range.length - 1}/${asset.size}`,
+        `bytes ${range.offset}-${range.offset + range.length - 1}/${asset.size}`,
       );
     return new Response(request.method === "HEAD" ? null : asset.body, {
-      status: asset.range ? 206 : 200,
+      status: range ? 206 : 200,
       headers,
     });
   },
