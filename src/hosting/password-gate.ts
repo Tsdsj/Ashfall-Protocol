@@ -2,7 +2,28 @@ export interface HostingEnvironment {
   SITE_PASSWORD: string;
   SITE_SESSION_SECRET: string;
   SITE_ORIGIN: string;
-  ASSETS: { fetch(request: Request): Promise<Response> };
+  SITE_ASSET_VERSION: string;
+  SITE_DEPLOY_SECRET: string;
+  GAME_ASSETS: {
+    get(
+      key: string,
+      options?: { range: Headers },
+    ): Promise<{
+      body: ReadableStream<Uint8Array>;
+      size: number;
+      httpEtag: string;
+      range?: { offset: number; length: number };
+      writeHttpMetadata(headers: Headers): void;
+    } | null>;
+    put(
+      key: string,
+      bytes: ArrayBuffer,
+      options: {
+        httpMetadata: { contentType: string };
+        customMetadata: { sha256: string };
+      },
+    ): Promise<unknown>;
+  };
 }
 
 const COOKIE = "__Host-ashfall-access";
@@ -130,6 +151,66 @@ export default {
         headers: privateHeaders,
       });
     const url = new URL(request.url);
+    // No client files are deployed through the platform's public static-asset path.
+    // Only this authenticated Worker can read the private bucket.
+    if (url.pathname === "/__access/upload" && request.method === "PUT") {
+      const authorization = request.headers.get("Authorization") ?? "";
+      if (
+        !env.SITE_DEPLOY_SECRET ||
+        env.SITE_DEPLOY_SECRET.length < 32 ||
+        !(await equalPassword(
+          authorization,
+          "Bearer " + env.SITE_DEPLOY_SECRET,
+        ))
+      )
+        return new Response("Unauthorized", {
+          status: 401,
+          headers: privateHeaders,
+        });
+      const key = url.searchParams.get("key") ?? "",
+        version = url.searchParams.get("version") ?? "";
+      if (
+        !/^[a-f0-9]{16}$/.test(version) ||
+        !/^[A-Za-z0-9_./-]+$/.test(key) ||
+        key.split("/").some((part) => !part || part.startsWith("."))
+      )
+        return new Response("Invalid asset key", {
+          status: 400,
+          headers: privateHeaders,
+        });
+      if (Number(request.headers.get("Content-Length")) > 10 * 1024 * 1024)
+        return new Response("Asset too large", {
+          status: 413,
+          headers: privateHeaders,
+        });
+      const bytes = await request.arrayBuffer();
+      if (bytes.byteLength > 10 * 1024 * 1024)
+        return new Response("Asset too large", {
+          status: 413,
+          headers: privateHeaders,
+        });
+      const sha256 = [
+        ...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)),
+      ]
+        .map((value) => value.toString(16).padStart(2, "0"))
+        .join("");
+      if (request.headers.get("X-Asset-Sha256") !== sha256)
+        return new Response("Asset checksum mismatch", {
+          status: 400,
+          headers: privateHeaders,
+        });
+      await env.GAME_ASSETS.put(version + "/" + key, bytes, {
+        httpMetadata: {
+          contentType:
+            request.headers.get("Content-Type") ?? "application/octet-stream",
+        },
+        customMetadata: { sha256 },
+      });
+      return Response.json(
+        { key, sha256, bytes: bytes.byteLength },
+        { headers: privateHeaders },
+      );
+    }
     if (url.pathname === "/__access/login" && request.method === "POST") {
       if (request.headers.get("Origin") !== env.SITE_ORIGIN)
         return new Response("请求来源不匹配。", {
@@ -187,13 +268,35 @@ export default {
         status: 404,
         headers: privateHeaders,
       });
-    const response = await env.ASSETS.fetch(request);
-    const headers = new Headers(response.headers);
+    if (!env.GAME_ASSETS || !/^[a-f0-9]{16}$/.test(env.SITE_ASSET_VERSION))
+      return new Response("游戏资源暂未就绪。", {
+        status: 503,
+        headers: privateHeaders,
+      });
+    const key = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
+    const asset = await env.GAME_ASSETS.get(
+      env.SITE_ASSET_VERSION + "/" + key,
+      { range: request.headers },
+    );
+    if (!asset)
+      return new Response("Not found", {
+        status: 404,
+        headers: privateHeaders,
+      });
+    const headers = new Headers();
+    asset.writeHttpMetadata(headers);
     headers.set("Cache-Control", "private, no-cache");
     headers.set("X-Ashfall-Access", "verified");
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
+    headers.set("ETag", asset.httpEtag);
+    headers.set("Accept-Ranges", "bytes");
+    headers.set("Content-Length", String(asset.range?.length ?? asset.size));
+    if (asset.range)
+      headers.set(
+        "Content-Range",
+        `bytes ${asset.range.offset}-${asset.range.offset + asset.range.length - 1}/${asset.size}`,
+      );
+    return new Response(request.method === "HEAD" ? null : asset.body, {
+      status: asset.range ? 206 : 200,
       headers,
     });
   },

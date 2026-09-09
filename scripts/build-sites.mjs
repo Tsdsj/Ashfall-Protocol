@@ -1,4 +1,11 @@
-import { readFile, writeFile, mkdir, rename, readdir } from "node:fs/promises";
+import {
+  readFile,
+  writeFile,
+  mkdir,
+  rename,
+  readdir,
+  rm,
+} from "node:fs/promises";
 import ts from "typescript";
 
 await mkdir("dist/client", { recursive: true });
@@ -15,26 +22,18 @@ const output = ts.transpileModule(source, {
   },
 });
 await writeFile("dist/server/index.js", output.outputText);
-await writeFile(
-  "dist/server/wrangler.json",
-  JSON.stringify(
-    {
-      name: "ashfall-protocol",
-      main: "index.js",
-      compatibility_date: "2026-09-09",
-      assets: {
-        directory: "../client",
-        binding: "ASSETS",
-        run_worker_first: true,
-      },
-    },
-    null,
-    2,
-  ),
+const manifest = JSON.parse(
+  await readFile("dist/client/precache.json", "utf8"),
 );
+const privateAssets = "output/sites-assets/" + manifest.version;
+await mkdir("output/sites-assets", { recursive: true });
+await rm(privateAssets, { recursive: true, force: true });
+await rename("dist/client", privateAssets);
 await mkdir("dist/.openai", { recursive: true });
 await writeFile(
   "dist/.openai/hosting.json",
   await readFile(".openai/hosting.json"),
 );
-console.log("Sites Worker and protected client assets prepared.");
+console.log(
+  "Sites Worker prepared; upload private assets from " + privateAssets,
+);

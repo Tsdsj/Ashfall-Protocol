@@ -6,7 +6,23 @@ function environment() {
     SITE_PASSWORD: "test-password-only",
     SITE_SESSION_SECRET: "test-signing-secret-not-a-production-value",
     SITE_ORIGIN: "https://game.example",
-    ASSETS: { fetch: vi.fn(async () => new Response("game asset")) },
+    SITE_ASSET_VERSION: "0123456789abcdef",
+    SITE_DEPLOY_SECRET: "test-deployment-secret-not-a-production-value",
+    GAME_ASSETS: {
+      get: vi.fn(async () => ({
+        body: new Response("game asset").body!,
+        size: 10,
+        httpEtag: '"test"',
+        writeHttpMetadata(headers: Headers) {
+          headers.set("Content-Type", "text/javascript");
+        },
+      })),
+      put: vi.fn(
+        async (
+          ..._args: Parameters<HostingEnvironment["GAME_ASSETS"]["put"]>
+        ) => ({}),
+      ),
+    },
   } satisfies HostingEnvironment;
 }
 function request(path = "/", headers: Record<string, string> = {}) {
@@ -24,6 +40,66 @@ function login(password: string, origin = "https://game.example") {
 }
 
 describe("Sites password access", () => {
+  it("requires the deployment secret and a matching checksum before storing assets", async () => {
+    const env = environment(),
+      bytes = new TextEncoder().encode("game asset");
+    const sha256 = [
+      ...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)),
+    ]
+      .map((value) => value.toString(16).padStart(2, "0"))
+      .join("");
+    const put = (secret: string, checksum = sha256) =>
+      new Request(
+        "https://game.example/__access/upload?version=0123456789abcdef&key=assets/game.js",
+        {
+          method: "PUT",
+          body: bytes,
+          headers: {
+            Authorization: "Bearer " + secret,
+            "Content-Type": "text/javascript",
+            "X-Asset-Sha256": checksum,
+          },
+        },
+      );
+    expect((await gate.fetch(put(env.SITE_PASSWORD), env)).status).toBe(401);
+    expect(
+      (await gate.fetch(put(env.SITE_DEPLOY_SECRET, "invalid"), env)).status,
+    ).toBe(400);
+    expect(env.GAME_ASSETS.put).not.toHaveBeenCalled();
+    const stored = await gate.fetch(put(env.SITE_DEPLOY_SECRET), env);
+    expect(stored.status).toBe(200);
+    expect((await stored.json()).sha256).toBe(sha256);
+    expect(env.GAME_ASSETS.put).toHaveBeenCalledOnce();
+    expect(env.GAME_ASSETS.put.mock.calls[0]![0]).toBe(
+      "0123456789abcdef/assets/game.js",
+    );
+  });
+  it("returns authenticated byte ranges with correct media response headers", async () => {
+    const env = environment();
+    const loginResponse = await gate.fetch(login(env.SITE_PASSWORD), env);
+    const cookie = loginResponse.headers.get("Set-Cookie")!.split(";")[0]!;
+    env.GAME_ASSETS.get.mockImplementationOnce(async () => {
+      const asset = {
+        body: new Response("part").body!,
+        size: 100,
+        httpEtag: '"range"',
+        range: { offset: 4, length: 4 },
+        writeHttpMetadata(headers: Headers) {
+          headers.set("Content-Type", "audio/mpeg");
+        },
+      };
+      return asset;
+    });
+    const response = await gate.fetch(
+      request("/audio/example.mp3", { Cookie: cookie, Range: "bytes=4-7" }),
+      env,
+    );
+    expect(response.status).toBe(206);
+    expect(response.headers.get("Content-Range")).toBe("bytes 4-7/100");
+    expect(response.headers.get("Content-Length")).toBe("4");
+    expect(response.headers.get("Content-Type")).toBe("audio/mpeg");
+    expect(await response.text()).toBe("part");
+  });
   it("shows only the password form and denies direct scripts, assets and manifest without a session", async () => {
     const env = environment();
     const page = await gate.fetch(request(), env);
@@ -36,7 +112,7 @@ describe("Sites password access", () => {
       "/sw.js",
     ])
       expect((await gate.fetch(request(path), env)).status).toBe(401);
-    expect(env.ASSETS.fetch).not.toHaveBeenCalled();
+    expect(env.GAME_ASSETS.get).not.toHaveBeenCalled();
   });
   it("rejects incorrect, overlong and cross-origin submissions without issuing cookies", async () => {
     const env = environment();
@@ -63,7 +139,7 @@ describe("Sites password access", () => {
     );
     expect(await asset.text()).toBe("game asset");
     expect(asset.headers.get("X-Ashfall-Access")).toBe("verified");
-    expect(env.ASSETS.fetch).toHaveBeenCalledOnce();
+    expect(env.GAME_ASSETS.get).toHaveBeenCalledOnce();
   });
   it("rejects tampered, expired and password-rotated sessions", async () => {
     const env = environment();
@@ -111,6 +187,6 @@ describe("Sites password access", () => {
       (await gate.fetch(request("/server/index.js", { Cookie: cookie }), env))
         .status,
     ).toBe(404);
-    expect(env.ASSETS.fetch).not.toHaveBeenCalled();
+    expect(env.GAME_ASSETS.get).not.toHaveBeenCalled();
   });
 });
