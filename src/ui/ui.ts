@@ -92,6 +92,7 @@ export class GameUI {
   locked = false;
   binding: string | null = null;
   debugVisible = false;
+  performanceDetail = "";
   scopeWeight = 0;
   private root: HTMLElement;
   private layer: HTMLElement;
@@ -848,7 +849,7 @@ export class GameUI {
     }
     if (this.debugVisible) {
       const debug = $("debug-panel")!;
-      debug.textContent = `${this.backend} · ${Math.round(fps)} FPS\nFrame ${(1000 / fps).toFixed(1)} ms · Draw ${drawCalls}\nChunks ${chunkCount} · AI ${sim.inspect().actors}\nPosition ${p.position.x.toFixed(1)} ${p.position.y.toFixed(1)} ${p.position.z.toFixed(1)}\nTime ${sim.state.time.toFixed(2)} · Day ${sim.state.day}`;
+      debug.textContent = `${this.backend} · ${Math.round(fps)} FPS\n${this.performanceDetail}\nFrame ${(1000 / fps).toFixed(1)} ms · Draw ${drawCalls}\nChunks ${chunkCount} · AI ${sim.inspect().actors}\nPosition ${p.position.x.toFixed(1)} ${p.position.y.toFixed(1)} ${p.position.z.toFixed(1)}\nTime ${sim.state.time.toFixed(2)} · Day ${sim.state.day}`;
     }
   }
   buildingPrompt(valid: boolean, reason: string) {

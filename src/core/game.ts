@@ -48,7 +48,8 @@ export class Game {
   private lastSaved = 0;
   private lowFpsTime = 0;
   private performanceWarned = false;
-  private pointerHintShown = false;
+  private resumeGeneration = 0;
+  private lastPerformanceRead = 0;
   private offSim: (() => void) | null = null;
   private frameError = false;
   private lastError = "";
@@ -165,7 +166,7 @@ export class Game {
       const controlsActive =
         this.active &&
         this.ui.screen === "play" &&
-        (document.pointerLockElement === this.canvas || this.input.fallback) &&
+        this.input.active &&
         !this.consoleOpen;
       const sessionRunning =
         this.active &&
@@ -207,7 +208,7 @@ export class Game {
       const playing =
         this.active &&
         this.ui.screen === "play" &&
-        (document.pointerLockElement === this.canvas || this.input.fallback) &&
+        this.input.active &&
         !this.consoleOpen &&
         !sequence.blocking;
       this.renderer.setMenu(!this.active);
@@ -324,14 +325,18 @@ export class Game {
       this.renderer.update(presentationDt, playing && this.input.aiming);
       const target = playing ? this.renderer.target() : null;
       this.ui.setInteraction(target);
-      const stats = this.renderer.stats;
+      if (this.ui.debugVisible && now - this.lastPerformanceRead > 500) {
+        this.lastPerformanceRead = now;
+        const stats = this.renderer.stats;
+        this.ui.performanceDetail = `Render CPU ${stats.sceneMs.toFixed(1)} ms · Sim ${this.simFrameMs.toFixed(1)} ms\nGPU ${stats.gpuMs?.toFixed(1) ?? "N/A"} ms · ${stats.resolution.join("×")} · 无游戏帧率上限`;
+      }
       this.ui.scopeWeight = this.renderer.motion.pose.ads;
       this.ui.update(
         dt,
         this.input.aiming,
-        stats.fps,
-        stats.chunks,
-        stats.drawCalls,
+        this.engine.getFps(),
+        this.renderer.world.chunks.size,
+        this.engine._drawCalls?.current ?? 0,
       );
       if (this.sim.building.active) {
         const ghost = this.renderer.placement();
@@ -360,6 +365,13 @@ export class Game {
   private bind() {
     document.addEventListener("pointerlockchange", () => {
       const locked = document.pointerLockElement === this.canvas;
+      if (
+        locked &&
+        (this.ui.screen !== "play" || !document.hasFocus() || document.hidden)
+      ) {
+        this.input.unlock();
+        return;
+      }
       this.ui.setLocked(locked || this.input.fallback);
       if (
         !locked &&
@@ -368,7 +380,7 @@ export class Game {
         this.ui.screen === "play" &&
         !this.consoleOpen
       )
-        this.ui.show("pause");
+        this.open("pause");
     });
     window.addEventListener("blur", () => {
       if (
@@ -443,7 +455,16 @@ export class Game {
     });
   }
   private key(e: KeyboardEvent) {
-    if (this.frameError || this.ui.screen === "error") return;
+    if (
+      this.frameError ||
+      this.ui.screen === "error" ||
+      !document.hasFocus() ||
+      document.hidden
+    )
+      return;
+    // Keep browser fullscreen, refresh and OS application switching available.
+    if (e.code === "F11" || e.code === "F5" || e.altKey || e.metaKey) return;
+    if (e.ctrlKey && !this.input.active) return;
     if (this.ui.binding) {
       if (["Escape", "MetaLeft", "MetaRight"].includes(e.code)) {
         this.ui.binding = null;
@@ -468,7 +489,15 @@ export class Game {
       e.target instanceof HTMLInputElement ||
       e.target instanceof HTMLSelectElement ||
       e.target instanceof HTMLTextAreaElement;
-    if (typing && e.code !== "Escape") return;
+    if (
+      (typing ||
+        (e.target instanceof HTMLElement && e.target.isContentEditable)) &&
+      e.code !== "Escape"
+    )
+      return;
+    if (e.repeat && !["Space"].includes(e.code)) return;
+    // Escape after browser unlock must never immediately request another lock.
+    if (e.code === "Escape" && this.ui.screen === "pause") return;
     if (e.code === "Backquote" && import.meta.env.DEV && this.active) {
       e.preventDefault();
       this.toggleConsole();
@@ -502,7 +531,7 @@ export class Game {
       } else void this.action("close-panel", document.createElement("button"));
       return;
     }
-    if (!this.active || this.loading) return;
+    if (!this.active || this.loading || this.ui.screen === "pause") return;
     if (
       this.ui.screen === "play" &&
       e.code === "KeyX" &&
@@ -931,11 +960,19 @@ export class Game {
     }
     if (screen === "settings" || screen === "saves" || screen === "credits")
       this.ui.backScreen = this.active ? "pause" : "menu";
+    ++this.resumeGeneration;
     this.ui.show(screen);
     this.input.unlock();
   }
   private async resume() {
-    if (!this.active || this.frameError) return;
+    if (
+      !this.active ||
+      this.frameError ||
+      !document.hasFocus() ||
+      document.hidden
+    )
+      return;
+    const generation = ++this.resumeGeneration;
     this.ui.show("play");
     const subtitle = this.sim.narrative.frame().subtitle;
     void this.audio.resumeDialogue().then((resumed) => {
@@ -973,17 +1010,17 @@ export class Game {
     void this.audio.unlock();
     try {
       await lock;
-      this.ui.setLocked(document.pointerLockElement === this.canvas);
+      if (generation !== this.resumeGeneration || this.ui.screen !== "play")
+        return;
+      this.ui.setLocked(this.input.active);
     } catch {
-      this.input.fallback = true;
-      this.canvas.focus();
-      this.ui.setLocked(true);
-      if (!this.pointerHintShown) {
-        this.pointerHintShown = true;
-        this.ui.toast(
-          "已启用兼容视角：按住右键拖动观察，方向键也可转向。WASD 移动。",
-        );
-      }
+      if (generation !== this.resumeGeneration || this.ui.screen !== "play")
+        return;
+      this.input.clear();
+      this.ui.setLocked(false);
+      this.ui.toast(
+        "点击继续探索以重新捕获鼠标；Esc 可释放鼠标。右键拖动仅在设置中手动启用。",
+      );
     }
   }
   private async save(quiet = false): Promise<boolean> {
