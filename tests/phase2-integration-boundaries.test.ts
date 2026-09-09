@@ -52,6 +52,8 @@ function gameHarness(sim: Simulation) {
   const canvas = { focus: vi.fn() };
   vi.stubGlobal("document", {
     pointerLockElement: canvas,
+    hasFocus: () => true,
+    hidden: false,
     addEventListener() {},
     removeEventListener() {},
   });
@@ -84,6 +86,7 @@ function gameHarness(sim: Simulation) {
   };
   const input = {
     fallback: true,
+    active: true,
     held: new Set<string>(),
     clear: vi.fn(),
     unlock: vi.fn(),
@@ -96,6 +99,7 @@ function gameHarness(sim: Simulation) {
   };
   const renderer = {
     motion: { pose: { ads: 0 } },
+    world: { chunks: new Map() },
     setMenu: vi.fn(),
     prepareView: vi.fn(),
     update: vi.fn(),
@@ -124,6 +128,7 @@ function gameHarness(sim: Simulation) {
     playFrames: 0,
     frameSamples: [],
     simFrameMs: 0,
+    resumeGeneration: 0,
     lowFpsTime: 0,
     settings: structuredClone(DEFAULT_SETTINGS),
     engine: {

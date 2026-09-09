@@ -3,6 +3,7 @@ import { environmentPropColliders } from "../rendering/environment-props";
 import { clamp, type POI, type Vec3, type Collider } from "../core/types";
 export const WORLD_SIZE = 4096;
 export const CHUNK_SIZE = 256;
+export const TERRAIN_STEP = 8;
 export const REGIONS = [
   {
     id: "pine",

@@ -250,10 +250,11 @@ export class FirstPersonMotionController {
       (settings.reducedMotion ? 0 : Math.sin(phase) * bobScale * 0.1);
     const scope = equipped?.attachments.includes("scope");
     const adsFov = scope ? zoomFov(settings.fov, 4) : settings.fov * 0.72;
-    result.fov =
+    const targetFov =
       settings.fov +
       (adsFov - settings.fov) * result.ads +
       (settings.reducedMotion ? 0 : result.sprint * 4);
+    result.fov = damp(result.fov, targetFov, 10, dt);
 
     const cp = Math.cos(p.pitch);
     const wall = sim.collision.ray(

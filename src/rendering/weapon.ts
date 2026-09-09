@@ -382,29 +382,34 @@ export class WeaponRenderer {
     } else {
       b.beveledBox(
         "knife-handle",
-        [0.055, 0.075, 0.17],
-        [0, 0.06, 0.24],
+        [0.024, 0.026, 0.17],
+        [0, 0.077, 0.24],
         wood,
-        [0, 0, 0.15],
+        [0, 0, 0],
       );
-      b.beveledBox("knife-guard", [0.11, 0.025, 0.025], [0, 0.11, 0.32], steel);
+      b.beveledBox(
+        "knife-guard",
+        [0.09, 0.018, 0.025],
+        [0, 0.077, 0.325],
+        steel,
+      );
       const blade = this.mats.simple("knife-blade", "#a3aaa3");
       blade.metallic = 0.85;
       blade.roughness = 0.3;
       b.beveledBox(
         "blade",
         [0.045, 0.009, 0.3],
-        [0, 0.13, 0.48],
+        [0, 0.077, 0.4875],
         blade,
-        [0, -0.025, 0.15],
+        [0, 0, 0],
       );
       b.cylinder(
         "blade-tip",
         0.11,
         0.045,
-        [0, 0.13, 0.685],
+        [0, 0.077, 0.6925],
         blade,
-        [Math.PI / 2, 0, 0.15],
+        [Math.PI / 2, 0, 0],
         0,
         3,
       );

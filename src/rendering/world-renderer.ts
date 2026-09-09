@@ -7,7 +7,12 @@ import { type Scene } from "@babylonjs/core/scene";
 import { noise, random } from "../core/random";
 import type { Interaction, Vec3, POI } from "../core/types";
 import { WorldGenerator, REGIONS } from "../world/generator";
-import { generateTerrainData } from "../world/terrain-data";
+import {
+  generateTerrainData,
+  horizonIndices,
+  HORIZON_SEGMENTS,
+  HORIZON_SIZE,
+} from "../world/terrain-data";
 import { ModelBatch, terrainMesh } from "./geometry";
 import { BuildingLibrary, type SceneInteractable } from "./buildings";
 import { VegetationLibrary } from "./vegetation";
@@ -98,24 +103,17 @@ export class WorldRenderer {
     } catch {
       this.worker = null;
     }
-    const n = 96,
+    const n = HORIZON_SEGMENTS,
       positions = new Float32Array((n + 1) * (n + 1) * 3),
-      indices = new Uint32Array(n * n * 6),
+      indices = horizonIndices(new Set()),
       uvs = new Float32Array((n + 1) * (n + 1) * 2);
     for (let z = 0; z <= n; z++)
       for (let x = 0; x <= n; x++) {
         const i = z * (n + 1) + x,
-          wx = (x / n - 0.5) * 4600,
-          wz = (z / n - 0.5) * 4600;
+          wx = (x / n - 0.5) * HORIZON_SIZE,
+          wz = (z / n - 0.5) * HORIZON_SIZE;
         positions.set([wx, this.sim.gen.height(wx, wz) - 1.2, wz], i * 3);
         uvs.set([wx / 15, wz / 15], i * 2);
-      }
-    let at = 0;
-    for (let z = 0; z < n; z++)
-      for (let x = 0; x < n; x++) {
-        const a = z * (n + 1) + x;
-        indices.set([a, a + n + 1, a + 1, a + 1, a + n + 1, a + n + 2], at);
-        at += 6;
       }
     this.horizon = terrainMesh(
       scene,
@@ -169,6 +167,7 @@ export class WorldRenderer {
         for (const m of chunk.meshes) this.lighting.removeCaster(m);
         chunk.root.dispose(false);
         this.chunks.delete(id);
+        this.updateHorizon();
       }
     const tasks: Promise<void>[] = [];
     for (const [x, z] of coords) {
@@ -182,6 +181,10 @@ export class WorldRenderer {
       tasks.push(task);
     }
     if (wait) await Promise.all(tasks);
+  }
+  private updateHorizon() {
+    this.horizon.resetDrawCache();
+    this.horizon.setIndices(horizonIndices(new Set(this.chunks.keys())));
   }
   private async load(cx: number, cz: number): Promise<void> {
     const pois = this.sim.gen.pois.filter(
@@ -282,6 +285,7 @@ export class WorldRenderer {
       doors,
       movingDetails: meshes.filter((mesh) => mesh.metadata?.environmentMotion),
     });
+    this.updateHorizon();
   }
   private approaches(batch: ModelBatch, pois: POI[]) {
     for (const path of environmentApproaches(this.sim.gen, pois)) {

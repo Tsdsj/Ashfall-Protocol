@@ -288,7 +288,7 @@ export class Simulation implements SimContext {
       this.notify("天气正在变化，留意气温与能见度。");
     }
     if (p.vehicle) {
-      this.vehicles.update(dt, input.forward, -input.side, input.brake);
+      this.vehicles.update(dt, input.forward, input.side, input.brake);
       this.moving =
         Math.abs(s.vehicles.find((v) => v.id === p.vehicle)?.speed ?? 0) > 1;
       this.sprinting = false;
