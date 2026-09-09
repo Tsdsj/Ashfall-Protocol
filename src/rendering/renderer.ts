@@ -416,6 +416,8 @@ export class GameRenderer {
     }
   }
   prepareView(dt: number, aiming: boolean, lean = 0): void {
+    // Yaw/pitch still change after bob/lean roll stops; never reuse an old up axis.
+    this.camera.updateUpVectorFromRotation = true;
     this.time += dt;
     const p = this.sim.state.player;
     if (this.menuMode) {

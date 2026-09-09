@@ -5,6 +5,7 @@ import { GameUI, type Screen } from "../ui/ui";
 import { AudioManager } from "../audio/audio";
 import { DIALOGUE_DURATIONS } from "../audio/dialogue-durations";
 import { cameraPreferences } from "./camera-settings";
+import { measureDisplayCadence } from "./display-cadence";
 import { SaveSystem, deserialize, serialize } from "../save/storage";
 import {
   createWorld,
@@ -59,6 +60,8 @@ export class Game {
   private playFrames = 0;
   private frameSamples: number[] = [];
   private simFrameMs = 0;
+  private readonly renderFrame = () => this.frame();
+  private checkingDisplay = false;
   constructor() {
     this.settings = this.readSettings();
     this.ui = new GameUI(this.settings);
@@ -110,7 +113,7 @@ export class Game {
       this.renderer.setMenu(true);
       this.ui.show("menu");
       this.last = performance.now();
-      this.engine.runRenderLoop(() => this.frame());
+      this.engine.runRenderLoop(this.renderFrame);
       window.addEventListener("resize", () => this.engine.resize());
       this.installDebug();
     } catch (e) {
@@ -529,6 +532,17 @@ export class Game {
       ) {
         if (this.ui.screen === "newgame") this.ui.show("menu");
       } else void this.action("close-panel", document.createElement("button"));
+      return;
+    }
+    if (
+      e.code === "F4" &&
+      this.active &&
+      !this.loading &&
+      !this.checkingDisplay &&
+      ["play", "pause"].includes(this.ui.screen)
+    ) {
+      e.preventDefault();
+      void this.checkDisplay();
       return;
     }
     if (!this.active || this.loading || this.ui.screen === "pause") return;
@@ -965,6 +979,7 @@ export class Game {
     this.input.unlock();
   }
   private async resume() {
+    if (this.checkingDisplay) return;
     if (
       !this.active ||
       this.frameError ||
@@ -1021,6 +1036,30 @@ export class Game {
       this.ui.toast(
         "点击继续探索以重新捕获鼠标；Esc 可释放鼠标。右键拖动仅在设置中手动启用。",
       );
+    }
+  }
+  private async checkDisplay() {
+    this.checkingDisplay = true;
+    const gameFps = this.engine.getFps();
+    this.open("pause");
+    this.ui.debugVisible = true;
+    document.querySelector("#debug-panel")?.classList.remove("hidden");
+    this.ui.displayDiagnostic = "正在检测浏览器轻载节拍，请保持窗口在前台…";
+    const panel = document.querySelector("#debug-panel");
+    if (panel) panel.textContent = this.ui.displayDiagnostic;
+    this.ui.toast("检测约 1 秒，游戏已暂停。完成后点击继续探索。");
+    this.engine.stopRenderLoop(this.renderFrame);
+    try {
+      const hz = await measureDisplayCadence();
+      this.ui.displayDiagnostic = `检测前 ${Math.round(gameFps)} FPS · 浏览器轻载 ${Math.round(hz)} Hz\n${hz > gameFps * 1.3 ? "轻载明显更快：游戏负载仍有优化空间" : "游戏与轻载节拍接近；若轻载明显低于屏幕设置，再检查浏览器/驱动/电源"}\n轻载采样值不等于显示器规格`;
+    } catch (error) {
+      this.ui.displayDiagnostic =
+        error instanceof Error ? error.message : "检测未完成，请重试。";
+    } finally {
+      if (panel) panel.textContent = this.ui.displayDiagnostic;
+      this.checkingDisplay = false;
+      this.last = performance.now();
+      this.engine.runRenderLoop(this.renderFrame);
     }
   }
   private async save(quiet = false): Promise<boolean> {

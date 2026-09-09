@@ -22,6 +22,7 @@ import type { GameSettings } from "../core/types";
 import type { MaterialFactory } from "./materials";
 import type { Simulation } from "../simulation/simulation";
 import { insideFacility } from "../world/facility";
+import { cascadeCasters } from "./shadow-culling";
 const skyVertex = `precision highp float;attribute vec3 position;uniform mat4 worldViewProjection;varying vec3 vDirection;void main(){vDirection=position;gl_Position=worldViewProjection*vec4(position,1.0);}`;
 const skyFragment = `precision highp float;varying vec3 vDirection;uniform vec3 sunDirection;uniform float day;uniform float time;uniform float clouds;uniform float dusk;
  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1)),f.x),f.y);}float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=noise(p)*a;p=p*2.07+3.1;a*=.5;}return v;}
@@ -101,6 +102,11 @@ export class LightingManager {
     this.shadows.normalBias = 0.025;
     this.shadows.darkness = 0.2;
     this.shadows.filteringQuality = 1;
+    const sunMap = this.shadows.getShadowMap()!;
+    sunMap.getCustomRenderList = (cascade, meshes, length) => {
+      const matrix = this.shadows.getCascadeTransformMatrix(cascade);
+      return matrix && meshes ? cascadeCasters(matrix, meshes, length) : null;
+    };
     this.flashlight = new SpotLight(
       "flashlight",
       Vector3.Zero(),
