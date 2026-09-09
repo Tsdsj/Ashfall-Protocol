@@ -348,6 +348,15 @@ export class FirstPersonMotionController {
       locomotion.localVelocity.side * 0.009 * inertia -
       lean * 0.025 -
       reloadEnvelope * 0.26;
+    if (result.interactionKind === "throw" && this.interactionTime > 0) {
+      // Release is immediate; the arm extends and recovers after the live projectile leaves.
+      const follow = Math.sin(
+        Math.PI * Math.min(1, result.interactionPhase * 1.7),
+      );
+      result.weaponPosition.y += follow * 0.18 * weaponMotion;
+      result.weaponPosition.z += follow * 0.18 * weaponMotion;
+      result.weaponRotation.x -= follow * 0.6 * weaponMotion;
+    }
     let state: CameraMotionState =
       sim.speed < 0.05
         ? "idle"

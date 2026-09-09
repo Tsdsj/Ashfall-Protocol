@@ -54,6 +54,11 @@ for cue_id,cue in script.items():
  manifest={'model':REPO,'revision':REV,'modelSha256':model_sha,'license':'Apache-2.0','source':f'https://huggingface.co/{REPO}/tree/{REV}','voiceFiles':{v:hashlib.sha256((MODEL/f'voices/{v}.pt').read_bytes()).hexdigest() for v in voices},'authorship':'Original ASHFALL PROTOCOL Chinese script; synthesized locally with licensed model voices. No imitation of a named real person.','changes':'Chinese pronunciation normalization; speaker segmentation; 24kHz mono; highpass 90Hz lowpass 11.5kHz; peak normalized; additional -2 dB mastering headroom; MP3 64kbps.','assets':assets,'totalBytes':sum(e['bytes'] for e in assets)}
  (OUT/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
  print(cue_id,entry['duration'],entry['bytes'],flush=True)
+# Cache hits after the final regenerated cue must also be persisted.
+manifest=json.loads((OUT/'manifest.json').read_text())
+manifest['assets']=assets
+manifest['totalBytes']=sum(e['bytes'] for e in assets)
+(OUT/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
 # Preserve the sound-bank catalog; only replace generated dialogue mapping.
 p=ROOT/'src/audio/catalog.ts';content=p.read_text();prefix=content.split('export const DIALOGUE_FILES')[0]
 p.write_text(prefix+'export const DIALOGUE_FILES: Record<string, string> = '+json.dumps({e['id']:'dialogue/'+e['file'] for e in assets},indent=2)+';\n')

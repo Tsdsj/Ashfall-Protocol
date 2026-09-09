@@ -61,6 +61,7 @@ export function acousticSpace(
 export interface SoundLayer {
   group: string;
   volume: number;
+  refDistance?: number;
   rate?: number;
   delay?: number;
   cutoff?: number;
@@ -114,8 +115,8 @@ export function weaponLayers(kind = "pistol"): SoundLayer[] {
     ];
   if (kind === "explosion")
     return [
-      { group: "explosion", volume: 0.62, rate: 0.86 },
-      { group: "hit-concrete", volume: 0.22, delay: 0.09 },
+      { group: "explosion", volume: 0.9, rate: 0.86, refDistance: 16 },
+      { group: "hit-concrete", volume: 0.28, delay: 0.09, refDistance: 12 },
     ];
   const gun = kind.includes("shotgun")
     ? "shotgun"
@@ -127,12 +128,12 @@ export function weaponLayers(kind = "pistol"): SoundLayer[] {
       group: `gun-${gun}`,
       volume:
         gun === "shotgun"
-          ? 0.58
+          ? 0.82
           : gun === "rifle"
-            ? 0.5
+            ? 0.75
             : kind === "smg"
-              ? 0.35
-              : 0.43,
+              ? 0.6
+              : 0.7,
       rate: kind === "pistol45" ? 0.89 : kind === "smg" ? 1.1 : 1,
     },
     {
@@ -237,6 +238,11 @@ export function feedbackLayers(
           : "cloth";
       return [{ group, volume: event.kind === "action-loop" ? 0.06 : 0.13 }];
     }
+    case "throw":
+      return [
+        { group: "swing", volume: 0.3 },
+        { group: "cloth", volume: 0.14 },
+      ];
     case "drink":
       return [{ group: "water", volume: 0.18 }];
     case "food":

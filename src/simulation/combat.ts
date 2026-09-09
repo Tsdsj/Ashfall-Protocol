@@ -1,6 +1,6 @@
 import { ITEMS } from "../data/items";
 import { distance, type Stack, type Vec3, type BodyPart } from "../core/types";
-import { addItem, countItem, removeItem } from "./inventory";
+import { addItem, countItem, removeItem, removeUid } from "./inventory";
 import type { SimContext } from "./context";
 import type { AISystem } from "./ai";
 import { rayActorZones, type HitZone } from "./hit-zones";
@@ -23,6 +23,7 @@ export class CombatSystem {
   }
   readonly hitZones = new Map<string, HitZone[]>();
   cooldown = 0;
+  throwRemaining = 0;
   reloadRemaining = 0;
   reloadTotal = 0;
   recoil = 0;
@@ -352,6 +353,7 @@ export class CombatSystem {
   }
   update(dt: number): void {
     this.cooldown = Math.max(0, this.cooldown - dt);
+    this.throwRemaining = Math.max(0, this.throwRemaining - dt);
     this.recoil *= Math.exp(-dt * 12);
     if (this.melee) {
       const job = this.melee;
@@ -648,13 +650,23 @@ export class CombatSystem {
     }
   }
   throw(origin: Vec3, direction: Vec3): boolean {
-    if (
-      this.grenades.length >= 6 ||
-      !removeItem(this.ctx.state.player.inventory, "grenade", 1)
-    ) {
+    const player = this.ctx.state.player;
+    if (this.throwRemaining > 0 || player.stats.health <= 0) return false;
+    const held = this.equipped();
+    const stack =
+      held?.id === "grenade"
+        ? held
+        : player.inventory.items.find((item) => item.id === "grenade");
+    if (this.grenades.length >= 6) return false;
+    if (!stack || !removeUid(player.inventory, stack.uid, 1)) {
       this.ctx.notify("没有可投掷的手榴弹", "warning");
       return false;
     }
+    // Commit consumption and release together, before emitting presentation feedback.
+    player.quickSlots = player.quickSlots.map((uid) =>
+      uid === stack.uid && stack.count === 0 ? null : uid,
+    );
+    this.throwRemaining = 0.65;
     this.grenades.push({
       position: { x: origin.x, y: origin.y, z: origin.z },
       velocity: {
@@ -663,6 +675,12 @@ export class CombatSystem {
         z: direction.z * 14,
       },
       timer: 3,
+    });
+    this.ctx.bus.emit({
+      type: "motion",
+      text: "throw",
+      kind: "throw",
+      value: 0.65,
     });
     this.ctx.notify("手榴弹已投出");
     return true;

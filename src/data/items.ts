@@ -54,6 +54,19 @@ weapon("hatchet", "林务手斧", "厚刃短斧，用于伐木、拆除与近战
   stamina: 13,
   recoil: 0.06,
 });
+weapon(
+  "pickaxe",
+  "简易铁镐",
+  "木柄与废铁绑成的手镐。装备后采集石料更多，也可开采铁矿。",
+  {
+    damage: 30,
+    range: 2.5,
+    interval: 0.95,
+    stamina: 12,
+    recoil: 0.06,
+  },
+  { weight: 1.8, category: "tool" },
+);
 weapon("crowbar", "赤锈撬棍", "撬开封锁的门，也能打碎窗户。", {
   damage: 35,
   range: 2.8,
@@ -291,8 +304,8 @@ for (const [id, name, weight, description] of [
   ["fat", "动物脂肪", 0.15, "可制作火把和燃料。"],
   ["ore", "铁矿石", 0.7, "矿区出产，可熔炼成金属。"],
   ["seeds", "耐寒蔬菜种子", 0.02, "可播种在种植箱内。"],
-  ["battery", "蓄电池", 1.8, "车辆启动与电力设施需要的电池。"],
-  ["tire", "备用轮胎", 2.5, "修复车辆轮胎。"],
+  ["battery", "蓄电池", 6, "车辆启动与电力设施需要的电池。"],
+  ["tire", "备用轮胎", 8, "修复车辆轮胎。"],
   ["filter", "净水片", 0.01, "将未处理的水变为饮用水。"],
 ] as const)
   item(id, name, "material", description, {
@@ -313,19 +326,19 @@ for (const [id, name, description] of [
     weight: 0.8,
     value: 15,
   });
-for (const [id, name, slot, insulation] of [
-  ["beanie", "羊毛帽", "head", 0.12],
-  ["jacket", "林务夹克", "chest", 0.3],
-  ["gloves", "工作手套", "hands", 0.08],
-  ["pants", "耐磨长裤", "legs", 0.18],
-  ["boots", "山地靴", "feet", 0.1],
-  ["backpack", "旅行背包", "back", 0.04],
-  ["mask", "过滤面罩", "face", 0.02],
+for (const [id, name, slot, insulation, weight] of [
+  ["beanie", "羊毛帽", "head", 0.12, 0.15],
+  ["jacket", "林务夹克", "chest", 0.3, 0.8],
+  ["gloves", "工作手套", "hands", 0.08, 0.12],
+  ["pants", "耐磨长裤", "legs", 0.18, 0.6],
+  ["boots", "山地靴", "feet", 0.1, 1.2],
+  ["backpack", "旅行背包", "back", 0.04, 0.9],
+  ["mask", "过滤面罩", "face", 0.02, 0.25],
 ] as const)
   item(id, name, "clothing", "保暖与防护装备。装备后生效。", {
     slot,
     insulation,
-    weight: 0.5,
+    weight,
     width: 2,
     height: 2,
     maxStack: 1,

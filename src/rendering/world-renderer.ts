@@ -334,33 +334,7 @@ export class WorldRenderer {
   ) {
     const rng = random(this.sim.state.seed + ":resources:" + cx + "," + cz),
       gen = this.sim.gen;
-    const data: { id: string; x: number; z: number; resource: string }[] = [];
-    for (let n = 0; n < 18; n++) {
-      const x = cx * 256 + rng() * 256,
-        z = cz * 256 + rng() * 256;
-      if (gen.isClearing(x, z)) continue;
-      data.push({
-        id: `resource:${cx},${cz}:${n}`,
-        x,
-        z,
-        resource:
-          n % 6 === 0
-            ? "mushroom"
-            : n % 4 === 0
-              ? "stone"
-              : n % 8 === 0
-                ? "scrap"
-                : gen.regionAt(x, z).id === "mine" && n % 3 === 0
-                  ? "ore"
-                  : "wood",
-      });
-    }
-    if (cx === -1 && cz === -1)
-      data.push(
-        { id: "starter-wood", x: -5, z: -18, resource: "wood" },
-        { id: "starter-stone", x: -2, z: -13, resource: "stone" },
-        { id: "starter-wood2", x: -22, z: -16, resource: "wood" },
-      );
+    const data = gen.resources(cx, cz);
     for (const r of data) {
       const y = gen.height(r.x, r.z);
       let mesh: Mesh;
@@ -381,6 +355,21 @@ export class WorldRenderer {
           this.mats.surface("wood"),
           [Math.PI / 2, 0, 0],
         );
+      } else if (r.resource === "cloth") {
+        mesh = batch.beveledBox(
+          "folded-cloth",
+          [0.65, 0.13, 0.45],
+          [r.x, y + 0.08, r.z],
+          this.mats.surface("cloth", "#c4ae78"),
+        );
+      } else if (r.resource === "scrap") {
+        mesh = batch.beveledBox(
+          "scrap-bundle",
+          [0.65, 0.28, 0.42],
+          [r.x, y + 0.14, r.z],
+          this.mats.surface("rust"),
+          [0, 0.3, 0.15],
+        );
       } else if (r.resource === "mushroom") {
         mesh = batch.sphere(
           "mushroom",
@@ -398,7 +387,7 @@ export class WorldRenderer {
       } else {
         mesh = batch.sphere(
           "resource-rock",
-          [0.8, 0.5, 0.7],
+          r.resource === "stone" ? [0.5, 0.3, 0.45] : [0.8, 0.5, 0.7],
           [r.x, y + 0.16, r.z],
           this.mats.surface(r.resource === "scrap" ? "rust" : "stone"),
           8,
@@ -409,10 +398,11 @@ export class WorldRenderer {
       const name =
         {
           wood: "倒木 · 采集木材",
-          stone: "松散石料",
+          stone: "松散小石块 · 可徒手拾取，持镐采得更多",
+          cloth: "旧帆布 · 拾取布料编绳",
           mushroom: "棕盖菇",
           ore: "铁矿露头",
-          scrap: "遗弃金属",
+          scrap: "遗弃金属 · 拾取废金属制镐",
         }[r.resource] ?? r.resource;
       interactions.push({
         mesh,

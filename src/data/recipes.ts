@@ -42,6 +42,7 @@ add(
 );
 add("splint", "制作夹板", "splint", { wood: 1, rag: 2 }, "hand", "医疗");
 add("hatchet", "制作手斧", "hatchet", { wood: 2, stone: 3, rope: 1 });
+add("pickaxe", "制作简易铁镐", "pickaxe", { wood: 2, scrap: 2, rope: 1 });
 add("spear", "削制木矛", "spear", { wood: 3, rope: 1 });
 add("bow", "制作木弓", "bow", { wood: 3, rope: 2 });
 add("arrow", "削制箭矢", "arrow", { wood: 1, stone: 1 }, "hand", "野外制作", 6);

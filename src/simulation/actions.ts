@@ -9,6 +9,11 @@ import {
   removeItem,
   removeUid,
   transfer,
+  equipWearable,
+  unequipWearable,
+  syncEquipmentInventory,
+  sortInventory,
+  isWorn,
 } from "./inventory";
 import {
   clamp,
@@ -116,6 +121,7 @@ export class Actions {
     for (const [slot, uid] of Object.entries(p.equipment))
       if (!p.inventory.items.some((i) => i.uid === uid))
         delete p.equipment[slot as keyof typeof p.equipment];
+    syncEquipmentInventory(p);
   }
   use(uid: string): boolean {
     const item = this.ctx.state.player.inventory.items.find(
@@ -152,8 +158,18 @@ export class Actions {
       return true;
     }
     if (d.slot) {
-      p.equipment[d.slot] = i.uid;
-      this.ctx.notify("已穿戴 " + d.name, "success");
+      const removing = p.equipment[d.slot] === i.uid;
+      const ok = removing
+        ? unequipWearable(p, d.slot)
+        : equipWearable(p, i.uid);
+      if (!ok) {
+        this.ctx.notify(
+          "背包空间不足，请先腾出空间再卸下或更换装备。",
+          "warning",
+        );
+        return false;
+      }
+      this.ctx.notify((removing ? "已卸下 " : "已穿戴 ") + d.name, "success");
       return true;
     }
     if (d.category === "food" || d.category === "drink") {
@@ -291,6 +307,10 @@ export class Actions {
       p = s.player,
       i = p.inventory.items.find((i) => i.uid === uid);
     if (!i) return false;
+    if (isWorn(p.inventory, uid)) {
+      this.ctx.notify("请先卸下装备，再放到地面。", "warning");
+      return false;
+    }
     const inventory = newInventory(8, 6);
     if (!transfer(p.inventory, inventory, uid)) return false;
     const id = this.ctx.nextId("drop");
@@ -335,12 +355,16 @@ export class Actions {
     const weapon = inv.items.find(
       (i) => i.uid === s.player.quickSlots[s.player.selected],
     );
+    const usingPickaxe = weapon?.id === "pickaxe" && weapon.durability > 0;
+    if (id === "stone" && usingPickaxe) n = 7;
+    if (id === "ore" && usingPickaxe) n = 4;
     if (id === "wood" && weapon?.id === "hatchet") n = 7;
     if (
       id === "ore" &&
+      !usingPickaxe &&
       !inv.items.some((i) => i.id === "shovel" || i.id === "hatchet")
     ) {
-      this.ctx.notify("采矿需要铲子或手斧", "warning");
+      this.ctx.notify("采矿需要装备完好的铁镐，或携带铲子、手斧", "warning");
       return false;
     }
     if (s.player.stats.stamina < 8) {
@@ -354,6 +378,10 @@ export class Actions {
     if (!addItem(inv, id, n)) {
       this.ctx.notify("背包空间不足", "warning");
       return false;
+    }
+    if (usingPickaxe && (id === "stone" || id === "ore")) {
+      const tool = inv.items.find((item) => item.uid === weapon.uid)!;
+      tool.durability = Math.max(0, tool.durability - 1);
     }
     s.player.stats.stamina -= 8;
     if (target.type !== "water") s.destroyed.push(target.id);
@@ -590,13 +618,22 @@ export class Actions {
   respawn(): boolean {
     const s = this.ctx.state;
     if (s.rules.permadeath) return false;
+    const dropped = structuredClone(s.player.inventory);
+    delete dropped.equippedUids;
+    delete dropped.baseHeight;
+    let packed = sortInventory(dropped);
+    while (!packed && dropped.height < 30) {
+      dropped.height++;
+      packed = sortInventory(dropped);
+    }
+    if (!packed) return false;
     const id = this.ctx.nextId("deathbag");
     s.containers[id] = {
       id,
       name: "你的遗落背包",
       type: "dropped",
       position: { ...s.player.position, y: s.player.position.y + 0.25 },
-      inventory: structuredClone(s.player.inventory),
+      inventory: dropped,
       searched: true,
       openedAt: s.elapsed,
     };
@@ -610,6 +647,7 @@ export class Actions {
       null,
     ];
     s.player.equipment = { primary: s.player.inventory.items[0]!.uid };
+    syncEquipmentInventory(s.player);
     s.player.selected = 0;
     s.player.stats = initialStats();
     s.player.position = { ...s.player.spawn };

@@ -1,11 +1,26 @@
 import { getItem } from "../data/items";
-import type { InventoryData, Stack } from "../core/types";
+import type {
+  EquipSlot,
+  InventoryData,
+  PlayerData,
+  Stack,
+} from "../core/types";
 let localId = 0;
 export const newInventory = (width = 10, height = 8): InventoryData => ({
   width,
   height,
   items: [],
 });
+export function isWorn(inv: InventoryData, uid: string): boolean {
+  return inv.equippedUids?.includes(uid) ?? false;
+}
+export function gridItems(inv: InventoryData): Stack[] {
+  return inv.items.filter((i) => !isWorn(inv, i.uid));
+}
+export const CARRY_LIMIT = 38;
+export function isOverweight(inv: InventoryData): boolean {
+  return weight(inv) > CARRY_LIMIT + 1e-9;
+}
 export function dimensions(stack: Stack): [number, number] {
   const d = getItem(stack.id);
   return stack.rotated ? [d.height, d.width] : [d.width, d.height];
@@ -28,7 +43,7 @@ export function canPlace(
   )
     return false;
   return inv.items.every((other) => {
-    if (other.uid === ignore) return true;
+    if (other.uid === ignore || isWorn(inv, other.uid)) return true;
     const [ow, oh] = dimensions(other);
     return (
       x + w <= other.x ||
@@ -131,7 +146,13 @@ export function removeItem(inv: InventoryData, id: string, count = 1): boolean {
 }
 export function removeUid(inv: InventoryData, uid: string, count = 1): boolean {
   const i = inv.items.find((i) => i.uid === uid);
-  if (!i || count < 1 || !Number.isInteger(count) || i.count < count)
+  if (
+    !i ||
+    isWorn(inv, uid) ||
+    count < 1 ||
+    !Number.isInteger(count) ||
+    i.count < count
+  )
     return false;
   i.count -= count;
   inv.items = inv.items.filter((s) => s.count > 0);
@@ -145,7 +166,7 @@ export function transfer(
 ): boolean {
   if (from === to) return false;
   const stack = from.items.find((i) => i.uid === uid);
-  if (!stack) return false;
+  if (!stack || isWorn(from, uid)) return false;
   const n = count ?? stack.count;
   if (n < 1 || n > stack.count || !Number.isInteger(n)) return false;
   if (!addItem(to, stack.id, n, stack)) return false;
@@ -159,7 +180,7 @@ export function moveItem(
   rotate = false,
 ): boolean {
   const stack = inv.items.find((i) => i.uid === uid);
-  if (!stack) return false;
+  if (!stack || isWorn(inv, uid)) return false;
   const candidate = {
     ...stack,
     rotated: rotate ? !stack.rotated : stack.rotated,
@@ -183,7 +204,10 @@ export function splitItem(inv: InventoryData, uid: string): boolean {
 }
 export function sortInventory(inv: InventoryData): boolean {
   const next = { ...inv, items: [] as Stack[] };
-  const sorted = [...inv.items].sort((a, b) => {
+  next.items = inv.items
+    .filter((i) => isWorn(inv, i.uid))
+    .map((i) => structuredClone(i));
+  const sorted = gridItems(inv).sort((a, b) => {
     const da = getItem(a.id),
       db = getItem(b.id);
     return (
@@ -222,6 +246,17 @@ export function validateInventory(inv: InventoryData): boolean {
       inv.width <= 30 &&
       inv.height > 0 &&
       inv.height <= 30 &&
+      (inv.baseHeight === undefined ||
+        (Number.isInteger(inv.baseHeight) &&
+          inv.baseHeight > 0 &&
+          inv.baseHeight <= inv.height)) &&
+      (inv.equippedUids === undefined ||
+        (Array.isArray(inv.equippedUids) &&
+          new Set(inv.equippedUids).size === inv.equippedUids.length &&
+          inv.equippedUids.every((uid) => {
+            const item = inv.items.find((i) => i.uid === uid);
+            return !!item && isWearable(item);
+          }))) &&
       inv.items.every(
         (i, n) =>
           validEntityId(i.uid) &&
@@ -253,7 +288,7 @@ export function validateInventory(inv: InventoryData): boolean {
             ].includes(a),
           ) &&
           inv.items.findIndex((j) => j.uid === i.uid) === n &&
-          canPlace(inv, i, i.x, i.y),
+          (isWorn(inv, i.uid) || canPlace(inv, i, i.x, i.y)),
       )
     );
   } catch {
@@ -278,10 +313,17 @@ export function transferAt(
     merged: 0,
     reason: "此处空间不足或与其他物品重叠。",
   };
-  if (!source) return fail;
+  if (!source || isWorn(from, uid)) return fail;
   const destination = targetCopy.items.find((i) => {
     const [w, h] = dimensions(i);
-    return i.uid !== uid && x >= i.x && x < i.x + w && y >= i.y && y < i.y + h;
+    return (
+      !isWorn(targetCopy, i.uid) &&
+      i.uid !== uid &&
+      x >= i.x &&
+      x < i.x + w &&
+      y >= i.y &&
+      y < i.y + h
+    );
   });
   if (
     destination &&
@@ -319,4 +361,66 @@ export function transferAt(
   from.items = sourceCopy.items;
   to.items = from === to ? sourceCopy.items : targetCopy.items;
   return { ok: true, merged: 0, reason: "" };
+}
+
+function isWearable(item: Stack): boolean {
+  const slot = getItem(item.id).slot;
+  return !!slot && !["primary", "secondary", "holster"].includes(slot);
+}
+
+/** Import legacy equipment references without deleting, re-identifying, or re-packing items. */
+export function syncEquipmentInventory(
+  player: Pick<PlayerData, "inventory" | "equipment">,
+): boolean {
+  const next = structuredClone(player.inventory);
+  next.baseHeight ??= next.height;
+  next.equippedUids = Object.entries(player.equipment)
+    .filter(([slot, uid]) =>
+      next.items.some(
+        (i) => i.uid === uid && isWearable(i) && getItem(i.id).slot === slot,
+      ),
+    )
+    .map(([, uid]) => uid!);
+  const backpack = next.items.some(
+    (i) => i.id === "backpack" && next.equippedUids!.includes(i.uid),
+  );
+  next.height = Math.min(30, next.baseHeight + (backpack ? 4 : 0));
+  // Preserve positions whenever possible. Shrinking/releasing worn items may require packing.
+  if (!validateInventory(next) && !sortInventory(next)) return false;
+  if (!validateInventory(next)) return false;
+  Object.assign(player.inventory, next);
+  return true;
+}
+
+/** Swaps are atomic, including returning the previous garment to the grid. */
+export function equipWearable(
+  player: Pick<PlayerData, "inventory" | "equipment">,
+  uid: string,
+): boolean {
+  const item = player.inventory.items.find((i) => i.uid === uid);
+  if (!item || !isWearable(item)) return false;
+  const next = structuredClone(player);
+  if (!syncEquipmentInventory(next)) return false;
+  next.equipment[getItem(item.id).slot!] = uid;
+  if (!syncEquipmentInventory(next)) return false;
+  Object.assign(player.inventory, next.inventory);
+  player.equipment = next.equipment;
+  return true;
+}
+
+/** Refuse an overflowing backpack removal; the caller can ask the player to free space. */
+export function unequipWearable(
+  player: Pick<PlayerData, "inventory" | "equipment">,
+  slot: EquipSlot,
+): boolean {
+  const uid = player.equipment[slot];
+  const item = player.inventory.items.find((i) => i.uid === uid);
+  if (!item || !isWearable(item)) return false;
+  const next = structuredClone(player);
+  if (!syncEquipmentInventory(next)) return false;
+  delete next.equipment[slot];
+  if (!syncEquipmentInventory(next)) return false;
+  Object.assign(player.inventory, next.inventory);
+  player.equipment = next.equipment;
+  return true;
 }

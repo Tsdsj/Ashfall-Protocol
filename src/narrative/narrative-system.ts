@@ -13,6 +13,7 @@ import {
 } from "./quests";
 import { SequenceController } from "./sequence-controller";
 import { anchor } from "./sequences";
+import { LEAD_REASONS } from "./briefing";
 import type {
   FinaleChoice,
   NarrativeAnchor,
@@ -25,9 +26,9 @@ export type NarrativeContext = Pick<SimContext, "state" | "gen" | "notify"> &
   Partial<Pick<SimContext, "noise" | "doors">>;
 const investigation = [
   "medical-record",
-  "military-record",
-  "contractor-record",
   "missing-record",
+  "contractor-record",
+  "military-record",
 ];
 const motives = [
   "facility-military",
@@ -51,6 +52,7 @@ const ACT_NAMES = [
 
 /** Owns narrative state and atomic quest transactions, never the renderer or input. */
 export class NarrativeSystem {
+  private lastLeadId = "";
   readonly sequence: SequenceController;
   private transient: SequenceCueEvent[] = [];
   private pending = new Map<string, SequenceCueEvent>();
@@ -62,6 +64,11 @@ export class NarrativeSystem {
     );
     this.restoreWorldCues();
     this.refreshObjectives();
+    if (!this.has("guidance-initialized")) {
+      this.flag("guidance-initialized");
+      if (!this.ctx.state.waypoint) this.flag("tracking-main-lead");
+    }
+    this.followMainLead();
   }
   private get n(): NarrativeState {
     return this.ctx.state.narrative;
@@ -93,6 +100,57 @@ export class NarrativeSystem {
   }
   get objectives(): string[] {
     return [...this.n.objectives];
+  }
+  get mainLead() {
+    if (this.n.ending) return null;
+    let id: string;
+    if (!this.has("evacuation-lie"))
+      id = !this.has("survival-food")
+        ? "ranger-supplies"
+        : !this.has("survival-shelter")
+          ? "ranger-shelter"
+          : "ranger-radio";
+    else if (investigation.some((key) => !this.done(key)))
+      id = investigation.find((key) => !this.done(key))!;
+    else if (!this.has("ashfall-known")) id = "ashfall-decode";
+    else if (!this.has("facility-access")) id = "facility-enter";
+    else if (motives.some((key) => !this.done(key)))
+      id = motives.find((key) => !this.done(key))!;
+    else if (!this.has("facility-truth")) id = "facility-archive";
+    else if (!this.has("cleanup-isolated")) id = "facility-isolate";
+    else id = "facility-control";
+    const entry = NARRATIVE_INTERACTIONS.find((value) => value.id === id)!;
+    const poi = this.ctx.gen.pois.find(
+      (value) => value.id === entry.anchor.poiId,
+    )!;
+    return {
+      id,
+      title: entry.title,
+      reason: LEAD_REASONS[id] ?? entry.description,
+      poiName: poi.name,
+      position: this.resolveAnchor(entry.anchor),
+      underground: entry.anchor.offset.y < 0,
+    };
+  }
+  trackMainLead(): boolean {
+    const lead = this.mainLead;
+    if (!lead) return false;
+    this.flag("tracking-main-lead");
+    this.lastLeadId = lead.id;
+    this.ctx.state.waypoint = { ...lead.position };
+    return true;
+  }
+  stopTrackingMainLead() {
+    this.n.sequenceFlags = this.n.sequenceFlags.filter(
+      (flag) => flag !== "tracking-main-lead",
+    );
+  }
+  private followMainLead() {
+    const lead = this.mainLead;
+    if ((lead?.id ?? "") === this.lastLeadId) return;
+    this.lastLeadId = lead?.id ?? "";
+    if (this.has("tracking-main-lead"))
+      this.ctx.state.waypoint = lead ? { ...lead.position } : null;
   }
   get audioLogs() {
     return this.n.audioLogs
@@ -492,6 +550,7 @@ export class NarrativeSystem {
       else this.triggerNearbyEvent();
     }
     this.refreshObjectives();
+    this.followMainLead();
   }
   private queueSequence(id: string): void {
     if (this.n.seenSequences.includes(id) || this.n.activeSequence?.id === id)

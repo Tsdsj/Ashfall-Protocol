@@ -1,3 +1,4 @@
+import { recordExploration } from "./exploration";
 import { EventBus } from "../core/events";
 import {
   clamp,
@@ -21,7 +22,7 @@ import { CombatSystem } from "./combat";
 import { VehicleSystem } from "./vehicles";
 import { populate, director } from "./population";
 import { applyDamage, updateSurvival } from "./survival";
-import { weight, countItem, removeItem } from "./inventory";
+import { weight, countItem, removeItem, addItem } from "./inventory";
 import { DIFFICULTIES } from "./state";
 import { craftTransaction } from "./crafting";
 import { LocomotionController, GAITS } from "./locomotion";
@@ -37,6 +38,7 @@ export interface MovementInput {
   brake: boolean;
   aiming?: boolean;
   walk?: boolean;
+  descend?: boolean;
 }
 export class Simulation implements SimContext {
   readonly gen: WorldGenerator;
@@ -73,6 +75,7 @@ export class Simulation implements SimContext {
   private statTimer = 0;
   craftJob: { id: string; remaining: number; total: number } | null = null;
   constructor(public state: WorldState) {
+    this.god = state.flags.includes("creative-mode");
     this.gen = new WorldGenerator(state.seed);
     this.collision = new CollisionWorld(this.gen, state);
     this.doors = new DoorSystem(this);
@@ -106,6 +109,54 @@ export class Simulation implements SimContext {
         this.combat.cancelReload();
     });
     populate(this);
+  }
+  get creative() {
+    return this.state.flags.includes("creative-mode");
+  }
+  get flying() {
+    return this.creative && this.state.flags.includes("creative-flying");
+  }
+  toggleFlight() {
+    if (!this.creative) return false;
+    if (this.flying)
+      this.state.flags = this.state.flags.filter(
+        (flag) => flag !== "creative-flying",
+      );
+    else this.state.flags.push("creative-flying");
+    this.verticalVelocity = 0;
+    this.previousJump = false;
+    this.locomotion.reset();
+    this.grounded = false;
+    return true;
+  }
+  giveCreative(id: string, count = 1): boolean {
+    if (
+      !this.creative ||
+      !Object.hasOwn(ITEMS, id) ||
+      !Number.isInteger(count) ||
+      count < 1 ||
+      count > 1000
+    )
+      return false;
+    return addItem(this.state.player.inventory, id, count);
+  }
+  craftStatus(id: string): { ok: boolean; reason: string } {
+    const recipe = this.recipes.find((r) => r.id === id);
+    if (!recipe) return { ok: false, reason: "配方尚未解锁" };
+    if (this.actions.pending) return { ok: false, reason: "先完成当前操作" };
+    if (this.craftJob) return { ok: false, reason: "正在制作另一件物品" };
+    if (!this.stationAvailable(recipe.station))
+      return {
+        ok: false,
+        reason: `需要${{ hand: "徒手制作", fire: "附近燃烧中的篝火", workbench: "附近的工作台", power: "附近通电的工作台" }[recipe.station]}`,
+      };
+    const result = craftTransaction(
+      structuredClone(this.state.player.inventory),
+      recipe,
+    );
+    return result.ok
+      ? { ok: true, reason: "可以制作" }
+      : { ok: false, reason: result.reason };
   }
   get busy() {
     return this.craftJob !== null;
@@ -292,7 +343,46 @@ export class Simulation implements SimContext {
       this.moving =
         Math.abs(s.vehicles.find((v) => v.id === p.vehicle)?.speed ?? 0) > 1;
       this.sprinting = false;
+    } else if (this.flying) {
+      const p = this.state.player,
+        speed = input.sprint ? 18 : 7;
+      const length = Math.max(1, Math.hypot(input.forward, input.side));
+      p.position.x = clamp(
+        p.position.x +
+          ((Math.sin(p.yaw) * input.forward + Math.cos(p.yaw) * input.side) /
+            length) *
+            speed *
+            dt,
+        -2010,
+        2010,
+      );
+      p.position.z = clamp(
+        p.position.z +
+          ((Math.cos(p.yaw) * input.forward - Math.sin(p.yaw) * input.side) /
+            length) *
+            speed *
+            dt,
+        -2010,
+        2010,
+      );
+      p.position.y = clamp(
+        p.position.y +
+          (Number(input.jump) - Number(input.descend ?? false)) * speed * dt,
+        -150,
+        300,
+      );
+      this.verticalVelocity = 0;
+      this.grounded = false;
+      this.speed = speed * Math.min(1, Math.hypot(input.forward, input.side));
+      this.moving = !!(
+        input.forward ||
+        input.side ||
+        input.jump ||
+        input.descend
+      );
+      this.sprinting = false;
     } else this.move(dt, input);
+    recordExploration(this.state);
     this.indoors =
       this.state.structures.some(
         (b) =>
@@ -459,7 +549,7 @@ export class Simulation implements SimContext {
       walk: input.walk ?? false,
       aiming: input.aiming ?? false,
       swimming,
-      weight: invWeight,
+      weight: this.creative ? 0 : invWeight,
       stamina: p.stats.stamina,
       fracture: p.stats.fracture,
       temperature: p.stats.temperature,
@@ -636,12 +726,12 @@ export class Simulation implements SimContext {
       this.sprinting || swimming
         ? 0
         : !this.moving
-          ? 12
+          ? 18
           : motion.gait === "walk"
-            ? 7
+            ? 12
             : motion.gait === "prone"
               ? 0
-              : 4;
+              : 9;
     p.stats.stamina = clamp(
       p.stats.stamina +
         dt *

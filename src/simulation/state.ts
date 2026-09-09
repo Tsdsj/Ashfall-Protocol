@@ -5,7 +5,8 @@ import type {
   Stats,
   WorldRules,
 } from "../core/types";
-import { addItem, newInventory } from "./inventory";
+import { addItem, newInventory, syncEquipmentInventory } from "./inventory";
+import { TERRAIN_REVISION } from "../save/terrain-migration";
 import { WorldGenerator } from "../world/generator";
 import { initialDirector, initialNarrative } from "./quality-state";
 export function initialStats(): Stats {
@@ -44,7 +45,7 @@ export function createWorld(
   }))
     addItem(inv, id, count);
   const knife = inv.items.find((i) => i.id === "knife")!.uid;
-  return {
+  const state: WorldState = {
     version: 2,
     waypoint: null,
     cooldowns: {},
@@ -99,11 +100,13 @@ export function createWorld(
     destroyed: [],
     discovered: [],
     journal: ["crash"],
-    flags: [],
+    flags: [TERRAIN_REVISION],
     events: [],
     nextEvent: 180,
     ended: false,
   };
+  syncEquipmentInventory(state.player);
+  return state;
 }
 export const DEFAULT_SETTINGS: GameSettings = {
   quality: "high",

@@ -337,6 +337,7 @@ export class FirstPersonArms {
         knife: { x: 0.045, y: 0.06, z: 0.24 },
         machete: { x: 0.045, y: 0.06, z: 0.24 },
         hatchet: { x: 0.045, y: -0.06, z: 0.34 },
+        pickaxe: { x: 0.045, y: -0.08, z: 0.165 },
         crowbar: { x: 0.045, y: -0.08, z: 0.4 },
         spear: { x: 0.045, y: 0.04, z: 0.28 },
         hammer: { x: 0.045, y: -0.025, z: 0.29 },
@@ -390,6 +391,15 @@ export class FirstPersonArms {
           { x: arm.side * 0.25, y: 0.08, z: 0.68 },
           pose.interaction,
         );
+      if (pose.interactionKind === "throw" && pose.interaction > 0) {
+        target = blend(
+          grip,
+          right
+            ? { x: 0.09, y: 0.21, z: 0.62 }
+            : { x: -0.28, y: -0.3, z: 0.12 },
+          pose.interaction,
+        );
+      }
       const ik = solveTwoBone(
         shoulder,
         target,

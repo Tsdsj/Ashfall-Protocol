@@ -1,5 +1,10 @@
 import type { WorldState, InventoryData, Vec3 } from "../core/types";
-import { validateInventory, validEntityId } from "../simulation/inventory";
+import {
+  syncEquipmentInventory,
+  validateInventory,
+  validEntityId,
+} from "../simulation/inventory";
+import { migrateTerrain } from "./terrain-migration";
 import { ITEMS } from "../data/items";
 import { ENEMIES } from "../data/enemies";
 import { generatePOIs } from "../world/generator";
@@ -80,6 +85,9 @@ export function deserialize(json: string): WorldState {
   )
     parsed.player.flashlightCharge = 100;
   if (!validateState(parsed)) throw new Error("存档格式不正确或已损坏");
+  if (!syncEquipmentInventory(parsed.player))
+    throw new Error("装备与背包空间不一致");
+  migrateTerrain(parsed);
   return parsed;
 }
 export function validateState(input: unknown): input is WorldState {
@@ -287,6 +295,16 @@ export function validateState(input: unknown): input is WorldState {
       )
     )
       return false;
+    if (p.inventory.equippedUids !== undefined) {
+      const worn = Object.entries(p.equipment)
+        .filter(([slot]) => !["primary", "secondary", "holster"].includes(slot))
+        .map(([, uid]) => uid);
+      if (
+        worn.length !== p.inventory.equippedUids.length ||
+        worn.some((uid) => !p.inventory.equippedUids!.includes(uid!))
+      )
+        return false;
+    }
     for (const [slot, uid] of Object.entries(p.equipment)) {
       const item = p.inventory.items.find((i) => i.uid === uid),
         def = item && ITEMS[item.id];

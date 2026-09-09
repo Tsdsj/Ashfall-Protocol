@@ -226,6 +226,29 @@ export class WeaponRenderer {
         steel,
         [0, 0, -0.2],
       );
+    } else if (id === "pickaxe") {
+      b.cylinder(
+        "pickaxe-handle",
+        0.72,
+        0.03,
+        [0, 0.12, 0.26],
+        wood,
+        [0.45, 0, 0],
+      );
+      b.beveledBox(
+        "pickaxe-head",
+        [0.4, 0.07, 0.07],
+        [0, 0.44, 0.41],
+        steel,
+        [0, 0, -0.15],
+      );
+      b.beveledBox(
+        "pickaxe-tip",
+        [0.15, 0.035, 0.05],
+        [0.23, 0.4, 0.41],
+        steel,
+        [0, 0, -0.45],
+      );
     } else if (id === "spear") {
       b.cylinder(
         "shaft",
@@ -512,6 +535,9 @@ export class WeaponRenderer {
     this.shot = Math.max(0, this.shot - dt * 5);
     this.inspectTime = Math.max(0, this.inspectTime - dt);
     const pose = this.motion.pose;
+    if (id === "grenade")
+      for (const mesh of this.meshes)
+        mesh.setEnabled(this.sim.combat.throwRemaining <= 0);
     const wetTarget =
       !this.sim.indoors && ["rain", "storm"].includes(this.sim.state.weather)
         ? 1

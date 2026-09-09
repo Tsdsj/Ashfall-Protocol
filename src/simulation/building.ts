@@ -57,7 +57,10 @@ export class BuildingSystem {
     const position = { x, y, z };
     let reason = "";
     const p = this.ctx.state.player;
-    if (!countItem(p.inventory, "kit_" + this.selected))
+    if (
+      !this.ctx.state.flags.includes("creative-mode") &&
+      !countItem(p.inventory, "kit_" + this.selected)
+    )
       reason = "缺少组件，在制作菜单制作";
     else if (this.ctx.gen.isWater(x, z)) reason = "不能在水中建造";
     else if (distance(position, p.position) < 1.4) reason = "距离自己太近";
@@ -102,7 +105,10 @@ export class BuildingSystem {
       this.ctx.notify(placement.reason, "warning");
       return false;
     }
-    if (!removeItem(this.ctx.state.player.inventory, "kit_" + placement.kind))
+    if (
+      !this.ctx.state.flags.includes("creative-mode") &&
+      !removeItem(this.ctx.state.player.inventory, "kit_" + placement.kind)
+    )
       return false;
     const b: StructureData = {
       id: this.ctx.nextId("build"),

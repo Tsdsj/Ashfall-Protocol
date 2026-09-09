@@ -75,7 +75,7 @@ export const STORY: Record<
 > = {
   crash: {
     title: "未送达的运输清单",
-    text: "2037 年 10 月 17 日。乘客 26 人。目的地：松谷临时收容点。附注：如接收到灰烬频段，不得停车。纸张的背面写着一句话：我们不是最后一车。",
+    text: "2037 年 10 月 17 日。补运维修员随车单。待接居民 26 人；接人地点：松谷临时收容点；后续前往北岭山口。你负责车辆维修与人数核验，尚未接到居民便在进镇前翻车。清单背面竟已盖有“全部安置”章，旁边有人写着：我们不是最后一车。",
     clue: "沿着公路寻找松谷镇的林务站。",
   },
   ranger: {
@@ -276,6 +276,51 @@ export class WorldGenerator {
     this.seedNumber = hash(seed) % 10000;
     this.pois = generatePOIs(seed);
   }
+  resources(
+    cx: number,
+    cz: number,
+  ): { id: string; x: number; z: number; resource: string }[] {
+    const rng = random(this.seed + ":resources:" + cx + "," + cz);
+    const result: { id: string; x: number; z: number; resource: string }[] = [];
+    for (let n = 0; n < 18; n++) {
+      const x = cx * CHUNK_SIZE + rng() * CHUNK_SIZE;
+      const z = cz * CHUNK_SIZE + rng() * CHUNK_SIZE;
+      if (this.isClearing(x, z)) continue;
+      result.push({
+        id: `resource:${cx},${cz}:${n}`,
+        x,
+        z,
+        resource:
+          n % 6 === 0
+            ? "mushroom"
+            : n % 8 === 0
+              ? "scrap"
+              : n % 4 === 0
+                ? "stone"
+                : this.regionAt(x, z).id === "mine" && n % 3 === 0
+                  ? "ore"
+                  : "wood",
+      });
+    }
+    // Stable IDs make these finite supplies persist through saves and chunk reloads.
+    const starter = [
+      { id: "starter-wood", x: -5, z: -18, resource: "wood" },
+      { id: "starter-stone", x: -2, z: -13, resource: "stone" },
+      { id: "starter-wood2", x: -22, z: -16, resource: "wood" },
+      { id: "starter-ranger-cloth", x: 11, z: 5, resource: "cloth" },
+      { id: "starter-ranger-scrap", x: 17, z: 4, resource: "scrap" },
+      { id: "starter-ranger-stone", x: 23, z: 5, resource: "stone" },
+      { id: "starter-ranger-wood", x: 26, z: 5, resource: "wood" },
+    ];
+    result.push(
+      ...starter.filter(
+        (r) =>
+          Math.floor(r.x / CHUNK_SIZE) === cx &&
+          Math.floor(r.z / CHUNK_SIZE) === cz,
+      ),
+    );
+    return result;
+  }
   baseHeight(x: number, z: number): number {
     return (
       (noise(x / 380, z / 380, this.seedNumber) - 0.5) * 64 +
@@ -284,25 +329,39 @@ export class WorldGenerator {
     );
   }
   height(x: number, z: number): number {
-    let h = this.baseHeight(x, z);
-    const nearStart = Math.hypot(x, z - 30);
-    if (nearStart < 170) h *= clamp((nearStart - 60) / 110, 0, 1);
-    const road = this.roadDistance(x, z);
-    if (road < 14)
+    // Roads and the surrounding start terrain share a continuous base grade.
+    let h = this.roadHeight(x, z);
+    const lake = this.lakeDistance(x, z);
+    if (lake < 1.25)
       h =
-        h * clamp((road - 5) / 9, 0, 1) +
-        this.roadHeight(x, z) * (1 - clamp((road - 5) / 9, 0, 1));
+        h * clamp((lake - 1) / 0.25, 0, 1) +
+        (-8 + Math.min(lake, 1) * 2) * (1 - clamp((lake - 1) / 0.25, 0, 1));
+    let weightedLevel = 0;
+    let totalWeight = 0;
     for (const p of this.pois) {
       const d = Math.max(
-        Math.abs(x - p.x) - p.width / 2,
-        Math.abs(z - p.z) - p.depth / 2,
+        Math.floor((p.x - p.width / 2 - 1.5) / TERRAIN_STEP) * TERRAIN_STEP - x,
+        x - Math.ceil((p.x + p.width / 2 + 1.5) / TERRAIN_STEP) * TERRAIN_STEP,
+        Math.floor((p.z - p.depth / 2 - 1.5) / TERRAIN_STEP) * TERRAIN_STEP - z,
+        z - Math.ceil((p.z + p.depth / 2 + 1.5) / TERRAIN_STEP) * TERRAIN_STEP,
       );
-      if (d < 9) {
-        const level = this.poiHeight(p);
-        const t = clamp(d / 9, 0, 1);
-        h = level + (h - level) * t;
+      // Align the flat apron with terrain vertices, covering the foundation
+      // and doorstep without wasting the grading space between nearby houses.
+      if (d >= 80) continue;
+      const level = this.poiHeight(p);
+      if (d <= 0) {
+        h = level;
+        totalWeight = -1;
+        break;
       }
+      const t = d / 80;
+      // Inverse-distance partition avoids a sharp ridge halfway between two
+      // nearby platforms. The compact skirt fades with zero outer derivative.
+      const weight = ((1 - t) * (1 - t)) / t;
+      weightedLevel += level * weight;
+      totalWeight += weight;
     }
+    if (totalWeight > 0) h = (h + weightedLevel) / (1 + totalWeight);
     const city = REGIONS.find((r) => r.id === "city")!;
     const urbanDistance = Math.max(
       Math.abs(x - city.x) - 112,
@@ -310,14 +369,10 @@ export class WorldGenerator {
     );
     if (urbanDistance < 40) {
       const level = this.baseHeight(city.x, city.z + 54),
-        t = clamp(urbanDistance / 40, 0, 1);
+        t0 = clamp(urbanDistance / 40, 0, 1),
+        t = t0 * t0 * (3 - 2 * t0);
       h = level + (h - level) * t;
     }
-    const lake = this.lakeDistance(x, z);
-    if (lake < 1.25)
-      h =
-        h * clamp((lake - 1) / 0.25, 0, 1) +
-        (-8 + Math.min(lake, 1) * 2) * (1 - clamp((lake - 1) / 0.25, 0, 1));
     const edge = Math.max(Math.abs(x), Math.abs(z));
     if (edge > 1870) h += (edge - 1870) * 0.6;
     return h;
@@ -330,7 +385,8 @@ export class WorldGenerator {
     return Math.hypot(p.x, p.z - 30) < 155 ? 0 : this.baseHeight(p.x, p.z);
   }
   roadHeight(x: number, z: number): number {
-    return Math.hypot(x, z - 30) < 150 ? 0 : this.baseHeight(x, z);
+    const t = clamp((Math.hypot(x, z - 30) - 60) / 160, 0, 1);
+    return this.baseHeight(x, z) * t * t * (3 - 2 * t);
   }
   roadDistance(x: number, z: number): number {
     let result = Math.min(

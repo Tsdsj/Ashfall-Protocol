@@ -82,8 +82,67 @@ Object.assign(paths, {
     "M11 22l7 3 7-3 7 3 7-3 7 3 7-3 10 3v31l-10-3-7 3-7-3-7 3-7-3-7 3-7-3zM22 25v28m33-28v28",
   crackers: "M13 17h50v45H13zM24 29h1m12 0h1m12 0h1M24 44h1m12 0h1m12 0h1",
 });
+// Item silhouettes supplement the shared HUD/category symbols.
+paths.hydration = paths.water!;
+Object.assign(paths, {
+  pickaxe: "M31 68 40 27l7 2-8 41zM9 30c12-23 38-25 59-7L48 19 37 24 24 25z",
+  hammer: "M29 67 35 29h9l-5 39zM14 18l12-8h23l13 10-9 8-11-7v11H27V21l-13 5z",
+  wrench: paths.tool,
+  shovel: "M29 7h20v14l-7 7v22h11v9L39 72 25 59v-9h11V28l-7-7zM35 13h8v7h-8z",
+  fishingrod:
+    "M15 68 44 9M19 60l-6-3M44 9l18 6v37q0 15-10 9l-2-8M28 42a6 6 0 1012 0 6 6 0 10-12 0",
+  torch:
+    "M30 44h17l-5 26h-7zM25 39c-13-15 8-19 7-34 11 6 8 16 14 17l4-10c19 20 11 33-8 33zM28 50h19",
+  tire: "M38 7a30 30 0 110 60 30 30 0 010-60M38 21a16 16 0 110 32 16 16 0 010-32M23 11l5 9m20-9-5 9M10 28l10 3m-10 17 10-5M66 28l-10 3m10 17-10-5M23 63l5-9m20 9-5-9",
+  ore: "M8 52 20 24 46 12 66 36 58 63 28 67zM20 24l14 18-6 25M34 42l32-6M38 25l9-4 7 9-12 5zM43 49l9-5 4 9-11 5z",
+  filter:
+    "M18 12h39l5 54H13zM20 23h35M38 28c-5 8-11 14-11 20a11 11 0 0022 0c0-6-6-12-11-20zM32 49l4 4 8-9",
+  beans:
+    "M19 17q19-8 38 0v42q-19 9-38 0zM19 17q19 10 38 0M19 57q19 9 38 0M31 32c-12 0-11 16-1 17 10 1 14-13 8-15-5-2-1 6-7 5",
+  cannedmeat:
+    "M14 24q24-10 48 0v33q-24 12-48 0zM14 24q24 10 48 0M14 54q24 10 48 0M25 38l11-5 14 7-7 10-15-2z",
+  water:
+    "M28 8h20v9l6 9v38q-16 8-32 0V26l6-9zM28 16h20M23 32h30v20H23M33 43l4 4 8-9",
+  dirtywater:
+    "M27 8h22v9l7 9v38H20V26l7-9zM27 16h22M21 39q8-7 17 0t17 0M28 51l5 5m11-8 4 5",
+  boiledwater:
+    "M25 25h28v41H19V31zM26 25v-6h17v6M53 35h9v18h-9M29 12q-5-4 0-9m13 9q-5-4 0-9M27 49l7 7 12-15",
+  soda: "M24 13h28v51H24zM24 19h28M24 57h28M32 31a9 9 0 1011 12M41 31l-5 8 10-1M33 13v6",
+  energydrink:
+    "M26 8h24v59H26zM26 15h24M26 60h24M40 23 31 41h8l-3 14 12-22h-9z",
+  bandage:
+    "M14 25h40a12 12 0 010 24H14zM14 25a12 12 0 100 24 12 12 0 000-24M14 33a4 4 0 100 8 4 4 0 000-8M54 49v13H24V49",
+  rag: "M16 19l37-7 12 43-39 12-15-28zM19 32l41-5M22 48l41-5",
+  tourniquet:
+    "M13 25h48v22H13zM25 21h25v30H25zM32 29h11v14H32zM39 51v17M23 14h34",
+  painkiller:
+    "M18 16h40v47H18zM27 24a5 5 0 110 10 5 5 0 010-10M47 24a5 5 0 110 10 5 5 0 010-10M27 45a5 5 0 110 10 5 5 0 010-10M47 45a5 5 0 110 10 5 5 0 010-10",
+  antibiotics:
+    "M21 8h34v13H21zM24 21l-5 7v38h38V28l-5-7M20 34h36v20H20M38 38v12m-6-6h12",
+  disinfectant:
+    "M28 7h22v13H28zM29 20l-7 9v37h34V29l-7-9M28 40h22M39 31v20M29 58h20",
+  splint: "M20 9h10v58H20zM46 9h10v58H46zM14 22h48v10H14zM14 47h48v10H14z",
+  r07_injector:
+    "M20 52 51 21l9 9-31 31zM45 16l20 20M53 10l15 15M62 19l-7 7M20 52l-10 15M31 42l9 9M38 35l6 6",
+  shell:
+    "M15 19h17v47H15zM44 19h17v47H44zM15 53h17M44 53h17M13 66h21m8 0h21M15 26h17m12 0h17",
+  arrow:
+    "M13 67 59 15M51 16 66 7 62 25M18 60l-9-2-2 9 10 2 2-9M40 67 60 43M54 43l12-7-4 14",
+  mask: "M17 25q21-13 42 0v24q-21 22-42 0zM17 29 7 22v27l11-5M59 29l10-7v27l-11-5M28 33h20v17H28zM33 38h10m-10 7h10",
+  scope:
+    "M13 25h12v28H13zM25 31h29v16H25zM54 23h12v32H54zM33 31v-9h13v9M38 47v14",
+  reddot: "M19 25h38v27H19zM27 25V13h22v12M12 52h52v9H12zM32 35h12m-6-6v12",
+  suppressor: "M14 29h48v19H14zM8 32h6v13H8M55 29v19M23 34h23m-23 9h23",
+  grip: "M21 12h34v10H21zM30 22h16v41H30zM30 32h16m-16 11h16m-16 11h16",
+  extendedmag:
+    "M22 10h30v17l-9 40H17l7-40zM24 20h25M27 35l15 3m-17 9 15 3m-17 9 14 2",
+  laser: "M11 29h33v20H11zM18 25h20v4M44 38h9m5 0h5m5 0h4M27 34v10",
+  weaponlight:
+    "M10 29h33l12-7v36l-12-9H10zM16 23h18v6M61 28l8-5m-8 17h11m-11 12 8 5",
+  radio: "M19 22h37v44H19zM26 22V5M26 29h23v12H26zM26 49h23m-23 7h23M46 16h7v6",
+});
 export function icon(name: string, size = 24): string {
-  const d = ITEMS[name];
+  const d = Object.hasOwn(ITEMS, name) ? ITEMS[name] : undefined;
   let key = name;
   if (d) {
     key = d.icon;
@@ -102,7 +161,10 @@ export function icon(name: string, size = 24): string {
     if (d.id === "wood" || d.id === "stone" || d.id === "backpack") key = d.id;
   }
   if (d && paths[d.id]) key = d.id;
-  const path = paths[key] ?? paths.material!;
+  const path = Object.hasOwn(paths, key) ? paths[key]! : paths.material!;
+  size = Number.isFinite(Number(size))
+    ? Math.max(1, Math.min(512, Number(size)))
+    : 24;
   return `<svg width="${size}" height="${size}" viewBox="0 0 76 76" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>`;
 }
 export const logo = `<svg viewBox="0 0 60 58" aria-hidden="true"><path d="M4 52 30 3 56 52H42L30 29 18 52Z" fill="currentColor"/><path d="M25 46h10v6H25z" fill="currentColor"/></svg>`;

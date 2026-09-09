@@ -1429,3 +1429,12 @@ svg {
   border-radius: 50%;
   background: #a43326;
 }
+
+/* The game owns horizontal camera/drag gestures, not browser back/forward swipes. */
+html,
+body {
+  overscroll-behavior-x: none;
+}
+#game-canvas {
+  touch-action: none;
+}

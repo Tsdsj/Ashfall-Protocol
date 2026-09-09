@@ -1,0 +1,71 @@
+/* Keep the expanded inventory inside its column; scrolling preserves real cell geometry. */
+.inventory-layout .inventory-grid-scroll {
+  max-height: min(48vh, 620px);
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.inventory-layout .inventory-main,
+.inventory-layout .nearby-column {
+  min-width: 0;
+}
+.inventory-grid-scroll .inventory-grid {
+  min-width: calc(var(--cols) * 56px);
+  max-width: none;
+}
+.inventory-grid-scroll .grid-item {
+  flex-direction: column;
+  justify-content: center;
+  padding: 14px 3px 15px;
+}
+.inventory-grid-scroll .grid-item .item-svg {
+  height: 100%;
+  width: 72%;
+  min-height: 0;
+}
+.inventory-grid-scroll .grid-category,
+.inventory-grid-scroll .grid-item-name {
+  position: absolute;
+  line-height: 1.2;
+  color: var(--ink);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 6px);
+}
+.inventory-grid-scroll .grid-category {
+  top: 3px;
+  left: 3px;
+  font-size: calc(10px * var(--ui-scale));
+  color: var(--muted);
+}
+.inventory-grid-scroll .grid-item-name {
+  bottom: 2px;
+  left: 3px;
+  right: 3px;
+  font-size: calc(11px * var(--ui-scale));
+  text-align: center;
+}
+.inventory-grid-scroll .grid-item .count {
+  top: 2px;
+  bottom: auto;
+  right: 3px;
+}
+.inventory-grid-scroll .grid-item .equipped-mark {
+  top: 16px;
+}
+.inventory-layout .equip-slot.selected {
+  border-color: var(--ink);
+}
+.inventory-layout .inventory-meta {
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+@media (max-width: 650px) {
+  .inventory-layout .inventory-grid-scroll {
+    max-height: 45vh;
+  }
+}

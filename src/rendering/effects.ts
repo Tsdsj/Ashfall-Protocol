@@ -28,6 +28,8 @@ export class EffectsRenderer {
     { fire: ParticleSystem; smoke: ParticleSystem; light: PointLight }
   >();
   private tracer: Mesh[] = [];
+  private grenades: Mesh[] = [];
+  private blastLights: { light: PointLight; life: number }[] = [];
   private decals: { mesh: Mesh; life: number }[] = [];
   private sequenceParticles: { system: ParticleSystem; life: number }[] = [];
   constructor(
@@ -100,6 +102,18 @@ export class EffectsRenderer {
       mesh.setEnabled(false);
       this.sparks.push({ mesh, velocity: Vector3.Zero(), life: 0, maxLife: 1 });
     }
+    for (let n = 0; n < 6; n++) {
+      const mesh = MeshBuilder.CreateSphere(
+        "thrown-grenade",
+        { diameter: 0.13, segments: 6 },
+        scene,
+      );
+      mesh.scaling.y = 1.3;
+      mesh.material = mats.simple("thrown-grenade", "#59613a");
+      mesh.isPickable = false;
+      mesh.setEnabled(false);
+      this.grenades.push(mesh);
+    }
     for (let n = 0; n < 24; n++) {
       const mesh = MeshBuilder.CreateCylinder(
         "shell-pool",
@@ -150,6 +164,7 @@ export class EffectsRenderer {
     if (e.type !== "hit" && !(e.type === "shot" && e.kind === "explosion"))
       return;
     if (!e.position) return;
+    if (e.kind === "explosion") this.explosion(e.position);
     const blood = e.type === "hit" && e.kind !== "wall";
     const material = e.material ?? "concrete";
     const metal = material === "metal" || e.kind === "explosion";
@@ -220,13 +235,63 @@ export class EffectsRenderer {
                   : "#8f9287",
         metal ? 1.4 : 0,
       );
+      const speed = e.kind === "explosion" ? 13 : 3;
       s.velocity.set(
-        (Math.random() - 0.5) * 3,
-        Math.random() * 3,
-        (Math.random() - 0.5) * 3,
+        (Math.random() - 0.5) * speed,
+        Math.random() * speed,
+        (Math.random() - 0.5) * speed,
       );
-      s.life = 0.2 + Math.random() * 0.5;
+      if (e.kind === "explosion") s.mesh.scaling.setAll(2.5);
+      s.life =
+        e.kind === "explosion"
+          ? 0.8 + Math.random() * 0.6
+          : 0.2 + Math.random() * 0.5;
       s.maxLife = s.life;
+    }
+  }
+  private explosion(position: Vec3) {
+    if (this.blastLights.length >= 3) this.blastLights.shift()!.light.dispose();
+    const light = new PointLight(
+      "explosion-flash",
+      new Vector3(position.x, position.y + 0.6, position.z),
+      this.scene,
+    );
+    light.diffuse = new Color3(1, 0.57, 0.2);
+    light.range = 18;
+    light.intensity = 22;
+    this.blastLights.push({ light, life: 0.25 });
+    for (const smoke of [false, true]) {
+      if (this.sequenceParticles.length >= 6)
+        this.sequenceParticles.shift()!.system.dispose(false);
+      const system = new ParticleSystem(
+        smoke ? "explosion-smoke" : "explosion-fireball",
+        64,
+        this.scene,
+      );
+      system.particleTexture = this.texture;
+      system.emitter = new Vector3(position.x, position.y + 0.3, position.z);
+      system.minEmitBox = new Vector3(-0.4, 0, -0.4);
+      system.maxEmitBox = new Vector3(0.4, 0.4, 0.4);
+      system.direction1 = new Vector3(-2.5, 0.7, -2.5);
+      system.direction2 = new Vector3(2.5, 3, 2.5);
+      system.minSize = smoke ? 0.8 : 0.6;
+      system.maxSize = smoke ? 2 : 1.5;
+      system.minLifeTime = smoke ? 1.2 : 0.12;
+      system.maxLifeTime = smoke ? 2.8 : 0.4;
+      system.manualEmitCount = smoke ? 45 : 32;
+      system.emitRate = 0;
+      system.color1 = smoke
+        ? new Color4(0.3, 0.28, 0.23, 0.65)
+        : new Color4(1, 0.7, 0.15, 1);
+      system.color2 = smoke
+        ? new Color4(0.15, 0.15, 0.14, 0.55)
+        : new Color4(1, 0.22, 0.04, 0.9);
+      system.colorDead = new Color4(0.15, 0.13, 0.1, 0);
+      system.blendMode = smoke
+        ? ParticleSystem.BLENDMODE_STANDARD
+        : ParticleSystem.BLENDMODE_ADD;
+      system.start();
+      this.sequenceParticles.push({ system, life: 0 });
     }
   }
   sequenceBurst(
@@ -316,6 +381,26 @@ export class EffectsRenderer {
   }
   update(dt: number, time: number, rainAmount: number): void {
     const p = this.sim.state.player.position;
+    for (const entry of this.blastLights) {
+      entry.life -= dt;
+      entry.light.intensity = 22 * Math.max(0, entry.life / 0.25) ** 2;
+      if (entry.life <= 0) entry.light.dispose();
+    }
+    this.blastLights = this.blastLights.filter((entry) => entry.life > 0);
+    for (let n = 0; n < this.grenades.length; n++) {
+      const mesh = this.grenades[n]!,
+        grenade = this.sim.combat.grenades[n];
+      mesh.setEnabled(!!grenade);
+      if (grenade) {
+        mesh.position.set(
+          grenade.position.x,
+          grenade.position.y,
+          grenade.position.z,
+        );
+        mesh.rotation.x += dt * 7;
+        mesh.rotation.z += dt * 4;
+      }
+    }
     for (const entry of this.sequenceParticles) {
       entry.life -= dt;
       if (entry.life <= 0) entry.system.emitRate = 0;

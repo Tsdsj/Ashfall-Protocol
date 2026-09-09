@@ -9,23 +9,23 @@
     "zm_010": "d2eeba86192eee269f600ca6821038034abd017532a1fe68ff7b0e86c2983b2a"
   },
   "authorship": "Original ASHFALL PROTOCOL Chinese script; synthesized locally with licensed model voices. No imitation of a named real person.",
-  "changes": "Chinese pronunciation normalization; speaker segmentation; 24kHz mono; highpass 90Hz lowpass 11.5kHz; peak normalization followed by additional -2dB mastering headroom; MP3 64kbps.",
+  "changes": "Chinese pronunciation normalization; speaker segmentation; 24kHz mono; highpass 90Hz lowpass 11.5kHz; peak normalized; additional -2 dB mastering headroom; MP3 64kbps.",
   "assets": [
     {
       "id": "opening-impact",
       "file": "opening-impact.mp3",
       "speaker": "你",
       "title": "最后一辆车",
-      "text": "车翻了。司机的手还压在门闩上。运输单说车上有二十六个人，可后面的座位全空了……先离开公路。",
+      "text": "车翻了。我是这趟补运车的随车维修员，本来要到松谷核对二十六名居民，再把车带到北岭山口。人还没接到，空车清单却已经盖了全部安置的章。先活下来，再查清这张假回执。",
       "delivery": "voice",
       "voices": [
         "zm_010"
       ],
-      "textSha256": "587bc9d2b168247dd95a616abf9009849d34f8a94bdfc1b0dcdf05613d057a3f",
-      "duration": 11.9,
-      "peakDbFS": -3.2,
-      "bytes": 95852,
-      "sha256": "fadbdd8406838422a690645faef12d78e2f3ace7110f8be09d997eaaf93582b8"
+      "textSha256": "dffe14e745abb52b41e290165e016e3f82e4f883903ae4f7348c13426b9f1ca0",
+      "duration": 20.35,
+      "peakDbFS": -3.15,
+      "bytes": 163436,
+      "sha256": "78ae93149b12e9daaf2f12bbb94e4d63dd81f29ae51936351c18f24904fbe2f3"
     },
     {
       "id": "opening-order",
@@ -48,16 +48,16 @@
       "file": "opening-mira.mp3",
       "speaker": "陌生女人",
       "title": "另一个频段",
-      "text": "如果你听得见，别等那辆车了。松谷林务站有食物。关好门，入夜后别开外灯。我叫米拉。我还在这里。",
+      "text": "这里是松谷诊所，我叫米拉，是护士。灰谷还有人，别在翻车现场等救援。先去林务站拿食物、关门建立安全点，再接通接收机。然后带着名单来诊所找我，我认识上面的人。",
       "delivery": "radio",
       "voices": [
         "zf_001"
       ],
-      "textSha256": "e0dd60705bf5abf5e3d6a5407dbb84bf76182a2b517239013d8a14632517fc87",
-      "duration": 15.05,
-      "peakDbFS": -5.4,
-      "bytes": 121196,
-      "sha256": "9e7efb94241fb92612a159710ee72ddd200df9762e7d0557f18ae8fb18cf39a6"
+      "textSha256": "a55292a609548337b748f42e8eb5b08f9212416374503a531827e4d19e01e4db",
+      "duration": 20.55,
+      "peakDbFS": -4.11,
+      "bytes": 165164,
+      "sha256": "ec9c1373efb46251acae0fc97c78f0f02a82519f6790a19dc454c0bcdb4bea0c"
     },
     {
       "id": "evac-loop",
@@ -80,33 +80,33 @@
       "file": "ranger-warning.mp3",
       "speaker": "林务员周岑",
       "title": "水壶仍是热的",
-      "text": "这是十月十七日。三个孩子刚从桥边过来，所以你听到的撤离通告是假的。我把最后的罐头放在站里。去诊所找米拉，别把幸存者名字报给军方。",
+      "text": "我是林务员周岑，今天十月十七日。灰谷靠矿业和黑岭工厂生活，第七研究站曾答应治疗矿尘病。可十月十四日的撤离通告还在循环，今天却有三个孩子从桥边过来。补给留在站里。去诊所找米拉，别把幸存者名字报给军方。",
       "delivery": "log",
       "voices": [
         "zm_010"
       ],
-      "textSha256": "a3fa4a0098b94aa3d81a2a9dab18a6d773547272266233ef2c6d316e3bd3546d",
-      "duration": 17.8,
-      "peakDbFS": -6.05,
-      "bytes": 143084,
-      "sha256": "999fb5237332529b303f23954fb64ff686111e66e1cdd2d81004d3fd10af8ab1"
+      "textSha256": "4971b8d26af91506f8e2e59d914d3ef58a01d8d0e5f7da2e5abf8359f03929cb",
+      "duration": 26.025,
+      "peakDbFS": -4.63,
+      "bytes": 208940,
+      "sha256": "fe8c0bf2f280dfa63319f3aa34b4a0fea9f98b00a5810eeedddec243f8e6a2a4"
     },
     {
       "id": "mira-cases",
       "file": "mira-cases.mp3",
       "speaker": "米拉",
       "title": "人不是接触区域",
-      "text": "你：广播为什么说没人了？\n米拉：因为他们把没上车的人改成了样本。看这四份病历，发热日期不同，注射批次却一样。我弟弟没生病，也在名单上。去市立医院找转运簿，别只找药。",
+      "text": "你：我还没接到人，清单为什么已经写了全部安置？\n米拉：这是一张补做的撤离回执。我和韩医生给这里的矿工看病，我弟弟没有病，也被列进这批转运。四份病历发热日期不同，注射批次却一样。先去市立医院查转运终点，再到黑岭动力车间查货单，最后核验军方命令。我们要让几份记录对上同一批人，不要只带回一个口头解释。",
       "delivery": "dialogue",
       "voices": [
         "zf_001",
         "zm_010"
       ],
-      "textSha256": "12de35bfd4f6cd2903e1130b77f7a835f10f866f7b8e08062d8a56f1f098df1a",
-      "duration": 21.4,
-      "peakDbFS": -5.56,
-      "bytes": 171884,
-      "sha256": "ea21a302e442df17af8a07dfb19e75a0030aa70b06ae19a9326d13e4a31aa5e2"
+      "textSha256": "dd2fe3676d0d0d72bf327f3d8c9899609012e3e937e86f6b8d1746ba8a51b784",
+      "duration": 35.175,
+      "peakDbFS": -4.82,
+      "bytes": 282092,
+      "sha256": "5caaf153110cffef603e93c451fb1f3297daa54ab86ff99d510c6ecdc950c708"
     },
     {
       "id": "military-order",
@@ -194,17 +194,17 @@
       "file": "ashfall-reveal.mp3",
       "speaker": "米拉",
       "title": "不是救援",
-      "text": "你：归零的是人，还是数据库？\n米拉：数据库。我们仍活着，所以他们要再归零一次。ASHFALL 不是救援，是把封锁区清理干净的程序。研究站下面还在供电。要停下它，得找到是谁把我们接进了机器。",
+      "text": "你：所以我这趟空车，是用来补齐他们已撤离的账？\n米拉：对。数据库先把人归零，再让清理程序处理仍活着的人。ASHFALL 已经被核验成封锁区清理协议。带访问卡去第七研究站，地下四方终端会告诉我们谁签了什么，以及怎样切断它。",
       "delivery": "radio",
       "voices": [
         "zf_001",
         "zm_010"
       ],
-      "textSha256": "dd3e587772dee0ef19fd192f9e5f54b2d94b6b0efa58bf5cf353def7006c7ae1",
-      "duration": 24.1,
-      "peakDbFS": -4.57,
-      "bytes": 193580,
-      "sha256": "c60af4e195e5a05157b238bf240648a6f247343acc8926cf8be1aa74c0fafd8d"
+      "textSha256": "34dc1a14f42b5045d07dbc605fbaa32e26d935e7b989b7e987c4c151f3f74996",
+      "duration": 25.375,
+      "peakDbFS": -5.11,
+      "bytes": 203756,
+      "sha256": "6438da62c4b84d8a508a1b79fc7ef75847eb3f46942acebe807afe9cc6776a92"
     },
     {
       "id": "facility-adaptation",
@@ -291,17 +291,17 @@
       "file": "facility-reveal.mp3",
       "speaker": "米拉",
       "title": "二十六盏灯",
-      "text": "你：运输单上的二十六个人，一直都在这里。\n米拉：别关他们的名字。关那台把名字变成编号的机器。公开档案需要活着的证人；烧掉它能阻止下一批实验，却也会烧掉我们的证据。留下来，就得先让外面的人有水和退路。",
+      "text": "你：二十六人早已被转到这里，我拿到的却是让他们看起来已经离开的回执。\n米拉：这就是你一路查的同一批人。把名单、病历、货单和四方原始记录放在一起，他们才不会只剩编号。公开需要证人和中继；焚毁能阻止复制实验，也会毁掉证据；如果留下，先让外面的人有水和退路。",
       "delivery": "radio",
       "voices": [
         "zf_001",
         "zm_010"
       ],
-      "textSha256": "81a91f0bd371a65dca7c758a8dd58953e9e12fda79bd8062308d33ff22f212aa",
-      "duration": 26.1,
-      "peakDbFS": -5.62,
-      "bytes": 209516,
-      "sha256": "f422a46d3ee28929f1ced9d250bc785bf96ae8f96aae84c6354fa61e27dcb48b"
+      "textSha256": "6af05304ddb5b0485ab43555624cf5fc8064ef42904a2edecec0b10c2024c0d1",
+      "duration": 30.775,
+      "peakDbFS": -5.07,
+      "bytes": 246956,
+      "sha256": "92f31b63148c1d39be1f31bd42b452a8604a68e3a207ba861615b9049e9c8f0d"
     },
     {
       "id": "finale-choice",
@@ -740,5 +740,5 @@
       "sha256": "f615fe0c3ef747838c100ed8a1558c967c690dbf5a77a149f1abbc2ccd90c1a5"
     }
   ],
-  "totalBytes": 6910524
+  "totalBytes": 7245756
 }

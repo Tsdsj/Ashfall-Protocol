@@ -183,6 +183,7 @@ export class Game {
           "death",
           "end",
           "error",
+          "creative",
         ].includes(this.ui.screen) &&
         (this.ui.screen !== "play" || controlsActive);
       const previousSequence = this.sim.narrative.frame();
@@ -367,7 +368,8 @@ export class Game {
   }
   private bind() {
     document.addEventListener("pointerlockchange", () => {
-      const locked = document.pointerLockElement === this.canvas;
+      const locked = document.pointerLockElement === this.canvas,
+        wasLocked = this.ui.locked;
       if (
         locked &&
         (this.ui.screen !== "play" || !document.hasFocus() || document.hidden)
@@ -378,6 +380,7 @@ export class Game {
       this.ui.setLocked(locked || this.input.fallback);
       if (
         !locked &&
+        wasLocked &&
         !this.input.fallback &&
         this.active &&
         this.ui.screen === "play" &&
@@ -501,6 +504,29 @@ export class Game {
     if (e.repeat && !["Space"].includes(e.code)) return;
     // Escape after browser unlock must never immediately request another lock.
     if (e.code === "Escape" && this.ui.screen === "pause") return;
+    if (
+      this.active &&
+      this.sim.creative &&
+      e.code === "F6" &&
+      this.ui.screen === "play"
+    ) {
+      e.preventDefault();
+      this.sim.toggleFlight();
+      this.ui.toast(
+        this.sim.flying
+          ? "飞行开启：空格上升，Ctrl下降，Shift加速，F6退出。"
+          : "已退出飞行。",
+      );
+      return;
+    }
+    if (
+      this.active &&
+      this.sim.flying &&
+      [this.settings.keys.jump, this.settings.keys.crouch].includes(e.code)
+    ) {
+      e.preventDefault();
+      return;
+    }
     if (e.code === "Backquote" && import.meta.env.DEV && this.active) {
       e.preventDefault();
       this.toggleConsole();
@@ -510,6 +536,30 @@ export class Game {
       e.preventDefault();
       if (this.consoleOpen) {
         this.toggleConsole();
+        return;
+      }
+      if (
+        this.active &&
+        [
+          "inventory",
+          "vehicle",
+          "structure",
+          "trade",
+          "crafting",
+          "building",
+          "map",
+          "journal",
+          "body",
+          "conversation",
+          "creative",
+        ].includes(this.ui.screen)
+      ) {
+        this.sim.actions.cancel();
+        this.sim.cancelCraft();
+        this.ui.show("play");
+        this.ui.setLocked(false);
+        this.input.unlock();
+        this.audio.pauseDialogue();
         return;
       }
       if (this.sim?.actions.pending) {
@@ -580,7 +630,22 @@ export class Game {
     for (const [action, screen] of mappings)
       if (e.code === this.settings.keys[action]) {
         e.preventDefault();
-        if (this.ui.screen === screen) void this.resume();
+        if (
+          this.ui.screen === screen ||
+          (action === "inventory" &&
+            [
+              "vehicle",
+              "structure",
+              "trade",
+              "crafting",
+              "building",
+              "map",
+              "journal",
+              "body",
+              "creative",
+            ].includes(this.ui.screen))
+        )
+          void this.resume();
         else if (!["death", "end"].includes(this.ui.screen)) this.open(screen);
         return;
       }
@@ -977,6 +1042,7 @@ export class Game {
     ++this.resumeGeneration;
     this.ui.show(screen);
     this.input.unlock();
+    this.ui.setLocked(false);
   }
   private async resume() {
     if (this.checkingDisplay) return;
@@ -1142,12 +1208,32 @@ export class Game {
       case "replay-log":
         this.sim.narrative.replayLog(el.dataset.id!);
         break;
+      case "open-creative":
+        if (this.sim.creative) this.open("creative");
+        break;
+      case "creative-give":
+        if (
+          this.sim.giveCreative(
+            el.dataset.id ?? "",
+            Number(el.dataset.count ?? 1),
+          )
+        ) {
+          this.ui.toast("已放入背包。");
+          this.ui.render();
+        } else
+          this.ui.toast("无法取物：请确认创造模式并整理背包空间。", "warning");
+        break;
+      case "track-main-lead":
+        if (this.sim.narrative.trackMainLead())
+          this.ui.toast("已追踪主线：地图与罗盘会显示目标。");
+        break;
       case "quest-waypoint": {
         const entry = NARRATIVE_INTERACTIONS.find(
           (d) => d.id === el.dataset.id,
         );
         if (entry) {
           const p = this.sim.narrative.resolveAnchor(entry.anchor);
+          this.sim.narrative.stopTrackingMainLead();
           this.sim.state.waypoint = { ...p };
           this.sim.notify(
             "已标记：" +
@@ -1173,14 +1259,17 @@ export class Game {
         this.input.unlock();
         this.active = false;
         this.saveId = "world-" + Date.now();
-        await this.setWorld(
-          createWorld(seed, name, difficulty, {
-            dayLength: clamp(Number(form.get("dayLength") ?? 60), 30, 120),
-            lootAmount: clamp(Number(form.get("lootAmount") ?? 1), 0.5, 2),
-            enemyDensity: clamp(Number(form.get("enemyDensity") ?? 1), 0.5, 2),
-            permadeath: form.get("permadeath") === "on",
-          }),
-        );
+        const world = createWorld(seed, name, difficulty, {
+          dayLength: clamp(Number(form.get("dayLength") ?? 60), 30, 120),
+          lootAmount: clamp(Number(form.get("lootAmount") ?? 1), 0.5, 2),
+          enemyDensity: clamp(Number(form.get("enemyDensity") ?? 1), 0.5, 2),
+          permadeath: form.get("permadeath") === "on",
+        });
+        if (form.get("creative") === "on") {
+          world.flags.push("creative-mode");
+          world.narrative.seenSequences.push("opening");
+        }
+        await this.setWorld(world);
         this.active = true;
         this.renderer.setMenu(false);
         await this.save(true);
@@ -1325,6 +1414,9 @@ export class Game {
         break;
       case "open-inventory":
         this.open("inventory");
+        break;
+      case "open-building":
+        this.open("building");
         break;
       case "open-crafting":
         this.open("crafting");

@@ -1,4 +1,5 @@
 import { clamp } from "../core/types";
+import { CARRY_LIMIT } from "./inventory";
 
 export type Gait =
   "idle" | "walk" | "jog" | "sprint" | "crouch" | "prone" | "swim";
@@ -46,7 +47,7 @@ export const GAITS: Record<Gait, GaitProfile> = {
     stride: 2.15,
     camera: 0.018,
     weapon: 0.055,
-    stamina: 9,
+    stamina: 5,
   },
   crouch: {
     speed: 1.65,
@@ -121,7 +122,7 @@ export class LocomotionController {
       !r.aiming &&
       r.stance === "stand" &&
       r.stamina > 3 &&
-      r.weight < 38 &&
+      r.weight <= CARRY_LIMIT + 1e-6 &&
       !r.fracture;
     this.gait = r.swimming
       ? "swim"
@@ -141,7 +142,7 @@ export class LocomotionController {
       amount *
       directionPenalty *
       aimPenalty *
-      Math.max(0.4, 1 - Math.max(0, r.weight - 22) / 65) *
+      Math.max(0.4, 1 - Math.max(0, r.weight - CARRY_LIMIT) / 65) *
       (r.fracture ? 0.5 : 1) *
       (r.temperature < 34 ? 0.65 : 1);
     const length = Math.hypot(r.forward, r.side) || 1;

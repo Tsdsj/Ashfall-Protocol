@@ -116,3 +116,110 @@ it("keeps Alt walking but leaves Alt Tab and F11 to the browser", () => {
   window.dispatchEvent(tab);
   expect(tab.defaultPrevented).toBe(false);
 });
+
+it("requests raw mouse input and only retries when raw input is unsupported", async () => {
+  const { canvas, doc, input } = setup();
+  canvas.requestPointerLock
+    .mockRejectedValueOnce(new DOMException("raw input", "NotSupportedError"))
+    .mockImplementationOnce(() => {
+      doc.pointerLockElement = canvas;
+      doc.dispatchEvent(new Event("pointerlockchange"));
+      return Promise.resolve();
+    });
+  await input.lock();
+  expect(canvas.requestPointerLock.mock.calls).toEqual([
+    [{ unadjustedMovement: true }],
+    [],
+  ]);
+  expect(input.fallback).toBe(false);
+});
+
+it("does not retry a permission denial or revive a cancelled raw request", async () => {
+  const { canvas, input } = setup();
+  canvas.requestPointerLock.mockRejectedValueOnce(
+    new DOMException("denied", "NotAllowedError"),
+  );
+  await expect(input.lock()).rejects.toThrow("denied");
+  expect(canvas.requestPointerLock).toHaveBeenCalledTimes(1);
+  let reject!: (error: Error) => void;
+  canvas.requestPointerLock.mockImplementation(
+    () =>
+      new Promise<void>((_, fail) => {
+        reject = fail;
+      }),
+  );
+  const cancelled = expect(input.lock()).rejects.toThrow("cancelled");
+  input.unlock();
+  reject(new DOMException("raw input", "NotSupportedError"));
+  await cancelled;
+  expect(canvas.requestPointerLock).toHaveBeenCalledTimes(2);
+});
+
+it("clears accumulated motion on both capture transitions and blur", () => {
+  const { canvas, doc, input } = setup();
+  input.deltaX = 80;
+  doc.pointerLockElement = canvas;
+  doc.dispatchEvent(new Event("pointerlockchange"));
+  expect(input.mouse()).toEqual({ x: 0, y: 0 });
+  document.dispatchEvent(
+    Object.assign(new Event("mousemove"), { movementX: 19, movementY: -7 }),
+  );
+  expect(input.mouse()).toEqual({ x: 19, y: -7 });
+  document.dispatchEvent(
+    Object.assign(new Event("mousemove"), {
+      movementX: NaN,
+      movementY: Infinity,
+    }),
+  );
+  expect(input.mouse()).toEqual({ x: 0, y: 0 });
+  input.deltaY = 50;
+  window.dispatchEvent(new Event("blur"));
+  expect(input.mouse()).toEqual({ x: 0, y: 0 });
+});
+
+it("blocks canvas browser navigation buttons only during gameplay", () => {
+  const { canvas, doc } = setup();
+  const event = (type: string, button: number) =>
+    Object.assign(new Event(type, { cancelable: true }), { button });
+  const inactive = event("pointerdown", 3);
+  canvas.dispatchEvent(inactive);
+  expect(inactive.defaultPrevented).toBe(false);
+  doc.pointerLockElement = canvas;
+  for (const button of [3, 4]) {
+    const down = event("pointerdown", button);
+    canvas.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(true);
+    const up = event("mouseup", button);
+    window.dispatchEvent(up);
+    expect(up.defaultPrevented).toBe(true);
+  }
+});
+
+it("uses cursor coordinates for explicit drag look and resets when leaving the canvas", () => {
+  const { canvas, input } = setup();
+  input.fallback = true;
+  canvas.dispatchEvent(
+    Object.assign(new Event("mousedown", { cancelable: true }), {
+      button: 2,
+      clientX: 100,
+      clientY: 100,
+    }),
+  );
+  const move = (x: number, y: number) => {
+    const event = Object.assign(new Event("mousemove"), {
+      clientX: x,
+      clientY: y,
+      movementX: 999,
+      movementY: 999,
+    });
+    Object.defineProperty(event, "target", { value: canvas });
+    document.dispatchEvent(event);
+  };
+  move(115, 94);
+  expect(input.mouse()).toEqual({ x: 15, y: -6 });
+  document.dispatchEvent(new Event("mousemove"));
+  move(500, 500);
+  expect(input.mouse()).toEqual({ x: 0, y: 0 });
+  move(510, 503);
+  expect(input.mouse()).toEqual({ x: 10, y: 3 });
+});

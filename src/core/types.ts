@@ -87,6 +87,10 @@ export interface Stack {
   attachments: string[];
 }
 export interface InventoryData {
+  /** Worn clothing remains owned and weighted, but occupies no grid cells. */
+  equippedUids?: string[];
+  /** Unexpanded height, retained so backpack removal is reversible. */
+  baseHeight?: number;
   width: number;
   height: number;
   items: Stack[];

@@ -127,5 +127,5 @@ export const DIALOGUE_FILES: Record<string, string> = {
   "shelter-return": "dialogue/shelter-return.mp3",
   "officer-request": "dialogue/officer-request.mp3",
   "officer-proof": "dialogue/officer-proof.mp3",
-  "officer-return": "dialogue/officer-return.mp3",
+  "officer-return": "dialogue/officer-return.mp3"
 };

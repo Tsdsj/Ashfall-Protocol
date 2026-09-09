@@ -321,7 +321,7 @@ export class AudioManager {
       const panner = ctx.createPanner();
       panner.panningModel = "HRTF";
       panner.distanceModel = "inverse";
-      panner.refDistance = 3;
+      panner.refDistance = layer.refDistance ?? 3;
       panner.maxDistance = 150;
       panner.rolloffFactor = 1.2;
       if (panner.positionX) {

@@ -35,9 +35,12 @@ import {
   endView,
   brand,
 } from "./views";
-import { drawMap } from "./map";
+import { bindInteractiveMap, type InteractiveMap } from "./map";
+import { bindInventoryInputGuard } from "./input-guard";
 import { narrativeJournal, conversationView } from "./narrative-view";
+import { creativeView } from "./creative-view";
 export type Screen =
+  | "creative"
   | "play"
   | "menu"
   | "newgame"
@@ -94,6 +97,7 @@ export class GameUI {
   debugVisible = false;
   performanceDetail = "";
   displayDiagnostic = "F4 检测浏览器轻载节拍（约 1 秒）";
+  creativeFilter = "全部";
   scopeWeight = 0;
   private root: HTMLElement;
   private layer: HTMLElement;
@@ -101,6 +105,7 @@ export class GameUI {
   private notices: HTMLElement;
   private interaction: Interaction | null = null;
   private lastHud = 0;
+  private mapControls: InteractiveMap | null = null;
   private drag: {
     uid: string;
     source: string;
@@ -123,6 +128,7 @@ export class GameUI {
       "beforeend",
       `<div id="action-progress" class="action-progress hidden" role="status"><div><span id="action-label"></span><span id="action-time" class="mono"></span></div><progress id="action-meter" max="1" value="0" aria-label="操作进度"></progress><button data-action="cancel-action" class="quiet">取消 <kbd>Esc</kbd></button></div>`,
     );
+    bindInventoryInputGuard(this.root);
     this.bind();
     this.root.insertAdjacentHTML(
       "beforeend",
@@ -332,6 +338,11 @@ export class GameUI {
     }
     const sim = this.sim;
     if (!sim) return false;
+    if (action === "creative-filter") {
+      this.creativeFilter = el.dataset.filter ?? "全部";
+      this.render();
+      return true;
+    }
     if (action === "cancel-action") {
       sim.actions.cancel();
       sim.cancelCraft();
@@ -354,6 +365,7 @@ export class GameUI {
             (i) => i.uid === uid,
           ),
           this.selectedSource,
+          sim.state.player.inventory,
         );
       return true;
     }
@@ -532,6 +544,8 @@ export class GameUI {
       this.layer.querySelector(".panel-shell")?.classList.add("panel-entering");
   }
   render() {
+    this.mapControls?.();
+    this.mapControls = null;
     this.root.dataset.screen = this.screen;
     this.root.classList.toggle("in-panel", this.screen !== "play");
     const scroll = this.layer.querySelector(".panel-body")?.scrollTop ?? 0;
@@ -542,22 +556,16 @@ export class GameUI {
     if (this.screen === "map" && this.sim) {
       const canvas = this.layer.querySelector<HTMLCanvasElement>("#world-map");
       if (canvas) {
-        drawMap(canvas, this.sim);
-        canvas.onclick = (event) => {
-          const rect = canvas.getBoundingClientRect(),
-            side = Math.min(rect.width, rect.height),
-            u = (event.clientX - rect.left - (rect.width - side) / 2) / side,
-            v = (event.clientY - rect.top - (rect.height - side) / 2) / side;
-          if (u < 0 || u > 1 || v < 0 || v > 1) return;
-          const x = (u - 0.5) * 4096,
-            z = (0.5 - v) * 4096,
-            old = this.sim!.state.waypoint;
-          this.sim!.state.waypoint =
-            old && Math.hypot(old.x - x, old.z - z) < 40
-              ? null
-              : this.sim!.gen.position(x, z);
-          drawMap(canvas, this.sim!);
-        };
+        this.mapControls = bindInteractiveMap(canvas, this.sim);
+        for (const button of this.layer.querySelectorAll<HTMLElement>(
+          "[data-map-control]",
+        ))
+          button.onclick = () => {
+            const action = button.dataset.mapControl;
+            if (action === "center") this.mapControls?.centerPlayer();
+            else if (action === "reset") this.mapControls?.reset();
+            else this.mapControls?.zoomBy(action === "in" ? 1.4 : 1 / 1.4);
+          };
       }
     }
     if (this.screen === "play") this.hud.innerHTML = this.hudHTML();
@@ -575,7 +583,7 @@ export class GameUI {
       "trade",
       "structure",
     ].includes(this.screen);
-    return `<div class="panel-shell"><header class="panel-header">${brand()}${gameTabs ? `<nav class="panel-tabs" aria-label="生存手册">${tabs.map(([screen, name]) => `<button class="${this.screen === screen ? "active" : ""}" data-action="tab" data-screen="${screen}">${name}</button>`).join("")}</nav>` : `<span class="muted">${{ settings: "设置", saves: "生存记录", credits: "关于" }[this.screen as "settings"] ?? ""}</span>`}<button class="panel-close" data-action="close-panel"><span>返回</span><kbd>Esc</kbd></button></header><main class="panel-body">${content}</main><footer class="panel-footer"><span>${gameTabs ? "<kbd>Tab</kbd> 背包  <kbd>C</kbd> 制作  <kbd>M</kbd> 地图" : "ASHFALL PROTOCOL · 灰谷自治区"}</span><span>${gameTabs ? "手册中世界继续运转；返回后按 Esc 暂停" : "你的设置和生存记录仅保存在本机"}</span></footer></div>`;
+    return `<div class="panel-shell"><header class="panel-header">${brand()}${gameTabs ? `<nav class="panel-tabs" aria-label="生存手册">${tabs.map(([screen, name]) => `<button class="${this.screen === screen ? "active" : ""}" data-action="tab" data-screen="${screen}">${name}</button>`).join("")}</nav>` : `<span class="muted">${{ settings: "设置", saves: "生存记录", credits: "关于" }[this.screen as "settings"] ?? ""}</span>`}<button class="panel-close" data-action="close-panel"><span>返回</span><kbd>Esc</kbd></button></header><main class="panel-body">${content}</main><footer class="panel-footer"><span>${this.sim?.creative ? `<button class="quiet" data-action="open-creative">创造物资 · F6 ${this.sim.flying ? "退出飞行" : "飞行"}</button>` : ""}${gameTabs ? "<kbd>Tab</kbd> 背包  <kbd>C</kbd> 制作  <kbd>M</kbd> 地图" : "ASHFALL PROTOCOL · 灰谷自治区"}</span><span>${gameTabs ? "手册中世界继续运转；返回后按 Esc 暂停" : "你的设置和生存记录仅保存在本机"}</span></footer></div>`;
   }
   private view(): string {
     const sim = this.sim;
@@ -615,6 +623,8 @@ export class GameUI {
             this.selectedSource,
           ),
         );
+      case "creative":
+        return this.panel(creativeView(sim!, this.creativeFilter));
       case "crafting":
         return this.panel(
           craftingView(sim!, this.craftFilter, this.selectedRecipe),
@@ -646,7 +656,7 @@ export class GameUI {
     return `<div class="hud"><div id="scope-mask" class="scope-mask hidden" aria-hidden="true"><div class="scope-aperture"><i class="reticle-h"></i><i class="reticle-v"></i><b></b></div></div><div class="hud-top"><div class="hud-context"><div class="location" id="hud-location">松谷镇</div><div class="hud-time" id="hud-time">DAY 01  15:24</div></div><div class="hud-objective"><div class="small-title">生存手记 <kbd>J</kbd></div><div id="hud-objective">沿公路寻找松谷林务站</div></div></div><div class="compass"><span id="compass-left">NW</span><span>·</span><span class="bearing" id="compass-heading">N</span><span>·</span><span id="compass-right">NE</span></div><div id="hud-waypoint" class="hud-waypoint"></div><div class="crosshair" id="crosshair"></div><div id="interaction-prompt" class="interaction-prompt hidden"></div><div class="vitals">${[
       ["health", "生命", "health"],
       ["stamina", "体力", "stamina"],
-      ["hydration", "水分", "water"],
+      ["hydration", "水分", "hydration"],
       ["energy", "能量", "food"],
     ]
       .map(
@@ -791,7 +801,10 @@ export class GameUI {
         ) +
         " m"
       : "";
-    $("hud-objective")!.textContent = sim.narrative.objectives[0] ?? "探索灰谷";
+    const lead = sim.narrative.mainLead;
+    $("hud-objective")!.textContent = lead
+      ? `${lead.poiName}${lead.underground ? " · 地下" : ""} · ${Math.round(Math.hypot(lead.position.x - p.position.x, lead.position.z - p.position.z))}m · ${lead.title}（J 查看缘由）`
+      : (sim.narrative.objectives[0] ?? "探索灰谷");
     $("quickbar")!.innerHTML = p.quickSlots
       .map((uid, n) => {
         const i = p.inventory.items.find((i) => i.uid === uid);
