@@ -28,6 +28,9 @@ export async function createEngine(
         { jsPath: "/vendor/glslang.js", wasmPath: "/vendor/glslang.wasm" },
         { jsPath: "/vendor/twgsl.js", wasmPath: "/vendor/twgsl.wasm" },
       );
+      // Reuse draw bundles instead of re-encoding every WebGPU draw each frame.
+      // Animated asset libraries give each skeleton its own material bindings.
+      candidate.compatibilityMode = false;
       engine = candidate;
       backend = "WebGPU";
     } catch {

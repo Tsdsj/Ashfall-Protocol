@@ -92,7 +92,8 @@ export class CharacterAssetLibrary {
     const root = new TransformNode(id + ":animated-rig", this.scene);
     for (const node of entries.rootNodes) node.parent = root;
     const nodes = new Map<string, TransformNode>(),
-      meshes: Mesh[] = [];
+      meshes: Mesh[] = [],
+      ownedMaterials = new Map<string, Material>();
     for (const node of [
       ...entries.rootNodes,
       ...entries.rootNodes.flatMap((n) => n.getDescendants()),
@@ -111,7 +112,13 @@ export class CharacterAssetLibrary {
         node.metadata = { actorId: id };
         node.alwaysSelectAsActiveMesh = true;
         if (node.material)
-          node.material = this.material(node.material, appearance, gender);
+          node.material = this.material(
+            node.material,
+            appearance,
+            gender,
+            `${root.uniqueId}:${node.skeleton?.uniqueId ?? "rig"}`,
+            ownedMaterials,
+          );
       }
     }
     const groups = new Map<string, AnimationGroup>();
@@ -124,6 +131,7 @@ export class CharacterAssetLibrary {
       groups.set(source.name, group);
     }
     const animator = new RigAnimator(groups);
+    const materialCache = this.materials;
     return {
       root,
       meshes,
@@ -133,6 +141,11 @@ export class CharacterAssetLibrary {
         animator.dispose();
         for (const skeleton of entries.skeletons) skeleton.dispose();
         root.dispose(false);
+        for (const [key, material] of ownedMaterials) {
+          materialCache.delete(key);
+          material.dispose(false, false);
+        }
+        ownedMaterials.clear();
       },
     };
   }
@@ -140,8 +153,11 @@ export class CharacterAssetLibrary {
     source: Material,
     appearance: string,
     gender: Gender,
+    owner: string,
+    owned: Map<string, Material>,
   ): Material {
-    const key = gender + ":" + appearance + ":" + source.name;
+    // A material's bone texture binding must not alternate between skeletons.
+    const key = owner + ":" + gender + ":" + appearance + ":" + source.uniqueId;
     const cached = this.materials.get(key);
     if (cached) return cached;
     const material = source.clone(key) as PBRMaterial;
@@ -202,6 +218,7 @@ export class CharacterAssetLibrary {
     }
     material.maxSimultaneousLights = 6;
     this.materials.set(key, material);
+    owned.set(key, material);
     return material;
   }
   dispose() {

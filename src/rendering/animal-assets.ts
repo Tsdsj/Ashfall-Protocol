@@ -116,7 +116,7 @@ export class AnimalAssetLibrary {
     if (!meshContainer || !motion || !profile) return null;
     const entries = meshContainer.instantiateModelsToScene(
       (name) => id + ":" + name,
-      false,
+      true,
       { doNotInstantiate: true },
     );
     const root = new TransformNode(id + ":quadruped", this.scene),
@@ -150,6 +150,11 @@ export class AnimalAssetLibrary {
       }
       groups.set(source.name, group);
     }
+    const ownedMaterials = new Set(
+      meshes
+        .map((mesh) => mesh.material)
+        .filter((material) => material !== null),
+    );
     const animator = new RigAnimator(groups),
       head = nodes.get(profile.bones.head) ?? root;
     const feet = [
@@ -173,6 +178,8 @@ export class AnimalAssetLibrary {
         animator.dispose();
         for (const skeleton of entries.skeletons) skeleton.dispose();
         root.dispose(false);
+        for (const material of ownedMaterials) material.dispose(false, false);
+        ownedMaterials.clear();
       },
     };
   }

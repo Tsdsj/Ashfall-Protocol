@@ -328,7 +328,7 @@ export class Game {
       if (this.ui.debugVisible && now - this.lastPerformanceRead > 500) {
         this.lastPerformanceRead = now;
         const stats = this.renderer.stats;
-        this.ui.performanceDetail = `Render CPU ${stats.sceneMs.toFixed(1)} ms · Sim ${this.simFrameMs.toFixed(1)} ms\nGPU ${stats.gpuMs?.toFixed(1) ?? "N/A"} ms · ${stats.resolution.join("×")} · 无游戏帧率上限`;
+        this.ui.performanceDetail = `Render CPU ${stats.sceneMs.toFixed(1)} ms · Sim ${this.simFrameMs.toFixed(1)} ms\nGPU ${stats.gpuMeasurement === "main-pass" ? "主通道" : stats.gpuMeasurement === "frame" ? "整帧" : "未测得"} ${stats.gpuMs?.toFixed(1) ?? "N/A"} ms · ${stats.resolution.join("×")} · 无游戏帧率上限`;
       }
       this.ui.scopeWeight = this.renderer.motion.pose.ads;
       this.ui.update(

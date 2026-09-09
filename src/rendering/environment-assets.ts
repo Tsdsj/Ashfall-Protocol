@@ -376,6 +376,8 @@ export class EnvironmentAssetLibrary {
     for (const mesh of batch.meshes) {
       mesh.setEnabled(selected.length > 0);
       if (selected.length) {
+        // Cached WebGPU bundles must release the old instance buffer first.
+        mesh.resetDrawCache();
         mesh.thinInstanceSetBuffer("matrix", buffer.slice(), 16, true);
         mesh.thinInstanceRefreshBoundingInfo(true);
       }
