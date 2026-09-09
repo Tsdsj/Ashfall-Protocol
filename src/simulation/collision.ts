@@ -15,6 +15,7 @@ import {
   type WorldState,
 } from "../core/types";
 import type { WorldGenerator } from "../world/generator";
+import { ColliderIndex } from "./collider-index";
 export function structureCollider(b: StructureData): Collider | null {
   const angle = Math.round(b.rotation / (Math.PI / 2)) % 2;
   const dimension: Record<string, [number, number, number]> = {
@@ -54,7 +55,8 @@ export class CollisionWorld {
   dynamicObjects: () => Collider[] = () => [];
   dynamicDoors: (x: number, z: number, radius: number) => Collider[] = () => [];
   private staticColliders: Collider[];
-  private trees = new Map<string, Collider[]>();
+  private staticIndex: ColliderIndex;
+  private trees = new Map<string, ColliderIndex>();
   private destroyedTreeCount = -1;
   private destroyedTrees = new Set<string>();
   constructor(
@@ -66,6 +68,7 @@ export class CollisionWorld {
       ...facilityColliders(gen),
       ...openingWreckColliders(),
     ];
+    this.staticIndex = new ColliderIndex(this.staticColliders);
   }
   private treeColliders(x: number, z: number, radius: number): Collider[] {
     if (this.destroyedTreeCount !== this.state.destroyed.length) {
@@ -88,22 +91,24 @@ export class CollisionWorld {
         const key = cx + "," + cz;
         let colliders = this.trees.get(key);
         if (!colliders) {
-          colliders = scatterTrees(this.gen, cx, cz).map((t) => ({
-            id: t.id,
-            minX: t.position.x - 0.24 * t.scale.x,
-            maxX: t.position.x + 0.24 * t.scale.x,
-            minZ: t.position.z - 0.24 * t.scale.x,
-            maxZ: t.position.z + 0.24 * t.scale.x,
-            minY: t.position.y,
-            maxY: t.position.y + 4,
-            material: "wood",
-          }));
+          colliders = new ColliderIndex(
+            scatterTrees(this.gen, cx, cz).map((t) => ({
+              id: t.id,
+              minX: t.position.x - 0.24 * t.scale.x,
+              maxX: t.position.x + 0.24 * t.scale.x,
+              minZ: t.position.z - 0.24 * t.scale.x,
+              maxZ: t.position.z + 0.24 * t.scale.x,
+              minY: t.position.y,
+              maxY: t.position.y + 4,
+              material: "wood",
+            })),
+          );
           this.trees.set(key, colliders);
         }
         result.push(
-          ...colliders.filter(
-            (collider) => !this.destroyedTrees.has(collider.id),
-          ),
+          ...colliders
+            .query(x, z, radius + 12)
+            .filter((collider) => !this.destroyedTrees.has(collider.id)),
         );
       }
     if (this.trees.size > 40) {
@@ -119,11 +124,13 @@ export class CollisionWorld {
   nearby(x: number, z: number, radius = 30): Collider[] {
     this.queries++;
     return [
-      ...this.staticColliders.filter(
-        (c) =>
-          c.id !== "pine-3:shelf" &&
-          (!c.door || !this.state.doorStates[c.door]),
-      ),
+      ...this.staticIndex
+        .query(x, z, radius + 12)
+        .filter(
+          (c) =>
+            c.id !== "pine-3:shelf" &&
+            (!c.door || !this.state.doorStates[c.door]),
+        ),
       ...this.dynamicDoors(x, z, radius),
       ...this.dynamicObjects(),
       ...storyColliders(this.gen, this.state),

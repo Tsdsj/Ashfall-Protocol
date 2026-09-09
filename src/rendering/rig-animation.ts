@@ -1,7 +1,23 @@
 import { Matrix, Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { AnimationGroup } from "@babylonjs/core/Animations/animationGroup";
-import type { TransformNode } from "@babylonjs/core/Meshes/transformNode";
+import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { damp } from "../core/motion";
+
+/** Read one consistent pose, rebuilding shared ancestors once instead of per limb. */
+export function createWorldMatrixReader() {
+  const refreshed = new Set<TransformNode>();
+  const read = (node: TransformNode): Matrix => {
+    if (!refreshed.has(node)) {
+      if (node.parent instanceof TransformNode) read(node.parent);
+      // Animations/IK can change a node within the same Scene render ID.
+      node.markAsDirty();
+      node.computeWorldMatrix();
+      refreshed.add(node);
+    }
+    return node.getWorldMatrix();
+  };
+  return read;
+}
 
 export interface ClipSample {
   clip: string;

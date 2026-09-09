@@ -1,6 +1,7 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { damp, solveTwoBone } from "../core/motion";
 import {
+  createWorldMatrixReader,
   rotateBoneToward,
   setBoneWorldRotation,
   type ClipSample,
@@ -439,10 +440,11 @@ export class CharacterRenderer {
       this.sim.combat.hitZones.delete(actor.id);
       return;
     }
-    rig.head.computeWorldMatrix(true);
+    const readWorld = createWorldMatrixReader();
+    readWorld(rig.head);
     const head = rig.head.getAbsolutePosition(),
       body = rig.nodes.get(rig.profile.bones.body);
-    body?.computeWorldMatrix(true);
+    if (body) readWorld(body);
     const center = (body?.getAbsolutePosition() ?? head).clone(),
       forward = new Vector3(Math.sin(actor.yaw), 0, Math.cos(actor.yaw));
     // Quaternius Body is the locomotion root at hoof height; the boar Hips is anatomical.
@@ -475,7 +477,7 @@ export class CharacterRenderer {
       },
     ];
     for (const foot of rig.feet) {
-      foot.computeWorldMatrix(true);
+      readWorld(foot);
       const p = foot.getAbsolutePosition();
       zones.push({
         part: "leg",
@@ -667,12 +669,13 @@ export class CharacterRenderer {
       this.sim.combat.hitZones.delete(actor.id);
       return;
     }
+    const readWorld = createWorldMatrixReader();
     const point = (name: string, offset?: Vector3) => {
       const node = rig.nodes.get(name);
       if (!node) return null;
-      node.computeWorldMatrix(true);
+      const matrix = readWorld(node);
       const p = offset
-        ? Vector3.TransformCoordinates(offset, node.getWorldMatrix())
+        ? Vector3.TransformCoordinates(offset, matrix)
         : node.getAbsolutePosition();
       return { x: p.x, y: p.y, z: p.z };
     };
