@@ -1,0 +1,4 @@
+# Preserve the original license bytes recorded by the asset audit.
+public/assets/characters/LICENSE.txt -text
+public/assets/weapons/LICENSE.txt -text
+public/audio/licenses/Kenney-rpg.txt -text
