@@ -43,7 +43,7 @@ function loginPage(message = "", status = 200) {
         "Content-Security-Policy":
           "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'",
         "X-Content-Type-Options": "nosniff",
-        "Referrer-Policy": "no-referrer",
+        "Referrer-Policy": "same-origin",
       },
     },
   );
@@ -212,7 +212,14 @@ export default {
       );
     }
     if (url.pathname === "/__access/login" && request.method === "POST") {
-      if (request.headers.get("Origin") !== env.SITE_ORIGIN)
+      const origin = request.headers.get("Origin");
+      // Existing pages with a restrictive referrer policy can submit Origin:null.
+      // Browser-controlled Fetch Metadata still proves a same-origin navigation.
+      const sameOrigin =
+        origin === env.SITE_ORIGIN ||
+        (origin === "null" &&
+          request.headers.get("Sec-Fetch-Site") === "same-origin");
+      if (!sameOrigin)
         return new Response("请求来源不匹配。", {
           status: 403,
           headers: privateHeaders,

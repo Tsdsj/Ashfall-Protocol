@@ -40,6 +40,21 @@ function login(password: string, origin = "https://game.example") {
 }
 
 describe("Sites password access", () => {
+  it("supports real same-origin forms with Origin:null while rejecting cross-site and missing origins", async () => {
+    const env = environment();
+    const page = await gate.fetch(request(), env);
+    expect(page.headers.get("Referrer-Policy")).toBe("same-origin");
+    for (const [origin, site, expected] of [
+      ["null", "same-origin", 303],
+      ["null", "cross-site", 403],
+      ["https://attacker.example", "same-origin", 403],
+      ["", "same-origin", 403],
+    ] as const) {
+      const submission = login(env.SITE_PASSWORD, origin);
+      submission.headers.set("Sec-Fetch-Site", site);
+      expect((await gate.fetch(submission, env)).status).toBe(expected);
+    }
+  });
   it("keeps ordinary full-object responses cacheable when R2 reports a full range", async () => {
     const env = environment();
     const response = await gate.fetch(login(env.SITE_PASSWORD), env);
