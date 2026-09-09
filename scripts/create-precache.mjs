@@ -5,6 +5,7 @@ const root = "dist";
 async function walk(directory) {
   const files = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (entry.name.startsWith(".")) continue;
     const path = join(directory, entry.name);
     if (entry.isDirectory()) files.push(...(await walk(path)));
     else if (
