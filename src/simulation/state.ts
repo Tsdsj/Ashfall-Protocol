@@ -132,9 +132,9 @@ export const DEFAULT_SETTINGS: GameSettings = {
     right: "KeyD",
     interact: "KeyE",
     sprint: "ShiftLeft",
-    walk: "AltLeft",
+    walk: "KeyT",
     jump: "Space",
-    crouch: "ControlLeft",
+    crouch: "KeyX",
     prone: "KeyZ",
     inventory: "Tab",
     crafting: "KeyC",
@@ -146,6 +146,10 @@ export const DEFAULT_SETTINGS: GameSettings = {
     grenade: "KeyG",
     leanLeft: "KeyQ",
     leanRight: "KeyV",
+    flight: "KeyL",
+    performance: "KeyP",
+    displayDiagnostic: "KeyO",
+    skipSequence: "KeyN",
   },
 };
 export const DIFFICULTIES = {

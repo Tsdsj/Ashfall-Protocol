@@ -1,4 +1,4 @@
-import { recordExploration } from "./exploration";
+import { recordExploration, revealCreativeMap } from "./exploration";
 import { EventBus } from "../core/events";
 import {
   clamp,
@@ -139,6 +139,39 @@ export class Simulation implements SimContext {
     )
       return false;
     return addItem(this.state.player.inventory, id, count);
+  }
+  revealCreativeMap(): boolean {
+    return revealCreativeMap(this.state);
+  }
+  teleportCreative(x: number, z: number): boolean {
+    if (
+      !this.creative ||
+      !Number.isFinite(x) ||
+      !Number.isFinite(z) ||
+      Math.abs(x) > 2048 ||
+      Math.abs(z) > 2048 ||
+      this.narrative.frame().blocking
+    )
+      return false;
+    const p = this.state.player,
+      vehicle = this.state.vehicles.find((v) => v.id === p.vehicle);
+    if (vehicle) vehicle.speed = 0;
+    p.vehicle = null;
+    this.actions.cancel("");
+    this.cancelCraft();
+    this.building.active = false;
+    this.vault = null;
+    this.verticalVelocity = 0;
+    this.previousJump = false;
+    this.locomotion.reset();
+    this.grounded = false;
+    this.moving = false;
+    this.sprinting = false;
+    this.speed = 0;
+    p.position = { x, y: this.collision.ground(x, z) + 1, z };
+    recordExploration(this.state);
+    this.notify("已传送到地图位置。", "success");
+    return true;
   }
   craftStatus(id: string): { ok: boolean; reason: string } {
     const recipe = this.recipes.find((r) => r.id === id);

@@ -100,12 +100,12 @@ it("waits for event-only pointer lock and cancels pending capture on blur", asyn
   expect(input.mouseDown).toBe(false);
   expect(input.fallback).toBe(false);
 });
-it("keeps Alt walking but leaves Alt Tab and F11 to the browser", () => {
+it("uses T for walking and leaves Alt Tab to the operating system", () => {
   const { canvas, doc, input } = setup();
   doc.pointerLockElement = canvas;
   const alt = Object.assign(new Event("keydown", { cancelable: true }), {
-    code: "AltLeft",
-    altKey: true,
+    code: "KeyT",
+    altKey: false,
   });
   window.dispatchEvent(alt);
   expect(input.down("walk")).toBe(true);

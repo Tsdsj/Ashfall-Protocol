@@ -281,6 +281,7 @@ export type InteractiveMap = (() => void) & {
   centerPlayer(): void;
   reset(): void;
   zoomBy(factor: number): void;
+  refresh(): void;
 };
 /** The return value disposes listeners and also exposes toolbar actions. */
 export function bindInteractiveMap(
@@ -382,6 +383,15 @@ export function bindInteractiveMap(
     }
     redraw();
   };
+  const teleport = (e: MouseEvent) => {
+    e.preventDefault();
+    if (!sim.creative || drag) return;
+    const p = point(e);
+    if (p.x < 0 || p.x > MAP_SIZE || p.y < 0 || p.y > MAP_SIZE) return;
+    const world = mapToWorld(p.x, p.y, view);
+    if (sim.teleportCreative(world.x, world.z)) redraw();
+  };
+  canvas.addEventListener("contextmenu", teleport);
   canvas.addEventListener("wheel", wheel, { passive: false });
   canvas.addEventListener("pointerdown", down);
   canvas.addEventListener("pointermove", move);
@@ -393,6 +403,7 @@ export function bindInteractiveMap(
     disposed = true;
     if (frame) cancelAnimationFrame(frame);
     canvas.removeEventListener("wheel", wheel);
+    canvas.removeEventListener("contextmenu", teleport);
     canvas.removeEventListener("pointerdown", down);
     canvas.removeEventListener("pointermove", move);
     canvas.removeEventListener("pointerup", release);
@@ -405,6 +416,7 @@ export function bindInteractiveMap(
     canvas.style.touchAction = oldTouchAction;
   };
   return Object.assign(dispose, {
+    refresh: redraw,
     centerPlayer() {
       const p = worldToMap(
         sim.state.player.position.x,

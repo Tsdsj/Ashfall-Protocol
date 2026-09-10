@@ -3,6 +3,7 @@ import { removeItem } from "./inventory";
 import type { SimContext } from "./context";
 import type { AISystem } from "./ai";
 export class VehicleSystem {
+  steering = 0;
   constructor(
     private ctx: SimContext,
     private ai: AISystem,
@@ -98,6 +99,7 @@ export class VehicleSystem {
       v = s.vehicles.find((v) => v.id === s.player.vehicle);
     if (!v) return;
     if (v.fuel <= 0 || v.health <= 0) throttle = 0;
+    this.steering = steer;
     const traction = (v.tires / 4) * Math.max(0.3, v.engine / 100);
     v.speed += throttle * 7 * dt * traction;
     v.speed *= Math.exp(-dt * (brake ? 6 : throttle === 0 ? 1.1 : 0.15));

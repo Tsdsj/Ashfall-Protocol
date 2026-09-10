@@ -76,3 +76,14 @@ export function exploredCells(
   }
   return cached.cells;
 }
+
+export function revealCreativeMap(state: ExplorationState): boolean {
+  if (!state.flags.includes("creative-mode")) return false;
+  const cached = memory(state);
+  for (let cell = 0; cell < MAP_GRID_SIZE * MAP_GRID_SIZE; cell++) {
+    if (cached.cells.has(cell)) continue;
+    cached.cells.add(cell);
+    cached.flags.push(`${PREFIX}${cell % 64}:${Math.floor(cell / 64)}`);
+  }
+  return true;
+}

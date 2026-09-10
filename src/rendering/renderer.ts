@@ -1,3 +1,4 @@
+import { driverEye, vehicleVisualY } from "./driving-view";
 import "./registrations";
 import "@babylonjs/core/Engines/Extensions/engine.query";
 import "@babylonjs/core/Engines/WebGPU/Extensions/engine.query";
@@ -459,6 +460,19 @@ export class GameRenderer {
     }
     this.world.focus = null;
     const pose = this.motion.update(dt, this.sim, this.settings, aiming, lean);
+    const vehicle = p.vehicle
+      ? this.sim.state.vehicles.find((v) => v.id === p.vehicle)
+      : undefined;
+    if (vehicle) {
+      const eye = driverEye(vehicle, this.time);
+      this.camera.position.set(eye.x, eye.y, eye.z);
+      this.camera.rotationQuaternion = null;
+      this.camera.rotation.set(p.pitch, p.yaw, 0);
+      this.camera.fov = (pose.fov * Math.PI) / 180;
+      this.groundEye.reset(p.position.y);
+      this.camera.getViewMatrix(true);
+      return;
+    }
     if (
       !this.sim.grounded ||
       Math.abs(this.groundEye.value - p.position.y) > 0.65
@@ -554,10 +568,14 @@ export class GameRenderer {
           this.lighting.wetness * (roofed ? 0 : 0.45);
         model.root.position.set(
           v.position.x,
-          v.position.y + Math.sin(this.time * 8) * Math.abs(v.speed) * 0.0015,
+          vehicleVisualY(v, this.time),
           v.position.z,
         );
         model.root.rotation.y = v.yaw;
+        model.steering.rotation.y =
+          v.id === this.sim.state.player.vehicle
+            ? -this.sim.vehicles.steering * 0.65
+            : 0;
         model.wheels.forEach((w) => (w.rotation.x += v.speed * dt * 2));
         const door = this.sim.doors.get("vehicle:" + v.id + ":left");
         if (door && model.doors[1])
@@ -620,6 +638,7 @@ export class GameRenderer {
       this.sim.narrative.frame().blocking
     )
       return null;
+    if (this.sim.state.player.vehicle) return null;
     const ray = new Ray(
       this.camera.position,
       this.camera.getForwardRay().direction,

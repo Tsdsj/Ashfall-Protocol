@@ -1,3 +1,4 @@
+import { keyboardBindings, keyLabel, safeBinding } from "./key-bindings";
 import { type AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { createEngine } from "../rendering/engine";
 import { GameRenderer } from "../rendering/renderer";
@@ -35,6 +36,7 @@ import {
 export class Game {
   canvas = document.querySelector<HTMLCanvasElement>("#game-canvas")!;
   readonly settings: GameSettings;
+  private escapeCancelledUntil = 0;
   readonly ui: GameUI;
   input!: InputController;
   readonly audio: AudioManager;
@@ -86,7 +88,7 @@ export class Game {
         ...structuredClone(DEFAULT_SETTINGS),
         ...data,
         ...cameraPreferences(data),
-        keys: { ...DEFAULT_SETTINGS.keys, ...data?.keys },
+        keys: keyboardBindings(DEFAULT_SETTINGS.keys, data?.keys),
       };
     } catch {
       return structuredClone(DEFAULT_SETTINGS);
@@ -98,6 +100,7 @@ export class Game {
       const info = await createEngine(this.canvas, forceWebGL);
       this.canvas = info.canvas;
       this.input = new InputController(this.canvas, this.settings);
+      this.bindPointerButtons();
       this.engine = info.engine;
       this.ui.backend = info.backend;
       if (!localStorage.getItem("ashfall-settings"))
@@ -385,8 +388,11 @@ export class Game {
         this.active &&
         this.ui.screen === "play" &&
         !this.consoleOpen
-      )
-        this.open("pause");
+      ) {
+        if (this.sim.building.active) this.cancelPlacement();
+        else if (performance.now() >= (this.escapeCancelledUntil ?? 0))
+          this.open("pause");
+      }
     });
     window.addEventListener("blur", () => {
       if (
@@ -460,6 +466,30 @@ export class Game {
         void this.saves.save(this.sim.state, this.saveId).catch(() => {});
     });
   }
+  private bindPointerButtons() {
+    // Bind to the final engine canvas, after InputController's mouse handlers.
+    this.canvas.addEventListener("mousedown", (e) => {
+      if (e.button !== 2) return;
+      if (
+        this.active &&
+        this.ui.screen === "play" &&
+        this.sim.building.active
+      ) {
+        e.preventDefault();
+        this.cancelPlacement();
+        this.input.aiming = false;
+      }
+    });
+  }
+  private cancelPlacement() {
+    this.sim.building.active = false;
+    this.input.mouseDown = false;
+    this.input.attackPressed = false;
+    this.input.aiming = false;
+    // Escape may unlock before or after keydown, depending on the browser.
+    this.escapeCancelledUntil = performance.now() + 120;
+    this.ui.render();
+  }
   private key(e: KeyboardEvent) {
     if (
       this.frameError ||
@@ -468,13 +498,17 @@ export class Game {
       document.hidden
     )
       return;
-    // Keep browser fullscreen, refresh and OS application switching available.
-    if (e.code === "F11" || e.code === "F5" || e.altKey || e.metaKey) return;
-    if (e.ctrlKey && !this.input.active) return;
     if (this.ui.binding) {
       if (["Escape", "MetaLeft", "MetaRight"].includes(e.code)) {
         this.ui.binding = null;
         this.ui.render();
+        return;
+      }
+      if (e.ctrlKey || e.altKey || e.metaKey || !safeBinding(e.code)) {
+        this.ui.toast(
+          "请选择普通字母、Shift 或空格等游戏按键；Ctrl、Alt、系统键和功能键留给浏览器。",
+          "warning",
+        );
         return;
       }
       e.preventDefault();
@@ -491,6 +525,8 @@ export class Game {
       this.ui.render();
       return;
     }
+    // Browser and OS commands are never interpreted as in-game actions.
+    if (e.ctrlKey || e.altKey || e.metaKey || /^F\d+$/.test(e.code)) return;
     const typing =
       e.target instanceof HTMLInputElement ||
       e.target instanceof HTMLSelectElement ||
@@ -507,14 +543,14 @@ export class Game {
     if (
       this.active &&
       this.sim.creative &&
-      e.code === "F6" &&
+      e.code === this.settings.keys.flight &&
       this.ui.screen === "play"
     ) {
       e.preventDefault();
       this.sim.toggleFlight();
       this.ui.toast(
         this.sim.flying
-          ? "飞行开启：空格上升，Ctrl下降，Shift加速，F6退出。"
+          ? `飞行开启：${keyLabel(this.settings.keys.jump!)}上升，${keyLabel(this.settings.keys.crouch!)}下降，${keyLabel(this.settings.keys.sprint!)}加速，${keyLabel(this.settings.keys.flight!)}退出。`
           : "已退出飞行。",
       );
       return;
@@ -534,6 +570,7 @@ export class Game {
     }
     if (e.code === "Escape") {
       e.preventDefault();
+      if (performance.now() < (this.escapeCancelledUntil ?? 0)) return;
       if (this.consoleOpen) {
         this.toggleConsole();
         return;
@@ -571,8 +608,7 @@ export class Game {
         return;
       }
       if (this.sim?.building.active) {
-        this.sim.building.active = false;
-        this.ui.render();
+        this.cancelPlacement();
         return;
       }
       if (this.ui.screen === "play") {
@@ -585,7 +621,7 @@ export class Game {
       return;
     }
     if (
-      e.code === "F4" &&
+      e.code === this.settings.keys.displayDiagnostic &&
       this.active &&
       !this.loading &&
       !this.checkingDisplay &&
@@ -598,7 +634,7 @@ export class Game {
     if (!this.active || this.loading || this.ui.screen === "pause") return;
     if (
       this.ui.screen === "play" &&
-      e.code === "KeyX" &&
+      e.code === this.settings.keys.skipSequence &&
       !e.repeat &&
       this.sim.narrative.frame().skippable
     ) {
@@ -607,7 +643,7 @@ export class Game {
       return;
     }
     if (this.sim.narrative.frame().blocking) return;
-    if (e.code === "F3") {
+    if (e.code === this.settings.keys.performance) {
       e.preventDefault();
       this.ui.debugVisible = !this.ui.debugVisible;
       document
@@ -801,6 +837,7 @@ export class Game {
               return false;
             }
             this.ui.nearbySource = target.id;
+            this.ui.creativeSource = "nearby";
             container.searched = true;
             container.openedAt = this.sim.state.elapsed;
             this.open("inventory");
@@ -1209,7 +1246,10 @@ export class Game {
         this.sim.narrative.replayLog(el.dataset.id!);
         break;
       case "open-creative":
-        if (this.sim.creative) this.open("creative");
+        if (this.sim.creative) {
+          this.ui.creativeSource = "catalog";
+          this.open("inventory");
+        }
         break;
       case "creative-give":
         if (

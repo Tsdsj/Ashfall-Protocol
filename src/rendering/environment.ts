@@ -1,3 +1,4 @@
+import { ShadowRefreshBudget } from "./shadow-refresh";
 import "@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent";
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
@@ -49,6 +50,9 @@ export class LightingManager {
   private flash = 0;
   private casters = new Set<Mesh>();
   private casterTimer = 0;
+  private shadowRefresh = new ShadowRefreshBudget();
+  private shadowInvalidated = true;
+  private sunWasUnderground = false;
   private shadowDistance = 120;
   constructor(
     readonly scene: Scene,
@@ -245,6 +249,7 @@ export class LightingManager {
     this.shadows.addShadowCaster(mesh);
     this.casters.add(mesh);
     this.casterTimer = 0;
+    this.shadowInvalidated = true;
     if (!mesh.name.startsWith("view-") && !mesh.name.includes("first-person"))
       this.flashlightShadows.addShadowCaster(mesh);
     if (this.mirror.renderList && this.mirror.renderList.length < 90)
@@ -252,6 +257,7 @@ export class LightingManager {
   }
   removeCaster(mesh: Mesh) {
     this.casters.delete(mesh);
+    this.shadowInvalidated = true;
     this.shadows.removeShadowCaster(mesh);
     this.flashlightShadows.removeShadowCaster(mesh);
     if (this.mirror.renderList)
@@ -323,9 +329,28 @@ export class LightingManager {
       this.camera.position.y,
       this.camera.position.z,
     );
-    const sunMap = this.shadows.getShadowMap(),
-      sunRate = underground ? 0 : 1;
-    if (sunMap && sunMap.refreshRate !== sunRate) sunMap.refreshRate = sunRate;
+    const sunMap = this.shadows.getShadowMap();
+    const viewDirection = this.camera.getForwardRay().direction;
+    // Decouple repeated shadow draws from high-refresh main rendering. A cached
+    // map retains the cascade matrices computed during its own onBeforeBind.
+    if (sunMap) {
+      if (sunMap.refreshRate !== 0) sunMap.refreshRate = 0;
+      if (
+        !underground &&
+        this.shadowRefresh.shouldRefresh(
+          dt,
+          this.camera.position,
+          viewDirection,
+          this.camera.fov,
+          this.engine.getRenderWidth() / this.engine.getRenderHeight(),
+          this.shadowInvalidated || this.sunWasUnderground,
+        )
+      ) {
+        sunMap.resetRefreshCounter();
+        this.shadowInvalidated = false;
+      }
+    }
+    this.sunWasUnderground = underground;
     if (underground) this.sun.intensity = 0;
     this.ambient.intensity =
       (0.18 + daylight * 0.58) * (sim.indoors && !menu ? 0.63 : 1);
@@ -352,7 +377,7 @@ export class LightingManager {
     this.skyMaterial.setFloat("clouds", this.clouds);
     this.skyMaterial.setFloat("dusk", dusk);
     this.flashlight.position.copyFrom(this.camera.position);
-    this.flashlight.direction.copyFrom(this.camera.getForwardRay().direction);
+    this.flashlight.direction.copyFrom(viewDirection);
     const held = sim.combat.equipped(),
       torch = held?.id === "torch" && held.durability > 0;
     this.flashlight.intensity = !menu

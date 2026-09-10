@@ -1,3 +1,4 @@
+import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { type Mesh } from "@babylonjs/core/Meshes/mesh";
@@ -293,6 +294,7 @@ export function vehicleModel(
   wheels: TransformNode[];
   doors: TransformNode[];
   paint: PBRMaterial;
+  steering: TransformNode;
 } {
   const root = new TransformNode(v.id, scene),
     batch = new ModelBatch(scene, v.id),
@@ -303,7 +305,7 @@ export function vehicleModel(
     paint = new PBRMaterial(v.id + ":paint", scene),
     black = mats.surface("plastic"),
     metal = mats.surface("metal"),
-    glass = mats.simple("vehicle-glass", "#486359", 0, 0.56);
+    glass = mats.simple("vehicle-glass", "#87968c", 0, 0.16);
   const wheels: TransformNode[] = [];
   paint.albedoColor = basePaint.albedoColor.clone();
   paint.metallic = basePaint.metallic;
@@ -356,7 +358,7 @@ export function vehicleModel(
       glass,
     );
     for (const z of [-0.54, 0.88])
-      batch.box("pillar", [0.11, 0.92, 0.1], [side * 0.87, 1.48, z], paint, [
+      batch.box("pillar", [0.07, 0.92, 0.1], [side * 0.87, 1.48, z], paint, [
         z > 0 ? 0.15 : 0,
         0,
         0,
@@ -437,7 +439,36 @@ export function vehicleModel(
       mats.surface("cloth"),
     );
   }
-  batch.box("dashboard", [1.6, 0.22, 0.35], [0, 1.32, 0.55], black);
+  batch.box("dashboard", [1.6, 0.16, 0.32], [0, 1.16, 0.6], black);
+  const column = new TransformNode(v.id + ":steering-column", scene);
+  column.parent = root;
+  column.position.set(-0.4, 1.36, 0.65);
+  column.rotation.x = 1.18;
+  const steering = new TransformNode(v.id + ":steering-wheel", scene);
+  steering.parent = column;
+  const wheelBatch = new ModelBatch(scene, v.id + ":steering");
+  const ring = MeshBuilder.CreateTorus(
+    v.id + ":steering-rim",
+    { diameter: 0.37, thickness: 0.026, tessellation: 24 },
+    scene,
+  );
+  ring.material = black;
+  ring.parent = steering;
+  movingMeshes.push(ring);
+  for (let n = 0; n < 3; n++)
+    wheelBatch.box(
+      "wheel-spoke",
+      [0.018, 0.028, 0.18],
+      [
+        Math.sin((n * 2 * Math.PI) / 3) * 0.08,
+        0,
+        Math.cos((n * 2 * Math.PI) / 3) * 0.08,
+      ],
+      black,
+      [0, (n * 2 * Math.PI) / 3, 0],
+    );
+  wheelBatch.cylinder("wheel-hub", 0.055, 0.09, [0, 0, 0], black);
+  movingMeshes.push(...wheelBatch.finish(steering));
   const meshes = [...batch.finish(root), ...movingMeshes];
   for (const m of meshes) {
     m.unfreezeWorldMatrix();
@@ -452,5 +483,5 @@ export function vehicleModel(
   }
   root.position.set(v.position.x, v.position.y, v.position.z);
   root.rotation.y = v.yaw;
-  return { root, meshes, wheels, doors, paint };
+  return { root, meshes, wheels, doors, paint, steering };
 }

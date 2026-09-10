@@ -60,6 +60,10 @@ export function settingsView(s: GameSettings): string {
     grenade: "投掷",
     leanLeft: "向左侧身",
     leanRight: "向右侧身",
+    flight: "创造模式飞行",
+    performance: "性能面板",
+    displayDiagnostic: "轻载节拍检测",
+    skipSequence: "跳过叙事",
   };
   return `<div class="settings-layout"><div class="panel-title"><div><h2>按你的方式生存</h2><p>设置自动保存在当前浏览器。图形质量调整立即生效。</p></div><button class="secondary" data-action="reset-settings">恢复默认</button></div><section class="settings-section"><h3>画面</h3><div><div class="setting-row"><label for="quality">图形质量<small>影响阴影、植被密度与后处理</small></label><select id="quality" data-setting="quality">${[
     ["low", "低 · 性能优先"],

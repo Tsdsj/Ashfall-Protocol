@@ -31,8 +31,9 @@ export class InputController {
       if (
         !this.active ||
         e.metaKey ||
-        ["F11", "F5"].includes(e.code) ||
-        (e.altKey && ["Tab", "F4"].includes(e.code))
+        e.ctrlKey ||
+        e.altKey ||
+        /^F\d+$/.test(e.code)
       )
         return;
       if (

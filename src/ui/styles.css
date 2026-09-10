@@ -1438,3 +1438,62 @@ body {
 #game-canvas {
   touch-action: none;
 }
+
+.compass-target {
+  position: absolute;
+  top: -14px;
+  transform: translateX(-50%);
+  color: var(--warning);
+  font-size: 16px;
+  line-height: 1;
+  text-shadow: 0 1px 3px #000;
+}
+
+.creative-source-switch {
+  margin-bottom: 18px;
+}
+.creative-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 15px 0;
+}
+.creative-filters button {
+  min-height: 30px;
+  padding: 5px 8px;
+  font-size: 11px;
+}
+.creative-filters .active,
+.creative-source-switch .active {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+.creative-item-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  max-height: 55vh;
+  overflow-y: auto;
+  padding: 2px;
+}
+.creative-item {
+  position: relative;
+  min-width: 0;
+  min-height: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 3px;
+  font-size: 11px;
+  border-color: var(--item-color, var(--line));
+}
+.creative-item small {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  color: var(--muted);
+}
+.creative-item:hover {
+  background: oklch(0.3 0.025 110 / 0.6);
+}

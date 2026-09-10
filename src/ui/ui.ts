@@ -1,3 +1,5 @@
+import { keyLabel } from "../core/key-bindings";
+import { targetBearing } from "./compass";
 import type { GameSettings, Interaction, InventoryData } from "../core/types";
 import type { Simulation } from "../simulation/simulation";
 import { DIFFICULTIES } from "../simulation/state";
@@ -80,6 +82,7 @@ const tabs: [Screen, string][] = [
 ];
 export class GameUI {
   private errorHtml = "";
+  private renderedScreen: Screen | null = null;
   screen: Screen = "loading";
   sim: Simulation | null = null;
   backScreen: Screen = "menu";
@@ -96,8 +99,9 @@ export class GameUI {
   binding: string | null = null;
   debugVisible = false;
   performanceDetail = "";
-  displayDiagnostic = "F4 检测浏览器轻载节拍（约 1 秒）";
+  displayDiagnostic = "O 检测浏览器轻载节拍（约 1 秒）";
   creativeFilter = "全部";
+  creativeSource = "catalog";
   scopeWeight = 0;
   private root: HTMLElement;
   private layer: HTMLElement;
@@ -132,7 +136,7 @@ export class GameUI {
     this.bind();
     this.root.insertAdjacentHTML(
       "beforeend",
-      `<div id="sequence-overlay" class="sequence-overlay hidden"><div class="sequence-title" id="sequence-title"></div><div class="sequence-subtitle"><strong id="sequence-speaker"></strong><p id="sequence-text"></p></div><button id="sequence-skip" class="quiet" data-action="skip-sequence">跳过 <kbd>X</kbd></button></div>`,
+      `<div id="sequence-overlay" class="sequence-overlay hidden"><div class="sequence-title" id="sequence-title"></div><div class="sequence-subtitle"><strong id="sequence-speaker"></strong><p id="sequence-text"></p></div><button id="sequence-skip" class="quiet" data-action="skip-sequence">跳过 <kbd>${keyLabel(this.settings.keys.skipSequence!)}</kbd></button></div>`,
     );
   }
   private bind() {
@@ -144,6 +148,16 @@ export class GameUI {
       const action = el.dataset.action!;
       if (action === "select-item" && (e as MouseEvent).shiftKey) {
         this.quickTransfer(el.dataset.source!, el.dataset.uid!);
+        return;
+      }
+      if (
+        action === "creative-give" &&
+        (e as MouseEvent).shiftKey &&
+        el.dataset.stack
+      ) {
+        const copy = el.cloneNode() as HTMLElement;
+        copy.dataset.count = el.dataset.stack;
+        this.onAction(action, copy);
         return;
       }
       if (this.handleLocal(action, el)) return;
@@ -338,6 +352,12 @@ export class GameUI {
     }
     const sim = this.sim;
     if (!sim) return false;
+    if (action === "creative-source") {
+      this.creativeSource =
+        el.dataset.source === "nearby" ? "nearby" : "catalog";
+      this.render();
+      return true;
+    }
     if (action === "creative-filter") {
       this.creativeFilter = el.dataset.filter ?? "全部";
       this.render();
@@ -520,6 +540,7 @@ export class GameUI {
   }
   show(screen: Screen) {
     const changed = screen !== this.screen;
+    const enteringFromWorld = this.screen === "play";
     const animate =
       !this.settings.reducedMotion &&
       !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -540,7 +561,7 @@ export class GameUI {
     }
     this.screen = screen;
     this.render();
-    if (changed && animate)
+    if (changed && animate && enteringFromWorld)
       this.layer.querySelector(".panel-shell")?.classList.add("panel-entering");
   }
   render() {
@@ -548,11 +569,38 @@ export class GameUI {
     this.mapControls = null;
     this.root.dataset.screen = this.screen;
     this.root.classList.toggle("in-panel", this.screen !== "play");
-    const scroll = this.layer.querySelector(".panel-body")?.scrollTop ?? 0;
+    const sameScreen = this.renderedScreen === this.screen;
+    const scroll = sameScreen
+      ? (this.layer.querySelector(".panel-body")?.scrollTop ?? 0)
+      : 0;
+    const catalogScroll = sameScreen
+      ? (this.layer.querySelector(".creative-item-grid")?.scrollTop ?? 0)
+      : 0;
+    const gridScroll = new Map<string, number>();
+    if (sameScreen)
+      for (const el of this.layer.querySelectorAll<HTMLElement>(
+        ".inventory-grid-scroll",
+      )) {
+        const source =
+          el.querySelector<HTMLElement>("[data-grid]")?.dataset.grid;
+        if (source) gridScroll.set(source, el.scrollTop);
+      }
+    this.renderedScreen = this.screen;
     this.hud.classList.toggle("hidden", this.screen !== "play");
     this.layer.innerHTML = this.view();
     const body = this.layer.querySelector(".panel-body");
     if (body) body.scrollTop = scroll;
+    const catalog = this.layer.querySelector(".creative-item-grid");
+    if (catalog) catalog.scrollTop = catalogScroll;
+    for (const el of this.layer.querySelectorAll<HTMLElement>(
+      ".inventory-grid-scroll",
+    )) {
+      const source = el.querySelector<HTMLElement>("[data-grid]")?.dataset.grid;
+      el.scrollTop = gridScroll.get(source ?? "") ?? 0;
+    }
+    const skipKey = this.root.querySelector("#sequence-skip kbd");
+    if (skipKey)
+      skipKey.textContent = keyLabel(this.settings.keys.skipSequence!);
     if (this.screen === "map" && this.sim) {
       const canvas = this.layer.querySelector<HTMLCanvasElement>("#world-map");
       if (canvas) {
@@ -562,7 +610,12 @@ export class GameUI {
         ))
           button.onclick = () => {
             const action = button.dataset.mapControl;
-            if (action === "center") this.mapControls?.centerPlayer();
+            if (action === "reveal") {
+              if (this.sim?.revealCreativeMap()) {
+                this.mapControls?.refresh();
+                this.toast("地图迷雾已解锁。");
+              }
+            } else if (action === "center") this.mapControls?.centerPlayer();
             else if (action === "reset") this.mapControls?.reset();
             else this.mapControls?.zoomBy(action === "in" ? 1.4 : 1 / 1.4);
           };
@@ -583,7 +636,7 @@ export class GameUI {
       "trade",
       "structure",
     ].includes(this.screen);
-    return `<div class="panel-shell"><header class="panel-header">${brand()}${gameTabs ? `<nav class="panel-tabs" aria-label="生存手册">${tabs.map(([screen, name]) => `<button class="${this.screen === screen ? "active" : ""}" data-action="tab" data-screen="${screen}">${name}</button>`).join("")}</nav>` : `<span class="muted">${{ settings: "设置", saves: "生存记录", credits: "关于" }[this.screen as "settings"] ?? ""}</span>`}<button class="panel-close" data-action="close-panel"><span>返回</span><kbd>Esc</kbd></button></header><main class="panel-body">${content}</main><footer class="panel-footer"><span>${this.sim?.creative ? `<button class="quiet" data-action="open-creative">创造物资 · F6 ${this.sim.flying ? "退出飞行" : "飞行"}</button>` : ""}${gameTabs ? "<kbd>Tab</kbd> 背包  <kbd>C</kbd> 制作  <kbd>M</kbd> 地图" : "ASHFALL PROTOCOL · 灰谷自治区"}</span><span>${gameTabs ? "手册中世界继续运转；返回后按 Esc 暂停" : "你的设置和生存记录仅保存在本机"}</span></footer></div>`;
+    return `<div class="panel-shell"><header class="panel-header">${brand()}${gameTabs ? `<nav class="panel-tabs" aria-label="生存手册">${tabs.map(([screen, name]) => `<button class="${this.screen === screen ? "active" : ""}" data-action="tab" data-screen="${screen}">${name}</button>`).join("")}</nav>` : `<span class="muted">${{ settings: "设置", saves: "生存记录", credits: "关于" }[this.screen as "settings"] ?? ""}</span>`}<button class="panel-close" data-action="close-panel"><span>返回</span><kbd>Esc</kbd></button></header><main class="panel-body">${content}</main><footer class="panel-footer"><span>${this.sim?.creative ? `<button class="quiet" data-action="open-creative">创造背包 · ${keyLabel(this.settings.keys.flight!)} ${this.sim.flying ? "退出飞行" : "飞行"}</button>` : ""}${gameTabs ? "<kbd>Tab</kbd> 背包  <kbd>C</kbd> 制作  <kbd>M</kbd> 地图" : "ASHFALL PROTOCOL · 灰谷自治区"}</span><span>${gameTabs ? "手册中世界继续运转；返回后按 Esc 暂停" : "你的设置和生存记录仅保存在本机"}</span></footer></div>`;
   }
   private view(): string {
     const sim = this.sim;
@@ -621,6 +674,8 @@ export class GameUI {
             this.nearbySource,
             this.selectedUid,
             this.selectedSource,
+            this.creativeFilter,
+            this.creativeSource,
           ),
         );
       case "creative":
@@ -653,7 +708,7 @@ export class GameUI {
     this.layer.innerHTML = loadingView(stage, percent);
   }
   private hudHTML(): string {
-    return `<div class="hud"><div id="scope-mask" class="scope-mask hidden" aria-hidden="true"><div class="scope-aperture"><i class="reticle-h"></i><i class="reticle-v"></i><b></b></div></div><div class="hud-top"><div class="hud-context"><div class="location" id="hud-location">松谷镇</div><div class="hud-time" id="hud-time">DAY 01  15:24</div></div><div class="hud-objective"><div class="small-title">生存手记 <kbd>J</kbd></div><div id="hud-objective">沿公路寻找松谷林务站</div></div></div><div class="compass"><span id="compass-left">NW</span><span>·</span><span class="bearing" id="compass-heading">N</span><span>·</span><span id="compass-right">NE</span></div><div id="hud-waypoint" class="hud-waypoint"></div><div class="crosshair" id="crosshair"></div><div id="interaction-prompt" class="interaction-prompt hidden"></div><div class="vitals">${[
+    return `<div class="hud"><div id="scope-mask" class="scope-mask hidden" aria-hidden="true"><div class="scope-aperture"><i class="reticle-h"></i><i class="reticle-v"></i><b></b></div></div><div class="hud-top"><div class="hud-context"><div class="location" id="hud-location">松谷镇</div><div class="hud-time" id="hud-time">DAY 01  15:24</div></div><div class="hud-objective"><div class="small-title">生存手记 <kbd>J</kbd></div><div id="hud-objective">沿公路寻找松谷林务站</div></div></div><div class="compass"><span id="compass-target" class="compass-target hidden" aria-label="导航目标">◇</span><span id="compass-left">NW</span><span>·</span><span class="bearing" id="compass-heading">N</span><span>·</span><span id="compass-right">NE</span></div><div id="hud-waypoint" class="hud-waypoint"></div><div class="crosshair" id="crosshair"></div><div id="interaction-prompt" class="interaction-prompt hidden"></div><div class="vitals">${[
       ["health", "生命", "health"],
       ["stamina", "体力", "stamina"],
       ["hydration", "水分", "hydration"],
@@ -794,6 +849,21 @@ export class GameUI {
       .filter(Boolean)
       .join("  ");
     const waypoint = sim.state.waypoint;
+    const marker = $("compass-target");
+    marker?.classList.toggle("hidden", !waypoint);
+    if (marker && waypoint) {
+      const target = targetBearing(p.position, p.yaw, waypoint);
+      marker.style.left = target.percent + "%";
+      marker.textContent = target.behind
+        ? target.relative < 0
+          ? "‹◇"
+          : "◇›"
+        : "◇";
+      marker.setAttribute(
+        "aria-label",
+        `导航目标 ${Math.round(target.heading)}°，${Math.abs(target.relative) < 3 ? "前方" : `${target.relative < 0 ? "向左" : "向右"}${Math.round(Math.abs(target.relative))}°`}`,
+      );
+    }
     $("hud-waypoint")!.textContent = waypoint
       ? "◇ 标记 " +
         Math.round(
@@ -830,6 +900,17 @@ export class GameUI {
             : w
               ? "耐久 " + Math.round(gun!.durability) + "%"
               : "";
+    const vehicle = p.vehicle
+      ? sim.state.vehicles.find((v) => v.id === p.vehicle)
+      : undefined;
+    if (vehicle) {
+      $("weapon-name")!.textContent =
+        vehicle.kind === "pickup" ? "林务皮卡" : "灰谷越野车";
+      $("ammo-count")!.textContent =
+        `${Math.round(Math.abs(vehicle.speed) * 3.6)} km/h${vehicle.speed < -0.1 ? " · 倒车" : ""}`;
+      $("weapon-detail")!.textContent =
+        `燃油 ${Math.round(vehicle.fuel)} · 车况 ${Math.round(vehicle.health)}% · ${this.settings.keys.interact?.replace("Key", "")} 下车`;
+    }
     $("crosshair")?.classList.toggle("aiming", aiming);
     const scoped =
       !!gun?.attachments.includes("scope") && this.scopeWeight > 0.55;
@@ -871,7 +952,7 @@ export class GameUI {
     if (!el || !this.sim) return;
     el.classList.toggle("hidden", !this.sim.building.active);
     if (this.sim.building.active)
-      el.innerHTML = `<div class="${valid ? "good" : "warning"}">${valid ? "可以放置：" + (BUILDING_KINDS.find((p) => p[0] === this.sim!.building.selected)?.[1] ?? "组件") : reason}</div><div class="button-row"><span class="key-hint"><kbd>E</kbd> 放置</span><span class="key-hint"><kbd>R</kbd> 旋转</span><span class="key-hint"><kbd>Esc</kbd> 取消</span></div>`;
+      el.innerHTML = `<div class="${valid ? "good" : "warning"}">${valid ? "可以放置：" + (BUILDING_KINDS.find((p) => p[0] === this.sim!.building.selected)?.[1] ?? "组件") : reason}</div><div class="button-row"><span class="key-hint"><kbd>E</kbd> 放置</span><span class="key-hint"><kbd>R</kbd> 旋转</span><span class="key-hint"><kbd>右键 / Esc</kbd> 取消</span></div>`;
   }
   toast(text: string, type = "info") {
     const toast = document.createElement("div");
